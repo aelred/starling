@@ -30,7 +30,6 @@ class Environment:
         else:
             return self._parent.depth() + 1
 
-
     def resolve(self, name):
         env = self
 
@@ -49,4 +48,3 @@ class Environment:
 
     def __repr__(self):
         return '%s: %s\n%r' % (self, self.bindings.keys(), self._parent)
-

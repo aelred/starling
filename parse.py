@@ -1,6 +1,6 @@
-from pyparsing import StringEnd, Word, Literal, CharsNotIn, SkipTo, Keyword
+from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword
 from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress, Forward
-from pyparsing import alphas, alphanums, nums, oneOf, lineEnd, quotedString
+from pyparsing import alphas, alphanums, nums, lineEnd, quotedString
 from pyparsing import ParseException, ParseSyntaxException
 
 from starling import error
@@ -33,6 +33,7 @@ let_expr = Group(let + bindings + in_ - expr)('let*')
 atom << (let_expr | number | string | ident | parentheses | linked_list)
 
 grammar = (Optional(expr) + StringEnd()).ignore(comment)
+
 
 def _parse(expr):
     try:
@@ -96,4 +97,3 @@ def display(obj):
             return str(obj)
     else:
         return obj.eval_str()
-

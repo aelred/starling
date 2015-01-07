@@ -1,6 +1,6 @@
 import logging
 
-from starling import error, linked_list, parse, thunk
+from starling import thunk
 
 log = logging.getLogger(__name__)
 

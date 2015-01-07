@@ -1,4 +1,4 @@
-from starling import environment, thunk, linked_list
+from starling import environment, linked_list
 from starling.function import StarlingFunction, Const, BI, Builtin
 
 glob_env = environment.Environment(None, {

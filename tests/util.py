@@ -3,6 +3,7 @@ import starling
 from nose.tools import eq_, assert_raises, timed
 from functools import wraps
 
+
 def programs(libs):
     def programs_wrapper(f):
         @wraps(f)

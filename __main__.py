@@ -1,5 +1,6 @@
 from starling import run
 
+
 def cli():
     # run an interpreter
     while True:

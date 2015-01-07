@@ -1,9 +1,9 @@
 from nose.tools import eq_
 from cStringIO import StringIO
-import imp
 import sys
 
 from starling import __main__
+
 
 def _input(inputs, result):
     orig_stdout = sys.stdout

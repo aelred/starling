@@ -1,4 +1,4 @@
-from starling.linked_list import *
+from starling.linked_list import empty
 from starling import glob_env, parse, thunk
 
 from nose.tools import eq_
