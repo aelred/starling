@@ -1,9 +1,12 @@
-import environment
-import parse
+from starling import run
 
-from function import Thunk
-
-if __name__ == '__main__':
+def cli():
     # run an interpreter
     while True:
-        print run(raw_input('>>> '))
+        inp = raw_input('>>> ')
+        if inp == 'quit':
+            break
+        print run(inp)
+
+if __name__ == '__main__':
+    cli()
