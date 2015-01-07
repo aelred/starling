@@ -1,10 +1,15 @@
 import logging
+import os
+
 from starling import environment
 
 log = logging.getLogger('starling')
 
+_loc = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+lib_path = os.path.join(_loc, 'lib.star')
+
 std_lib = ''
-with open('lib.star', 'r') as f:
+with open(lib_path, 'r') as f:
     std_lib = f.read()
 
 
