@@ -24,12 +24,6 @@ class Environment:
     def child(self, bindings):
         return Environment(self, bindings)
 
-    def depth(self):
-        if self._parent is None:
-            return 0
-        else:
-            return self._parent.depth() + 1
-
     def resolve(self, name):
         env = self
 
