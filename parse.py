@@ -52,9 +52,6 @@ class Token:
         self.names = set(names)
         self.value = value
 
-    def is_a(self, name):
-        return name in self.names
-
     def __eq__(self, other):
         return self.names == other.names and self.value == other.value
 
