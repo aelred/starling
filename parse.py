@@ -22,7 +22,7 @@ else_ = Suppress(Keyword('else'))
 reserved = let | in_ | lambda_ | colon | if_ | then | else_
 
 word_id = Word(alphas + '_', alphanums + '_')
-asc_id = Word('+-*/=<>\\?')
+asc_id = Word('+-*/=<>?')
 ident = ~reserved + (word_id | asc_id)('identifier*')
 string = quotedString('string*')
 
