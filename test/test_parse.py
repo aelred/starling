@@ -20,7 +20,7 @@ def test_grammar():
     parse.grammar.validate()
 
     # parse some really simple scripts
-    # _parse('', [])
+    _parse('', [])
     _parse('True', [['True']])
     _parse('5', [['5']])
     _parse('x', [['x']])
