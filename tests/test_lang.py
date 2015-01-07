@@ -62,8 +62,8 @@ def test_const():
 @programs(False)
 def test_func():
     return {
-        'let square (\ x (* x x)) in (square 5)': '25',
-        'let avg (\ x (\ y (/ (+ x y) 2))) in (let a 6 in (avg a 8))': '7'
+        'let square (\ x: * x x) in (square 5)': '25',
+        'let avg (\ x :\ y: (/ (+ x y) 2)) in (let a 6 in (avg a 8))': '7'
     }
 
 
@@ -85,22 +85,20 @@ def test_list():
 def test_recursion():
     return {
         """
-        let tri (\ x (if (= x 0) 0 (+ (tri (- x 1)) x)))
+        let tri (\ x: (if (= x 0) 0 (+ (tri (- x 1)) x)))
         in (tri 4)
         """: '10',
 
         """
         let fib
         (
-            \ x
+            \ x:
+            if (= x 0)
+            0
             (
-                if (= x 0)
-                0
-                (
-                    if (= x 1)
-                    1
-                    (+ (fib (- x 1)) (fib (- x 2)))
-                )
+                if (= x 1)
+                1
+                (+ (fib (- x 1)) (fib (- x 2)))
             )
         ) in
         (fib 6)
@@ -130,7 +128,7 @@ def test_comment():
         # inverts a number
         let inv
         (
-            \ x  # accepts one argument, x
+            \ x:  # accepts one argument, x
             (    # and then... (this is my favourite bit)
                 - 0 x  # return 0 - x = -x
             )
@@ -162,5 +160,5 @@ def test_runtime_error():
     return [
         'a',
         '(+ (let y 10 in y) y)',
-        '(let foo (\ x (* 2 x)) in (foo x))'
+        '(let foo (\ x: * 2 x) in (foo x))'
     ]
