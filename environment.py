@@ -1,10 +1,6 @@
 import logging
 
-from starling import thunk
-import parse
 import error
-import linked_list
-from function import StarlingFunction, BI, Builtin, Const
 
 log = logging.getLogger(__name__)
 
@@ -54,47 +50,3 @@ class Environment:
     def __repr__(self):
         return '%s: %s\n%r' % (self, self.bindings.keys(), self._parent)
 
-
-def _let(name, value, thunk):
-    new_env = Environment(value.env, {name.token.value: value})
-    value.env = new_env
-    thunk.env = new_env
-    return thunk.eval()
-
-
-def _letall(lets, body):
-    tokens = lets.token.value
-
-    def pairs(xs):
-        it = iter(xs)
-        while True:
-            yield next(it), next(it)
-
-    bindings = dict([(n.value, thunk.Thunk(t, n.value))
-                     for n, t in pairs(tokens)])
-    new_env = Environment(lets.env, bindings)
-    for thunk in bindings.values():
-        thunk.env = new_env
-    body.env = new_env
-    return body.eval()
-
-
-glob_env = Environment(None, {
-    'False': Const(False),
-    'True': Const(True),
-    '+': BI('+', 2, lambda a, b: a() + b()),
-    '-': BI('-', 2, lambda a, b: a() - b()),
-    '*': BI('*', 2, lambda a, b: a() * b()),
-    '/': BI('/', 2, lambda a, b: a() / b()),
-    'mod': BI('mod', 2, lambda a, b: a() % b()),
-    '=': BI('=', 2, lambda a, b: a() == b()),
-    '>': BI('>', 2, lambda a, b: a() > b()),
-    '<': BI('<', 2, lambda a, b: a() < b()),
-    'if': BI('if', 3, lambda p, c, a: c() if p() else a()),
-    '\\': Builtin('\\', 2, lambda p, b: StarlingFunction(p.token.value, b)),
-    'let': Builtin('let', 3, _let),
-    'letall': Builtin('letall', 2, _letall),
-    'head': BI('head', 1, lambda xs: xs().head()),
-    'tail': BI('tail', 1, lambda xs: xs().tail()),
-    'cons': Builtin('cons', 2, lambda x, xs: linked_list.List(x, xs))
-})

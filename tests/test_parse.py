@@ -1,17 +1,18 @@
-from starling import parse
+from starling import parse, error
+from starling.parse import _parse
 
 from nose.tools import eq_, raises
 import pyparsing
 
 
-def _parse(s, result=None):
-    parse_result = parse.grammar.parseString(s)
+def _check_parse(s, result=None):
+    parse_result = _parse(s)
     print parse_result.dump()
     eq_(parse_result.asList(), result)
 
-@raises(pyparsing.ParseSyntaxException, pyparsing.ParseException)
+@raises(error.StarlingSyntaxError)
 def _bad(s):
-    parse.grammar.parseString(s)
+    _parse(s)
 
 
 def test_grammar():
@@ -19,48 +20,46 @@ def test_grammar():
     parse.grammar.validate()
 
     # parse some really simple scripts
-    _parse('', [])
-    _parse('True', [['True']])
-    _parse('5', [['5']])
-    _parse('x', [['x']])
-    _parse('map', [['map']])
-    _parse('+ 1 2', [['+', '1', '2']])
-    _parse('(not True)', [[['not', 'True']]])
-    _parse('# commenting!', [])
-    _parse('6 # still commenting!', [['6']])
-    _parse('foo "My string"', [['foo', '"My string"']])
-    _parse('(let f (\ x (x * x)) (f 10))',
-        [[['let', 'f',
+    _check_parse('', [])
+    _check_parse('True', [['True']])
+    _check_parse('5', [['5']])
+    _check_parse('x', [['x']])
+    _check_parse('map', [['map']])
+    _check_parse('+ 1 2', [['+', '1', '2']])
+    _check_parse('(not True)', [[['not', 'True']]])
+    _check_parse('# commenting!', [])
+    _check_parse('6 # still commenting!', [['6']])
+    _check_parse('foo "My string"', [['foo', '"My string"']])
+    _check_parse('let f (\ x (* x x)) in f 10',
+        [[[['f',
           [
            '\\', 'x',
-           ['x', '*', 'x'],
-          ],
+           ['*', 'x', 'x'],
+          ]],
           ['f', '10'],
-         ]]
-        ])
+         ]
+        ]])
 
     # obnoxious code
-    _parse(
+    _check_parse(
         """
             # do the thing!
             (let foo # yeah!
-                    (     \\    \t   xs
+                   (     \\    \t   xs
             (foo
             xs  )
-        )
-            foo [ 1   # crazy!
+        ) in
+            (foo [ 1   # crazy!
             2
         3]
-        )
+        ))
         """,
-        [[[
-           'let', 'foo',
+        [[[[['foo',
            [
             '\\', 'xs', ['foo', 'xs'],
-           ],
-           'foo', ['1', '2', '3'],
-          ]
-        ]])
+           ]],
+           [['foo', ['1', '2', '3']]],
+        ]]]])
 
     _bad('(')
     _bad(')')
@@ -70,7 +69,8 @@ def test_grammar():
     _bad('let $my_favourite_variable 0')
 
     # attempt to parse standard library
-    results = parse.grammar.parseFile('lib.star')
+    with open('lib.star', 'r') as f:
+        results = _parse(f.read())
     assert len(results)
 
 

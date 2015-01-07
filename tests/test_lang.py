@@ -54,16 +54,16 @@ def test_if():
 @programs(False)
 def test_const():
     return {
-        'let a 5 (+ a 1)': '6',
-        'let x 2 (/ (let x 10 x) x)': '5',
+        'let a 5 in + a 1': '6',
+        'let x 2 in (/ (let x 10 in x) x)': '5',
     }
 
 
 @programs(False)
 def test_func():
     return {
-        'let square (\ x (* x x)) (square 5)': '25',
-        'let avg (\ x (\ y (/ (+ x y) 2))) (let a 6 (avg a 8))': '7'
+        'let square (\ x (* x x)) in (square 5)': '25',
+        'let avg (\ x (\ y (/ (+ x y) 2))) in (let a 6 in (avg a 8))': '7'
     }
 
 
@@ -86,7 +86,7 @@ def test_recursion():
     return {
         """
         let tri (\ x (if (= x 0) 0 (+ (tri (- x 1)) x)))
-        (tri 4)
+        in (tri 4)
         """: '10',
 
         """
@@ -102,7 +102,7 @@ def test_recursion():
                     (+ (fib (- x 1)) (fib (- x 2)))
                 )
             )
-        )
+        ) in
         (fib 6)
         """: '8',
     }
@@ -110,11 +110,11 @@ def test_recursion():
 
 @programs(False)
 def test_lazy():
-    # (let f f f) means 'define a function f that calls f, then call f.
+    # (let f f in f) means 'define a function f that calls f, then call f.
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
-        'if False (let f f f) "good"': '"good"',
-        'head ["fine" (let f f f)]': '"fine"'
+        'if False (let f f in f) "good"': '"good"',
+        'head ["fine" (let f f in f)]': '"fine"'
     }
 
 
@@ -134,7 +134,7 @@ def test_comment():
             (    # and then... (this is my favourite bit)
                 - 0 x  # return 0 - x = -x
             )
-        )
+        ) in
         inv 10  # call with arg 10, should return -10
         """: '-10'
     }
@@ -161,6 +161,6 @@ def test_syntax_error():
 def test_runtime_error():
     return [
         'a',
-        '(+ (let y 10 y) y)',
-        '(let foo (\ x (* 2 x)) (foo x))'
+        '(+ (let y 10 in y) y)',
+        '(let foo (\ x (* 2 x)) in (foo x))'
     ]

@@ -40,7 +40,6 @@ class StarlingFunction(Function):
         return thunk.Thunk(self._body.token, env=new_env).eval()
 
 
-
 class Builtin:
 
     def __init__(self, *args, **kwargs):

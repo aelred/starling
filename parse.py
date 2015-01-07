@@ -1,6 +1,9 @@
-from pyparsing import StringEnd, Word, Literal, Forward, CharsNotIn, SkipTo
-from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress
+from pyparsing import StringEnd, Word, Literal, CharsNotIn, SkipTo, Keyword
+from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress, Forward
 from pyparsing import alphas, alphanums, nums, oneOf, lineEnd, quotedString
+from pyparsing import ParseException, ParseSyntaxException
+
+from starling import error
 
 lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
@@ -8,20 +11,39 @@ llist = Suppress(Literal('['))
 rlist = Suppress(Literal(']'))
 comment = (Literal('#') + SkipTo(lineEnd))('comment*')
 number = Word(nums)('number*')
-ident = (Word(alphas + '_', alphanums + '_') | Word('+-*/=<>\\'))('identifier*')
+
+let = Suppress(Keyword('let'))
+in_ = Suppress(Keyword('in'))
+reserved = let | in_
+
+word_id = Word(alphas + '_', alphanums + '_')
+asc_id = Word('+-*/=<>\\')
+ident = ~reserved + (word_id | asc_id)('identifier*')
 string = quotedString('string*')
 
 atom = Forward()('atom*')
 linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist
 expr = Group(OneOrMore(atom))('expression*')
-parentheses = (lpar - expr - rpar)
-atom << (number | string | ident | parentheses | linked_list)
+parentheses = (lpar - Optional(expr) - rpar)
 
-grammar = (ZeroOrMore(expr) + StringEnd()).ignore(comment)
+binding = ident + atom
+bindings = Group(OneOrMore(binding))('bindings')
+let_expr = Group(let + bindings + in_ - expr)('let*')
+
+atom << (let_expr | number | string | ident | parentheses | linked_list)
+
+grammar = (Optional(expr) + StringEnd()).ignore(comment)
+
+def _parse(expr):
+    try:
+        return grammar.parseString(expr)
+    except (ParseException, ParseSyntaxException), e:
+        arrow = ' ' * (e.column - 1) + '^'
+        raise error.StarlingSyntaxError('\n'.join([str(e), e.line, arrow]))
+
 
 def tokenize(expr):
-    parse_result = grammar.parseString(expr)
-    return _interpret_parse_result(parse_result)
+    return _interpret_parse_result(_parse(expr))
 
 
 def _interpret_parse_result(parse_result):
@@ -52,6 +74,9 @@ class Token:
         self.names = set(names)
         self.value = value
 
+    def assert_is(self, name):
+        assert name in self.names, '%r not in %r' % (name, list(self.names))
+
     def __eq__(self, other):
         return self.names == other.names and self.value == other.value
 
@@ -61,7 +86,7 @@ class Token:
 
 def display(obj):
     try:
-        return obj.eval_str()
+        obj.eval_str
     except AttributeError:
         if obj is None:
             return ''
@@ -69,3 +94,6 @@ def display(obj):
             return '"%s"' % obj
         else:
             return str(obj)
+    else:
+        return obj.eval_str()
+
