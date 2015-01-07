@@ -41,10 +41,10 @@ class List(object):
             return empty
 
     def head(self):
-        return self._head.dethunk()
+        return self._head.eval()
 
     def tail(self):
-        return self._tail.dethunk()
+        return self._tail.eval()
 
     def __eq__(self, other):
         try:

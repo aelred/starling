@@ -2,6 +2,7 @@ import logging
 
 import environment
 import parse
+from function import Thunk
 
 log = logging.getLogger('starling')
 
@@ -20,7 +21,7 @@ def run(script, lib=True):
 
     tokens = parse.tokenize(script)
     if len(tokens) == 1:
-        return parse.display(environment.glob_env.eval(tokens[0]))
+        return parse.display(Thunk(tokens[0], env=environment.glob_env).eval())
     else:
         return ""
 

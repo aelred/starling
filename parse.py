@@ -61,12 +61,6 @@ class Token:
     def __repr__(self):
         return 'Token(%r, %r)' % (list(self.names), self.value)
 
-def strip_wrap(expr, open_char, close_char):
-    if expr and expr[0] == open_char and expr[-1] == close_char:
-        return expr[1:-1]
-    else:
-        return expr
-
 
 def display(obj):
     try:

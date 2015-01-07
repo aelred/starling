@@ -1,5 +1,7 @@
 import logging
 
+import linked_list
+
 log = logging.getLogger(__name__)
 
 
@@ -35,7 +37,7 @@ class StarlingFunction(Function):
                                                  self._body.token))
         bindings = {self._param: thunk}
         new_env = self._body.env.child(bindings)
-        return new_env.eval(self._body.token)
+        return Thunk(self._body.token, env=new_env).eval()
 
 
 class Thunk:
@@ -44,15 +46,40 @@ class Thunk:
         self.token = token
         self._name = name or 'thunk'
         self.env = env
-
         self._memory = None
         self._remembers = False
 
-    def dethunk(self):
+    def eval(self):
         if not self._remembers:
-            self._memory = self.env.eval(self.token)
+            log.info('eval\n%s' % self.token)
+            self._memory = self._eval()
+            log.debug('%s = %s' % (self.token, self._memory))
             self._remembers = True
         return self._memory
+
+    def _eval(self):
+
+        def expression():
+            func = Thunk(self.token.value[0], env=self.env).eval()
+            for arg in self.token.value[1:]:
+                func = func.apply(arg, self.env)
+            return func
+
+        evaluators = {
+            'expression': expression,
+            'identifier': lambda: self.env.resolve(self.token.value),
+            'list': lambda: linked_list.List.build(self.env, self.token),
+            'string': lambda: self.token.value.strip('"'),
+            'number': lambda: int(self.token.value)
+        }
+
+        for name in self.token.names:
+            try:
+                return evaluators[name]()
+            except KeyError:
+                pass
+
+        raise error.StarlingRuntimeError('Can\'t recognize %s' % self.token)
 
 
 class Builtin:
@@ -60,7 +87,7 @@ class Builtin:
     def __init__(self, *args, **kwargs):
         self._bi = _Builtin(*args, **kwargs)
 
-    def dethunk(self):
+    def eval(self):
         return self._bi
 
 
@@ -82,7 +109,7 @@ class BI(Builtin):
     """ Shorthand built-in function. """
 
     def __init__(self, name, num_params, func):
-        f = lambda *args: func(*[a.dethunk for a in args])
+        f = lambda *args: func(*[a.eval for a in args])
         Builtin.__init__(self, name, num_params, f)
 
 
@@ -91,5 +118,5 @@ class Const:
     def __init__(self, value):
         self._value = value
 
-    def dethunk(self):
+    def eval(self):
         return self._value

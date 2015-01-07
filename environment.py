@@ -33,33 +33,6 @@ class Environment:
         else:
             return self._parent.depth() + 1
 
-    def eval(self, token):
-        self.log.info('eval\n%s' % token)
-        result = self._eval(token)
-        self.log.debug('%s = %s' % (token, result))
-        return result
-
-    def _eval(self, token):
-        func = None
-
-        if token.is_a('expression'):
-            func = self.eval(token.value[0])
-            for arg in token.value[1:]:
-                func = func.apply(arg, self)
-            return func
-        elif token.is_a('parentheses'):
-            return self.eval(token.value[0])
-        elif token.is_a('identifier'):
-            return self.resolve(token.value)
-
-        if token.is_a('list'):
-            return linked_list.List.build(self, token)
-        elif token.is_a('string'):
-            return parse.strip_wrap(token.value, '"', '"')
-        elif token.is_a('number'):
-            return int(token.value)
-        else:
-            raise error.StarlingRuntimeError('Can\'t recognize %s' % token)
 
     def resolve(self, name):
         env = self
@@ -67,7 +40,7 @@ class Environment:
         while env is not None:
             env.log.debug('resolve %s' % (name,))
             if name in env.bindings:
-                return env.bindings[name].dethunk()
+                return env.bindings[name].eval()
             else:
                 env = env._parent
 
@@ -85,7 +58,7 @@ def _let(name, value, thunk):
     new_env = Environment(value.env, {name.token.value: value})
     value.env = new_env
     thunk.env = new_env
-    return thunk.dethunk()
+    return thunk.eval()
 
 
 def _letall(lets, body):
@@ -101,7 +74,8 @@ def _letall(lets, body):
     new_env = Environment(lets.env, bindings)
     for thunk in bindings.values():
         thunk.env = new_env
-    return new_env.eval(body.token)
+    body.env = new_env
+    return body.eval()
 
 
 glob_env = Environment(None, {
