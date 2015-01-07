@@ -32,7 +32,7 @@ def test_grammar():
     _check_parse('foo "My string"', [['foo', '"My string"']])
     _check_parse('let f (\ x: (* x x)) in f 10',
                  [[[['f',
-                     [['x', [['*', 'x', 'x']]]]],
+                     [[['x'], [['*', 'x', 'x']]]]],
                     ['f', '10'],
                     ]]])
 
@@ -51,7 +51,7 @@ def test_grammar():
     ))
         """,
         [[[[['foo',
-             [['xs', ['foo', 'xs']]]],
+             [[['xs'], ['foo', 'xs']]]],
             [['foo', ['1', '2', '3']]],
             ]]]])
 

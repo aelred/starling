@@ -63,7 +63,7 @@ def test_const():
 def test_func():
     return {
         'let square (\ x: * x x) in (square 5)': '25',
-        'let avg (\ x :\ y: (/ (+ x y) 2)) in (let a 6 in (avg a 8))': '7'
+        'let avg (\ x y: (/ (+ x y) 2)) in (let a 6 in (avg a 8))': '7'
     }
 
 
@@ -138,12 +138,10 @@ def test_comment():
     }
 
 
-@programs(True)
+@programs(False)
 def test_partial():
     return {
-        '(+ 3) 5': '8',
-        'map (* 2) [1 2 3]': '[2 4 6]',
-        'filter (= "a") ["a" "b" "a" "a"]': '["a" "a" "a"]'
+        '(+ 3) 5': '8'
     }
 
 

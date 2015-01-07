@@ -45,6 +45,14 @@ def test_lazy():
 
 
 @programs(True)
+def test_partial():
+    return {
+        'map (* 2) [1 2 3]': '[2 4 6]',
+        'filter (= "a") ["a" "b" "a" "a"]': '["a" "a" "a"]'
+    }
+
+
+@programs(True)
 def test_misc():
     return {
         'id 50': '50',

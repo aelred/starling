@@ -31,7 +31,9 @@ parentheses = (lpar - Optional(expr) - rpar)
 binding = ident + atom
 bindings = Group(OneOrMore(binding))('bindings')
 let_expr = Group(let + bindings + in_ - expr)('let*')
-lambda_expr = Group(lambda_ + ident + colon - expr)('lambda*')
+
+params = Group(OneOrMore(ident))('params')
+lambda_expr = Group(lambda_ + params + colon - expr)('lambda*')
 
 atom << (let_expr | lambda_expr | number | string | ident | parentheses |
          linked_list)
