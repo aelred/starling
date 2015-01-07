@@ -1,7 +1,6 @@
 import logging
 
-import parse
-from function import Thunk
+from starling import parse
 
 log = logging.getLogger(__name__)
 
@@ -21,24 +20,6 @@ class List(object):
     def __init__(self, head, tail):
         self._head = head
         self._tail = tail
-
-    @classmethod
-    def build(cls, env, token):
-        log.debug('build list %s' % (token,))
-        return cls._build(env, token)
-
-    @classmethod
-    def _build(cls, env, token):
-        if token.value == []:
-            return empty
-
-        head = token.value[0]
-        tail = parse.Token(token.names, token.value[1:])
-
-        try:
-            return cls(Thunk(head, 'head', env), Thunk(tail, 'tail', env))
-        except StopIteration:
-            return empty
 
     def head(self):
         return self._head.eval()

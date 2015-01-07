@@ -1,6 +1,6 @@
 import logging
 
-from starling import error, linked_list
+from starling import error, linked_list, parse
 
 log = logging.getLogger(__name__)
 
@@ -65,10 +65,19 @@ class Thunk:
                 func = func.apply(arg, self.env)
             return func
 
+        def llist():
+            if token.value == []:
+                return linked_list.empty
+            else:
+                head = Thunk(token.value[0], 'head', env)
+                tail = Thunk(parse.Token(token.names, token.value[1:]))
+                return linked_list.List(head, tail)
+
+
         evaluators = {
             'expression': expression,
             'identifier': lambda: self.env.resolve(self.token.value),
-            'list': lambda: linked_list.List.build(self.env, self.token),
+            'list': llist,
             'string': lambda: self.token.value.strip('"'),
             'number': lambda: int(self.token.value)
         }
