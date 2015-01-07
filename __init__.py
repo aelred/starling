@@ -1,8 +1,5 @@
 import logging
-
-import environment
-import parse
-from function import Thunk
+from starling import environment
 
 log = logging.getLogger('starling')
 
@@ -21,11 +18,7 @@ def run(script, lib=True):
 
     tokens = parse.tokenize(script)
     if len(tokens) == 1:
-        return parse.display(Thunk(tokens[0], env=environment.glob_env).eval())
+        return parse.display(function.Thunk(tokens[0],
+                                            env=environment.glob_env).eval())
     else:
         return ""
-
-if __name__ == '__main__':
-    # run an interpreter
-    while True:
-        print run(raw_input('>>> '))
