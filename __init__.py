@@ -23,7 +23,7 @@ def run(script, lib=True):
 
     tokens = parse.tokenize(script)
     if len(tokens) == 1:
-        return parse.display(thunk.Thunk(tokens[0],
-                                         env=glob_env.glob_env).eval())
+        return parse.display(thunk.Thunk(tokens[0], 'script',
+                                         glob_env.glob_env).eval())
     else:
         return ""

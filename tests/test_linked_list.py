@@ -13,7 +13,7 @@ def test_empty():
 def test_list():
     script = '["apple" "banana" "cabbage"]'
     token = parse.tokenize(script)[0].value[0]
-    li = thunk.Thunk(token, env=glob_env).eval()
+    li = thunk.Thunk(token, 'list', glob_env).eval()
     eq_(li.eval_str(), script)
     # make sure list is not 'consumed' after evaluation
     eq_(li.eval_str(), script)

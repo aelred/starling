@@ -7,20 +7,23 @@ log = logging.getLogger(__name__)
 
 class Thunk:
 
-    def __init__(self, token, name=None, env=None):
+    def __init__(self, token, name, env=None):
         self.token = token
-        self._name = name or 'thunk'
+        self._name = name
         self.env = env
         self._memory = None
         self._remembers = False
 
     def eval(self):
         if not self._remembers:
-            log.info('eval\n%s' % self.token.names)
+            log.info('eval\n%s' % self)
             self._memory = _evaluate(self.token, self.env)
-            log.debug('%s = %s' % (self.token.names, self._memory))
+            log.debug('%s = %s' % (self, self._memory))
             self._remembers = True
         return self._memory
+
+    def __str__(self):
+        return self._name
 
 
 def _evaluate(token, env):
@@ -34,10 +37,10 @@ def _evaluate(token, env):
 
 
 def _expression(value, env):
-    func = Thunk(value[0], env=env).eval()
+    func = Thunk(value[0], 'expression', env).eval()
     for arg in value[1:]:
         arg.assert_is('atom')
-        thunk_ = Thunk(arg, env=env)
+        thunk_ = Thunk(arg, 'argument', env=env)
         func = func.apply(thunk_)
     return func
 
@@ -71,7 +74,7 @@ def _let(value, env):
     for thunk_ in bindings.values():
         thunk_.env = new_env
 
-    return Thunk(expr_token, env=new_env).eval()
+    return Thunk(expr_token, 'let', new_env).eval()
 
 
 class _Lambda(function.Function):
@@ -102,7 +105,7 @@ class _Lambda(function.Function):
                                                  self._body))
         bindings = {self._param: thunk_}
         new_env = self._env.child(bindings)
-        return Thunk(self._body, env=new_env).eval()
+        return Thunk(self._body, 'lambda', new_env).eval()
 
 
 def _if(value, env):
