@@ -16,10 +16,13 @@ let = Suppress(Keyword('let'))
 in_ = Suppress(Keyword('in'))
 lambda_ = Suppress(Keyword('\\'))
 colon = Suppress(':')
-reserved = let | in_ | lambda_ | colon
+if_ = Suppress(Keyword('if'))
+then = Suppress(Keyword('then'))
+else_ = Suppress(Keyword('else'))
+reserved = let | in_ | lambda_ | colon | if_ | then | else_
 
 word_id = Word(alphas + '_', alphanums + '_')
-asc_id = Word('+-*/=<>\\')
+asc_id = Word('+-*/=<>\\?')
 ident = ~reserved + (word_id | asc_id)('identifier*')
 string = quotedString('string*')
 
@@ -35,8 +38,10 @@ let_expr = Group(let + bindings + in_ - expr)('let*')
 params = Group(OneOrMore(ident))('params')
 lambda_expr = Group(lambda_ + params + colon - expr)('lambda*')
 
-atom << (let_expr | lambda_expr | number | string | ident | parentheses |
-         linked_list)
+if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
+
+atom << (let_expr | lambda_expr | if_expr | number | string | ident |
+         parentheses | linked_list)
 
 grammar = (Optional(expr) + StringEnd()).ignore(comment)
 

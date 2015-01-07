@@ -104,6 +104,19 @@ class Lambda(function.Function):
         new_env = self._env.child(bindings)
         return Thunk(self._body, env=new_env).eval()
 
+
+def _if(value, env):
+    for expr in value:
+        expr.assert_is('expression')
+    pred = value[0]
+
+    if Thunk(pred, 'predicate', env).eval():
+        cons = value[1]
+        return Thunk(cons, 'consequent', env).eval()
+    else:
+        alt = value[2]
+        return Thunk(alt, 'alternative', env).eval()
+
 _evaluators = {
     'expression': _expression,
     'identifier': lambda v, e: e.resolve(v),
@@ -111,5 +124,6 @@ _evaluators = {
     'string': lambda v, e: v.strip('"'),
     'number': lambda v, e: int(v),
     'let': _let,
-    'lambda': Lambda
+    'lambda': Lambda,
+    'if': _if
 }

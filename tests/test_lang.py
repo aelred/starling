@@ -48,7 +48,7 @@ def test_logic():
 
 @programs(False)
 def test_if():
-    return {'if (> 1 2) "Oh dear..." "Great!"': '"Great!"'}
+    return {'if > 1 2 then "Oh dear..." else "Great!"': '"Great!"'}
 
 
 @programs(False)
@@ -85,21 +85,17 @@ def test_list():
 def test_recursion():
     return {
         """
-        let tri (\ x: (if (= x 0) 0 (+ (tri (- x 1)) x)))
+        let tri (\ x: (if = x 0 then 0 else + (tri (- x 1)) x))
         in (tri 4)
         """: '10',
 
         """
-        let fib
-        (
-            \ x:
-            if (= x 0)
-            0
-            (
-                if (= x 1)
-                1
-                (+ (fib (- x 1)) (fib (- x 2)))
-            )
+        let fib (\ x:
+            if = x 0
+            then 0
+            else if = x 1
+            then 1
+            else + (fib (- x 1)) (fib (- x 2))
         ) in
         (fib 6)
         """: '8',
@@ -111,7 +107,7 @@ def test_lazy():
     # (let f f in f) means 'define a function f that calls f, then call f.
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
-        'if False (let f f in f) "good"': '"good"',
+        'if False then let f f in f else "good"': '"good"',
         'head ["fine" (let f f in f)]': '"fine"'
     }
 
