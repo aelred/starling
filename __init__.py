@@ -1,7 +1,7 @@
 import logging
 import os
 
-from starling import environment, thunk, glob_env
+from starling import environment, thunk, glob_env, parse
 
 log = logging.getLogger('starling')
 
