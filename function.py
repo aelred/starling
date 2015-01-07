@@ -1,6 +1,6 @@
 import logging
 
-import linked_list
+from starling import error, linked_list
 
 log = logging.getLogger(__name__)
 
