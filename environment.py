@@ -1,9 +1,10 @@
 import logging
 
+from starling import thunk
 import parse
 import error
 import linked_list
-from function import Thunk, StarlingFunction, BI, Builtin, Const
+from function import StarlingFunction, BI, Builtin, Const
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ def _letall(lets, body):
         while True:
             yield next(it), next(it)
 
-    bindings = dict([(n.value, Thunk(t, n.value))
+    bindings = dict([(n.value, thunk.Thunk(t, n.value))
                      for n, t in pairs(tokens)])
     new_env = Environment(lets.env, bindings)
     for thunk in bindings.values():

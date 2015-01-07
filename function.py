@@ -1,6 +1,6 @@
 import logging
 
-from starling import error, linked_list, parse
+from starling import error, linked_list, parse, thunk
 
 log = logging.getLogger(__name__)
 
@@ -12,8 +12,8 @@ class Function(object):
 
     def apply(self, func_arg, param_env):
         self.log.debug('apply %r' % (func_arg,))
-        thunk = Thunk(func_arg, env=param_env)
-        return self._apply(thunk)
+        thunk_ = thunk.Thunk(func_arg, env=param_env)
+        return self._apply(thunk_)
 
     def __str__(self):
         return self._name
@@ -32,63 +32,13 @@ class StarlingFunction(Function):
     def num_params(self):
         return len(self._params)
 
-    def _apply(self, thunk):
+    def _apply(self, thunk_):
         self.log.debug('param: %s\nbody:\n%s' % (self._param,
                                                  self._body.token))
-        bindings = {self._param: thunk}
+        bindings = {self._param: thunk_}
         new_env = self._body.env.child(bindings)
-        return Thunk(self._body.token, env=new_env).eval()
+        return thunk.Thunk(self._body.token, env=new_env).eval()
 
-
-class Thunk:
-
-    def __init__(self, token, name=None, env=None):
-        self.token = token
-        self._name = name or 'thunk'
-        self.env = env
-        self._memory = None
-        self._remembers = False
-
-    def eval(self):
-        if not self._remembers:
-            log.info('eval\n%s' % self.token)
-            self._memory = self._eval()
-            log.debug('%s = %s' % (self.token, self._memory))
-            self._remembers = True
-        return self._memory
-
-    def _eval(self):
-
-        def expression():
-            func = Thunk(self.token.value[0], env=self.env).eval()
-            for arg in self.token.value[1:]:
-                func = func.apply(arg, self.env)
-            return func
-
-        def llist():
-            if token.value == []:
-                return linked_list.empty
-            else:
-                head = Thunk(token.value[0], 'head', env)
-                tail = Thunk(parse.Token(token.names, token.value[1:]))
-                return linked_list.List(head, tail)
-
-
-        evaluators = {
-            'expression': expression,
-            'identifier': lambda: self.env.resolve(self.token.value),
-            'list': llist,
-            'string': lambda: self.token.value.strip('"'),
-            'number': lambda: int(self.token.value)
-        }
-
-        for name in self.token.names:
-            try:
-                return evaluators[name]()
-            except KeyError:
-                pass
-
-        raise error.StarlingRuntimeError('Can\'t recognize %s' % self.token)
 
 
 class Builtin:
@@ -105,8 +55,8 @@ class _Builtin(Function):
     def __init__(self, name, num_params, func):
         self.num_params = num_params
         if num_params > 1:
-            def partial(thunk):
-                f = lambda *a: func(thunk, *a)
+            def partial(thunk_):
+                f = lambda *a: func(thunk_, *a)
                 return _Builtin('partial-%s' % name, num_params - 1, f)
             self._apply = partial
         else:
