@@ -74,7 +74,7 @@ def _let(value, env):
     return Thunk(expr_token, env=new_env).eval()
 
 
-class Lambda(function.Function):
+class _Lambda(function.Function):
 
     def __init__(self, value, env):
         params = value[0]
@@ -124,6 +124,6 @@ _evaluators = {
     'string': lambda v, e: v.strip('"'),
     'number': lambda v, e: int(v),
     'let': _let,
-    'lambda': Lambda,
+    'lambda': _Lambda,
     'if': _if
 }
