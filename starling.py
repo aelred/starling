@@ -18,7 +18,11 @@ def run(script, lib=True):
     if lib:
         script = '%s\n(\n%s\n)' % (std_lib, script)
 
-    return parse.display(environment.glob_env.eval(script))
+    tokens = parse.tokenize(script)
+    if len(tokens) == 1:
+        return parse.display(environment.glob_env.eval(tokens[0]))
+    else:
+        return ""
 
 if __name__ == '__main__':
     # run an interpreter

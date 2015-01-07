@@ -20,8 +20,6 @@ class Environment:
 
         self.log = log.getChild(str(self))
 
-        self._memory = {}
-
         if self._parent is not None:
             self.log.debug('env %s -> %s: %r' %
                            (self, self._parent, self.bindings.keys()))
@@ -35,50 +33,39 @@ class Environment:
         else:
             return self._parent.depth() + 1
 
-    def eval(self, expr):
-        self.log.info('eval\n%s' % expr.strip())
-        result = self._eval(expr)
-        self.log.debug('%s = %s' % (expr.strip(), result))
-        self._memory[expr] = result
+    def eval(self, token):
+        self.log.info('eval\n%s' % token)
+        result = self._eval(token)
+        self.log.debug('%s = %s' % (token, result))
         return result
 
-    def _eval(self, expr):
-        try:
-            return self._memory[expr]
-        except KeyError:
-            pass
-
-        # split expression into tokens
-        tokens = parse.tokenize(expr)
-
-        if len(tokens) == 0:
-            return None
-
-        name = tokens[0]
-        args = tokens[1:]
-
+    def _eval(self, token):
         func = None
-        if parse.is_parenthesized(name):
-            func = self.eval(name)
-        elif parse.is_identifier(name):
-            func = self.resolve(name)
 
-        if func is not None:
-            for arg in args:
+        if token.is_a('expression'):
+            func = self.eval(token.value[0])
+            for arg in token.value[1:]:
                 func = func.apply(arg, self)
             return func
-        elif parse.is_list(name):
-            return linked_list.List.build(self, name)
-        elif parse.is_string(name):
-            return parse.strip_wrap(name, '"', '"')
+        elif token.is_a('parentheses'):
+            return self.eval(token.value[0])
+        elif token.is_a('identifier'):
+            return self.resolve(token.value)
+
+        if token.is_a('list'):
+            return linked_list.List.build(self, token)
+        elif token.is_a('string'):
+            return parse.strip_wrap(token.value, '"', '"')
+        elif token.is_a('number'):
+            return int(token.value)
         else:
-            return int(name)
+            raise error.StarlingRuntimeError('Can\'t recognize %s' % token)
 
     def resolve(self, name):
         env = self
 
         while env is not None:
-            env.log.debug('resolve %s' % name)
+            env.log.debug('resolve %s' % (name,))
             if name in env.bindings:
                 return env.bindings[name].dethunk()
             else:
@@ -94,26 +81,27 @@ class Environment:
         return '%s: %s\n%r' % (self, self.bindings.keys(), self._parent)
 
 
-def _let(name, value, expr):
-    new_env = Environment(value.env, {name.expr: value})
+def _let(name, value, thunk):
+    new_env = Environment(value.env, {name.token.value: value})
     value.env = new_env
-    expr.env = new_env
-    return expr.dethunk()
+    thunk.env = new_env
+    return thunk.dethunk()
 
 
 def _letall(lets, body):
-    tokens = parse.tokenize(lets.expr)
+    tokens = lets.token.value
 
     def pairs(xs):
         it = iter(xs)
         while True:
             yield next(it), next(it)
 
-    bindings = dict([(n, Thunk(nexpr, n)) for n, nexpr in pairs(tokens)])
+    bindings = dict([(n.value, Thunk(t, n.value))
+                     for n, t in pairs(tokens)])
     new_env = Environment(lets.env, bindings)
     for thunk in bindings.values():
         thunk.env = new_env
-    return new_env.eval(body.expr)
+    return new_env.eval(body.token)
 
 
 glob_env = Environment(None, {
@@ -128,7 +116,7 @@ glob_env = Environment(None, {
     '>': BI('>', 2, lambda a, b: a() > b()),
     '<': BI('<', 2, lambda a, b: a() < b()),
     'if': BI('if', 3, lambda p, c, a: c() if p() else a()),
-    '\\': Builtin('\\', 2, lambda p, b: StarlingFunction(p.expr, b)),
+    '\\': Builtin('\\', 2, lambda p, b: StarlingFunction(p.token.value, b)),
     'let': Builtin('let', 3, _let),
     'letall': Builtin('letall', 2, _letall),
     'head': BI('head', 1, lambda xs: xs().head()),

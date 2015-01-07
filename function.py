@@ -9,7 +9,7 @@ class Function(object):
         self.log = log.getChild(self._name)
 
     def apply(self, func_arg, param_env):
-        self.log.debug('apply %r' % func_arg)
+        self.log.debug('apply %r' % (func_arg,))
         thunk = Thunk(func_arg, env=param_env)
         return self._apply(thunk)
 
@@ -31,21 +31,28 @@ class StarlingFunction(Function):
         return len(self._params)
 
     def _apply(self, thunk):
-        self.log.debug('param: %s\nbody:\n%s' % (self._param, self._body.expr))
+        self.log.debug('param: %s\nbody:\n%s' % (self._param,
+                                                 self._body.token))
         bindings = {self._param: thunk}
         new_env = self._body.env.child(bindings)
-        return new_env.eval(self._body.expr)
+        return new_env.eval(self._body.token)
 
 
 class Thunk:
 
-    def __init__(self, expr, name=None, env=None):
-        self.expr = expr
+    def __init__(self, token, name=None, env=None):
+        self.token = token
         self._name = name or 'thunk'
         self.env = env
 
+        self._memory = None
+        self._remembers = False
+
     def dethunk(self):
-        return self.env.eval(self.expr)
+        if not self._remembers:
+            self._memory = self.env.eval(self.token)
+            self._remembers = True
+        return self._memory
 
 
 class Builtin:

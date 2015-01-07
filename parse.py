@@ -1,71 +1,71 @@
+from pyparsing import StringEnd, Word, Literal, Forward, CharsNotIn, SkipTo
+from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress
+from pyparsing import alphas, alphanums, nums, oneOf, lineEnd, quotedString
+
+lpar = Suppress(Literal('('))
+rpar = Suppress(Literal(')'))
+llist = Suppress(Literal('['))
+rlist = Suppress(Literal(']'))
+comment = (Literal('#') + SkipTo(lineEnd))('comment*')
+number = Word(nums)('number*')
+ident = (Word(alphas + '_', alphanums + '_') | Word('+-*/=<>\\'))('identifier*')
+string = quotedString('string*')
+
+atom = Forward()('atom*')
+linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist
+expr = Group(OneOrMore(atom))('expression*')
+parentheses = (lpar - expr - rpar)
+atom << (number | string | ident | parentheses | linked_list)
+
+grammar = (ZeroOrMore(expr) + StringEnd()).ignore(comment)
+
 def tokenize(expr):
-    # walk expression, splitting each token
-    end_wraps = {
-        '(': ')',
-        '[': ']',
-        '"': '"',
-        '#': '\n'
-    }
+    parse_result = grammar.parseString(expr)
+    return _interpret_parse_result(parse_result)
+
+
+def _interpret_parse_result(parse_result):
+    # The interface for this is rubbish and doesn't offer a lot of information
+    # that is internal in the class. You can see this info if you print
+    # repr(parse_result).
+    try:
+        # Forgive me Father for I have sinned
+        intern_dict = parse_result._ParseResults__tokdict
+    except AttributeError:
+        # This is a string, so return it
+        return parse_result
+
+    def get_names(index, token):
+        for name, tokens in intern_dict.items():
+            if (token, index) in [tt.tup for tt in tokens]:
+                yield name
+
     tokens = []
-    token = ''
+    for i, t in enumerate(parse_result):
+        tokens.append(Token(get_names(i, t), _interpret_parse_result(t)))
+    return tokens
 
-    def push_token(t):
-        # skip comments
-        if t and t[0] != '#':
-            tokens.append(t.strip())
 
-    wraps = []
-    for c in expr:
-        if wraps and c == end_wraps[wraps[-1]]:
-            wraps.pop()
-        elif c in end_wraps.keys():
-            wraps.append(c)
+class Token:
 
-        if wraps or not c.isspace():
-            token += c
-        elif token:
-            push_token(token)
-            token = ''
+    def __init__(self, names, value):
+        self.names = set(names)
+        self.value = value
 
-    push_token(token)
+    def is_a(self, name):
+        return name in self.names
 
-    if len(tokens) == 1 and _is_wrapper(tokens[0], '(', ')', True):
-        # strip parentheses and go again
-        tokens = tokenize(strip_wrap(tokens[0], '(', ')'))
+    def __eq__(self, other):
+        return self.names == other.names and self.value == other.value
 
-    return tuple(tokens)
-
+    def __repr__(self):
+        return 'Token(%r, %r)' % (list(self.names), self.value)
 
 def strip_wrap(expr, open_char, close_char):
     if expr and expr[0] == open_char and expr[-1] == close_char:
         return expr[1:-1]
     else:
         return expr
-
-
-def _is_wrapper(expr, open_char, close_char, permit_early_close):
-    if len(expr) < 2:
-        return False
-    else:
-        wrapped = expr[0] == open_char and expr[-1] == close_char
-        early_close = close_char in expr[1:-1]
-        return wrapped and (not early_close or permit_early_close)
-
-
-def is_identifier(name):
-    return isinstance(name, basestring) and name[0] not in '0123456789"(['
-
-
-def is_string(expr):
-    return _is_wrapper(expr, '"', '"', False)
-
-
-def is_parenthesized(expr):
-    return _is_wrapper(expr, '(', ')', True)
-
-
-def is_list(expr):
-    return _is_wrapper(expr, '[', ']', True)
 
 
 def display(obj):

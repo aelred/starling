@@ -1,5 +1,9 @@
+import logging
+
 import parse
 from function import Thunk
+
+log = logging.getLogger(__name__)
 
 
 class _EmptyList:
@@ -19,20 +23,20 @@ class List(object):
         self._tail = tail
 
     @classmethod
-    def build(cls, env, expr):
-        stripped = parse.strip_wrap(expr, '[', ']')
-        elems = parse.tokenize(stripped)
-        return cls._build(env, elems)
+    def build(cls, env, token):
+        log.debug('build list %s' % (token,))
+        return cls._build(env, token)
 
     @classmethod
-    def _build(cls, env, elems):
-        if len(elems) == 0:
+    def _build(cls, env, token):
+        if token.value == []:
             return empty
 
+        head = token.value[0]
+        tail = parse.Token(token.names, token.value[1:])
+
         try:
-            # TODO: No hacky code injecting thing
-            return cls(Thunk(elems[0], 'head', env),
-                       Thunk('[' + ' '.join(elems[1:]) + ']', 'tail', env))
+            return cls(Thunk(head, 'head', env), Thunk(tail, 'tail', env))
         except StopIteration:
             return empty
 
