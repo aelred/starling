@@ -28,10 +28,6 @@ class StarlingFunction(Function):
         name = name or 'lambda'
         Function.__init__(self, name)
 
-    @property
-    def num_params(self):
-        return len(self._params)
-
     def _apply(self, thunk_):
         self.log.debug('param: %s\nbody:\n%s' % (self._param,
                                                  self._body.token))
@@ -52,7 +48,6 @@ class Builtin:
 class _Builtin(Function):
 
     def __init__(self, name, num_params, func):
-        self.num_params = num_params
         if num_params > 1:
             def partial(thunk_):
                 f = lambda *a: func(thunk_, *a)
