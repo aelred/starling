@@ -1,5 +1,4 @@
-import parse
-from parse import Token
+from starling import parse
 
 from nose.tools import eq_, raises
 import pyparsing
@@ -81,7 +80,7 @@ def _tokenize(s, result):
 
 def test_tokenize():
     _tokenize('+ 1 2',
-              [Token(['expression'],
-                [Token(['identifier', 'atom'], '+'),
-                 Token(['number', 'atom'], '1'),
-                 Token(['number', 'atom'], '2')])])
+              [parse.Token(['expression'],
+                [parse.Token(['identifier', 'atom'], '+'),
+                 parse.Token(['number', 'atom'], '1'),
+                 parse.Token(['number', 'atom'], '2')])])

@@ -1,4 +1,4 @@
-import error
+from starling import error
 
 from util import programs, errors
 
