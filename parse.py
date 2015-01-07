@@ -14,7 +14,8 @@ number = Word(nums)('number*')
 
 let = Suppress(Keyword('let'))
 in_ = Suppress(Keyword('in'))
-reserved = let | in_
+lambda_ = Suppress(Keyword('\\'))
+reserved = let | in_ | lambda_
 
 word_id = Word(alphas + '_', alphanums + '_')
 asc_id = Word('+-*/=<>\\')
@@ -29,8 +30,10 @@ parentheses = (lpar - Optional(expr) - rpar)
 binding = ident + atom
 bindings = Group(OneOrMore(binding))('bindings')
 let_expr = Group(let + bindings + in_ - expr)('let*')
+lambda_expr = Group(lambda_ + ident - expr)('lambda*')
 
-atom << (let_expr | number | string | ident | parentheses | linked_list)
+atom << (let_expr | lambda_expr | number | string | ident | parentheses |
+         linked_list)
 
 grammar = (Optional(expr) + StringEnd()).ignore(comment)
 

@@ -1,6 +1,6 @@
 import logging
 
-from starling import error, linked_list, environment, parse
+from starling import error, linked_list, environment, parse, function
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +37,8 @@ def _expression(value, env):
     func = Thunk(value[0], env=env).eval()
     for arg in value[1:]:
         arg.assert_is('atom')
-        func = func.apply(arg, env)
+        thunk_ = Thunk(arg, env=env)
+        func = func.apply(thunk_)
     return func
 
 
@@ -72,11 +73,32 @@ def _let(value, env):
 
     return Thunk(expr_token, env=new_env).eval()
 
+
+class Lambda(function.Function):
+
+    def __init__(self, value, env):
+        value[0].assert_is('identifier')
+        value[1].assert_is('expression')
+
+        self._param = value[0].value
+        self._body = value[1]
+        self._env = env
+
+        function.Function.__init__(self, 'lambda')
+
+    def _apply(self, thunk_):
+        self.log.debug('param: %s\nbody:\n%s' % (self._param,
+                                                 self._body))
+        bindings = {self._param: thunk_}
+        new_env = self._env.child(bindings)
+        return Thunk(self._body, env=new_env).eval()
+
 _evaluators = {
     'expression': _expression,
     'identifier': lambda v, e: e.resolve(v),
     'list': _list,
     'string': lambda v, e: v.strip('"'),
     'number': lambda v, e: int(v),
-    'let': _let
+    'let': _let,
+    'lambda': Lambda
 }

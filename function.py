@@ -1,7 +1,5 @@
 import logging
 
-from starling import thunk
-
 log = logging.getLogger(__name__)
 
 
@@ -10,30 +8,12 @@ class Function(object):
         self._name = name
         self.log = log.getChild(self._name)
 
-    def apply(self, func_arg, param_env):
-        self.log.debug('apply %r' % (func_arg,))
-        thunk_ = thunk.Thunk(func_arg, env=param_env)
-        return self._apply(thunk_)
+    def apply(self, thunk_arg):
+        self.log.debug('apply %r' % thunk_arg)
+        return self._apply(thunk_arg)
 
     def __str__(self):
         return self._name
-
-
-class StarlingFunction(Function):
-
-    def __init__(self, param, body, name=None):
-        self._param = param
-        self._body = body
-
-        name = name or 'lambda'
-        Function.__init__(self, name)
-
-    def _apply(self, thunk_):
-        self.log.debug('param: %s\nbody:\n%s' % (self._param,
-                                                 self._body.token))
-        bindings = {self._param: thunk_}
-        new_env = self._body.env.child(bindings)
-        return thunk.Thunk(self._body.token, env=new_env).eval()
 
 
 class Builtin:

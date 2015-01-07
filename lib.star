@@ -6,7 +6,7 @@ and (\ x (\ y (if x (if y True False) False)))
 # id returns itself
 id (\ x x)
 # const returns a function that always yields the given argument
-const (\ y)
+const (\ x (\ y x))
 
 # comparison operators
 >= (\ x (\ y (not (< x y))))
