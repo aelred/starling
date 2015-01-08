@@ -74,7 +74,7 @@ def _tokenize(s, result):
 
 def test_tokenize():
     _tokenize('+ 1 2',
-              [parse.Token(['expression'],
-               [parse.Token(['identifier', 'atom'], '+'),
-                parse.Token(['number', 'atom'], '1'),
-                parse.Token(['number', 'atom'], '2')])])
+              [parse.Token('expression',
+               [parse.Token('identifier', '+'),
+                parse.Token('number', '1'),
+                parse.Token('number', '2')])])

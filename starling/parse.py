@@ -26,7 +26,7 @@ asc_id = Word('+-*/=<>?')
 ident = ~reserved + (word_id | asc_id)('identifier*')
 string = quotedString('string*')
 
-atom = Forward()('atom*')
+atom = Forward()
 linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist
 expr = Group(OneOrMore(atom))('expression*')
 parentheses = (lpar - Optional(expr) - rpar)
@@ -72,31 +72,31 @@ def _interpret_parse_result(parse_result):
         # This is a string, so return it
         return parse_result
 
-    def get_names(index, token):
+    def get_name(index, token):
         for name, tokens in intern_dict.items():
             if (token, index) in [tt.tup for tt in tokens]:
-                yield name
+                return name
 
     tokens = []
     for i, t in enumerate(parse_result):
-        tokens.append(Token(get_names(i, t), _interpret_parse_result(t)))
+        tokens.append(Token(get_name(i, t), _interpret_parse_result(t)))
     return tokens
 
 
 class Token:
 
-    def __init__(self, names, value):
-        self.names = set(names)
+    def __init__(self, name, value):
+        self.name = name
         self.value = value
 
     def assert_is(self, name):
-        assert name in self.names, '%r not in %r' % (name, list(self.names))
+        assert name == self.name, '%r != %r' % (name, self.name)
 
     def __eq__(self, other):
-        return self.names == other.names and self.value == other.value
+        return self.name == other.name and self.value == other.value
 
     def __repr__(self):
-        return 'Token(%r, %r)' % (list(self.names), self.value)
+        return 'Token(%r, %r)' % (self.name, self.value)
 
 
 def display(obj):

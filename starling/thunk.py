@@ -16,9 +16,9 @@ class Thunk:
 
     def eval(self):
         if not self._remembers:
-            log.info('eval\n%s' % self)
+            log.info('eval\n%s' % self.token)
             self._memory = _evaluate(self.token, self.env)
-            log.debug('%s = %s' % (self, self._memory))
+            log.debug('%s = %s' % (self.token, self._memory))
             self._remembers = True
         return self._memory
 
@@ -27,19 +27,15 @@ class Thunk:
 
 
 def _evaluate(token, env):
-    for name in token.names:
-        try:
-            return _evaluators[name](token.value, env)
-        except KeyError:
-            pass
-
-    raise error.StarlingRuntimeError('Can\'t recognize %s' % token.names)
+    try:
+        return _evaluators[token.name](token.value, env)
+    except KeyError:
+        raise error.StarlingRuntimeError('Can\'t recognize %s' % token.name)
 
 
 def _expression(value, env):
     func = Thunk(value[0], 'expression', env).eval()
     for arg in value[1:]:
-        arg.assert_is('atom')
         thunk_ = Thunk(arg, 'argument', env=env)
         func = func.apply(thunk_)
     return func
@@ -49,9 +45,8 @@ def _list(value, env):
     if value == []:
         return linked_list.empty
     else:
-        value[0].assert_is('atom')
         head = Thunk(value[0], 'head', env)
-        tail = Thunk(parse.Token(['list'], value[1:]), 'tail', env)
+        tail = Thunk(parse.Token('list', value[1:]), 'tail', env)
         return linked_list.List(head, tail)
 
 
@@ -91,8 +86,8 @@ class _Lambda(function.Function):
         self._param = param.value
 
         if len(params.value) > 1:
-            less_params = parse.Token(['params'], params.value[1:])
-            self._body = parse.Token(['lambda'], [less_params, body])
+            less_params = parse.Token('params', params.value[1:])
+            self._body = parse.Token('lambda', [less_params, body])
         else:
             self._body = body
 
