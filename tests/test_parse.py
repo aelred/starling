@@ -1,4 +1,4 @@
-from starling import parse, error
+from starling import parse, error, lib_path
 from starling.parse import _parse
 
 from nose.tools import eq_, raises
@@ -63,7 +63,7 @@ def test_grammar():
     _bad('let $my_favourite_variable 0')
 
     # attempt to parse standard library
-    with open('lib.star', 'r') as f:
+    with open(lib_path, 'r') as f:
         results = _parse(f.read())
     assert len(results)
 
