@@ -69,4 +69,5 @@ sort (\ xs:
     in cat (sort less) (cons pivot (sort more))
     
 )
-in ()
+in export not or and ? id const >= <= max min fold map filter take range nats
+    cat sort

@@ -19,7 +19,8 @@ colon = Suppress(':')
 if_ = Suppress(Keyword('if'))
 then = Suppress(Keyword('then'))
 else_ = Suppress(Keyword('else'))
-reserved = let | in_ | lambda_ | colon | if_ | then | else_
+export = Suppress(Keyword('export'))
+reserved = let | in_ | lambda_ | colon | if_ | then | else_ | export
 
 word_id = Word(alphas + '_', alphanums + '_')
 asc_id = Word('+-*/=<>?')
@@ -42,8 +43,10 @@ lambda_expr = Group(lambda_ + params + colon - expr)('lambda*')
 
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
-atom << (let_expr | lambda_expr | if_expr | number | string | ident |
-         parentheses | linked_list)
+export_expr = Group(export + OneOrMore(ident))('export')
+
+atom << (let_expr | lambda_expr | if_expr | export_expr | number | string |
+         ident | parentheses | linked_list)
 
 grammar = (Optional(expr) + StringEnd()).ignore(comment)
 

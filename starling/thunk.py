@@ -108,6 +108,11 @@ def _if(value, env):
         alt = value[2]
         return Thunk(alt, 'alternative', env).eval()
 
+
+def _export(value, env):
+    exports = dict([(ex.value, Thunk(ex, ex.value, env)) for ex in value])
+    return environment.Environment(env.ancestor(), exports)
+
 _evaluators = {
     'expression': _expression,
     'identifier': lambda v, e: e.resolve(v),
@@ -117,5 +122,6 @@ _evaluators = {
     'let': _let,
     'lambda': _Lambda,
     'if': _if,
+    'export': _export,
     'none': lambda v, e: None
 }

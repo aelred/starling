@@ -24,6 +24,12 @@ class Environment:
     def child(self, bindings):
         return Environment(self, bindings)
 
+    def ancestor(self):
+        env = self
+        while env._parent is not None:
+            env = env._parent
+        return env
+
     def resolve(self, name):
         env = self
 
