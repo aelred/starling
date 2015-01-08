@@ -45,6 +45,9 @@ atom << (let_expr | lambda_expr | if_expr | number | string | ident |
 
 grammar = (Optional(expr) + StringEnd()).ignore(comment)
 
+# speeds up parsing by memoizing
+grammar.enablePackrat()
+
 
 def _parse(expr):
     try:
