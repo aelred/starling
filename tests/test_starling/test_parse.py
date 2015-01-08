@@ -31,10 +31,7 @@ def test_grammar():
     _check_parse('6 # still commenting!', [['6']])
     _check_parse('foo "My string"', [['foo', 'My string']])
     _check_parse('let f (\ x: (* x x)) in f 10',
-                 [[[['f',
-                     [[['x'], [['*', 'x', 'x']]]]],
-                    ['f', '10'],
-                    ]]])
+                 [[[['f', [[['x'], [['*', 'x', 'x']]]]], ['f', '10']]]])
 
     # obnoxious code
     _check_parse(
@@ -50,10 +47,7 @@ def test_grammar():
         3]
     ))
         """,
-        [[[[['foo',
-             [[['xs'], ['foo', 'xs']]]],
-            [['foo', ['1', '2', '3']]],
-            ]]]])
+        [[[[['foo', [[['xs'], ['foo', 'xs']]]], [['foo', ['1', '2', '3']]]]]]])
 
     _bad('(')
     _bad(')')
@@ -70,33 +64,44 @@ def test_grammar():
 
 
 def _tokenize(s, result):
-    eq_(str(parse.tokenize(s)[0]).strip(), result.strip())
+    eq_(str(parse.tokenize(s)).strip(), result.strip())
 
 
 def test_tokenize():
     _tokenize('+ 1 2',
               """
 expression:
-  identifier: +
-  number: 1
+  expression:
+    identifier: +
+    number: 1
   number: 2
               """)
 
     _tokenize('let f (\ x: + x 1) in x 10',
               """
-expression:
-  let:
-    bindings:
-      identifier: f
+let:
+  bindings:
+    identifier: f
+    lambda:
+      params:
+        identifier: x
       expression:
-        lambda:
-          params:
-            identifier: x
-          expression:
-            identifier: +
-            identifier: x
-            number: 1
+        expression:
+          identifier: +
+          identifier: x
+        number: 1
+  expression:
+    identifier: x
+    number: 10
+              """)
+
+    _tokenize('a b c x',
+              """
+expression:
+  expression:
     expression:
-      identifier: x
-      number: 10
+      identifier: a
+      identifier: b
+    identifier: c
+  identifier: x
               """)

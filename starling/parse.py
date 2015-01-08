@@ -27,9 +27,11 @@ ident = ~reserved + (word_id | asc_id)('identifier*')
 string = QuotedString(quoteChar='"')('string*')
 
 atom = Forward()
-linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist
-expr = Group(OneOrMore(atom))('expression*')
+expr = Group(OneOrMore(atom))('expression')
+
 parentheses = (lpar - Optional(expr) - rpar)
+
+linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist
 
 binding = ident + atom
 bindings = Group(OneOrMore(binding))('bindings')
@@ -58,7 +60,11 @@ def _parse(expr):
 
 
 def tokenize(expr):
-    return _interpret_parse_result(_parse(expr))
+    result = _interpret_parse_result(_parse(expr))
+    if len(result):
+        return result[0]
+    else:
+        return Token('none', '')
 
 
 def _interpret_parse_result(parse_result):
@@ -72,6 +78,17 @@ def _interpret_parse_result(parse_result):
         # This is a string, so return it
         return parse_result
 
+    def create_token(name, value):
+        # when encoutering an expression, left-recursively wrap it up
+        if name == 'expression':
+            if len(value) == 1:
+                return value[0]
+            else:
+                value = [create_token('expression', value[0:-1]), value[-1]]
+
+        return Token(name, value)
+
+
     def get_name(index, token):
         for name, tokens in intern_dict.items():
             if (token, index) in [tt.tup for tt in tokens]:
@@ -79,7 +96,7 @@ def _interpret_parse_result(parse_result):
 
     tokens = []
     for i, t in enumerate(parse_result):
-        tokens.append(Token(get_name(i, t), _interpret_parse_result(t)))
+        tokens.append(create_token(get_name(i, t), _interpret_parse_result(t)))
     return tokens
 
 
@@ -88,6 +105,7 @@ class Token:
     def __init__(self, name, value):
         self.name = name
         self.value = value
+
 
     def assert_is(self, name):
         assert name == self.name, '%r != %r' % (name, self.name)

@@ -35,11 +35,8 @@ def _evaluate(token, env):
 
 def _expression(value, env):
     func = Thunk(value[0], 'expression', env).eval()
-    for arg in value[1:]:
-        thunk_ = Thunk(arg, 'argument', env=env)
-        func = func.apply(thunk_)
-    return func
-
+    arg = Thunk(value[1], 'argument', env)
+    return func.apply(arg)
 
 def _list(value, env):
     if value == []:
@@ -55,7 +52,6 @@ def _let(value, env):
     expr_token = value[1]
 
     bind_tokens.assert_is('bindings')
-    expr_token.assert_is('expression')
 
     def get_bindings():
         it = iter(bind_tokens.value)
@@ -79,7 +75,6 @@ class _Lambda(function.Function):
         params.assert_is('params')
 
         body = value[1]
-        body.assert_is('expression')
 
         param = params.value[0]
         param.assert_is('identifier')
@@ -104,8 +99,6 @@ class _Lambda(function.Function):
 
 
 def _if(value, env):
-    for expr in value:
-        expr.assert_is('expression')
     pred = value[0]
 
     if Thunk(pred, 'predicate', env).eval():
@@ -123,5 +116,6 @@ _evaluators = {
     'number': lambda v, e: int(v),
     'let': _let,
     'lambda': _Lambda,
-    'if': _if
+    'if': _if,
+    'none': lambda v, e: None
 }
