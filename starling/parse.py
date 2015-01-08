@@ -98,6 +98,16 @@ class Token:
     def __repr__(self):
         return 'Token(%r, %r)' % (self.name, self.value)
 
+    def display(self, indent=0):
+        if isinstance(self.value, basestring):
+            child = self.value
+        else:
+            child = '\n' + '\n'.join([t.display(indent+1) for t in self.value])
+        return '%s%s: %s' % ('  ' * indent, self.name, child)
+
+    def __str__(self):
+        return self.display()
+
 
 def display(obj):
     try:
