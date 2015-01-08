@@ -1,6 +1,6 @@
-from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword
+from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword, QuotedString
 from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress, Forward
-from pyparsing import alphas, alphanums, nums, lineEnd, quotedString
+from pyparsing import alphas, alphanums, nums, lineEnd
 from pyparsing import ParseException, ParseSyntaxException
 
 from starling import error
@@ -24,7 +24,7 @@ reserved = let | in_ | lambda_ | colon | if_ | then | else_
 word_id = Word(alphas + '_', alphanums + '_')
 asc_id = Word('+-*/=<>?')
 ident = ~reserved + (word_id | asc_id)('identifier*')
-string = quotedString('string*')
+string = QuotedString(quoteChar='"')('string*')
 
 atom = Forward()
 linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist

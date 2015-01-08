@@ -29,7 +29,7 @@ def test_grammar():
     _check_parse('(not True)', [[['not', 'True']]])
     _check_parse('# commenting!', [])
     _check_parse('6 # still commenting!', [['6']])
-    _check_parse('foo "My string"', [['foo', '"My string"']])
+    _check_parse('foo "My string"', [['foo', 'My string']])
     _check_parse('let f (\ x: (* x x)) in f 10',
                  [[[['f',
                      [[['x'], [['*', 'x', 'x']]]]],
@@ -61,6 +61,7 @@ def test_grammar():
     _bad('(+ 1 2))')
     _bad(')(')
     _bad('let $my_favourite_variable 0')
+    _bad("print 'Bad quote characters!'")
 
     # attempt to parse standard library
     with open(lib_path, 'r') as f:

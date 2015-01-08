@@ -119,7 +119,7 @@ _evaluators = {
     'expression': _expression,
     'identifier': lambda v, e: e.resolve(v),
     'list': _list,
-    'string': lambda v, e: v.strip('"'),
+    'string': lambda v, e: v,
     'number': lambda v, e: int(v),
     'let': _let,
     'lambda': _Lambda,
