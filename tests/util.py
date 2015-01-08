@@ -1,6 +1,6 @@
 import starling
 
-from nose.tools import eq_, assert_raises, timed
+from nose.tools import eq_, assert_raises
 from functools import wraps
 
 
@@ -15,7 +15,6 @@ def programs(libs):
     return programs_wrapper
 
 
-@timed(2)
 def check_program(program, result, lib):
     output = starling.run(program, lib)
     return eq_(output, result, '\n\t%s\nOutput:\n\t%r\nExpected:\n\t%r' % (
