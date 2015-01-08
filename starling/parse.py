@@ -100,10 +100,10 @@ class Token:
 
     def display(self, indent=0):
         if isinstance(self.value, basestring):
-            child = self.value
+            child = ' ' + self.value
         else:
             child = '\n' + '\n'.join([t.display(indent+1) for t in self.value])
-        return '%s%s: %s' % ('  ' * indent, self.name, child)
+        return '%s%s:%s' % ('  ' * indent, self.name, child)
 
     def __str__(self):
         return self.display()

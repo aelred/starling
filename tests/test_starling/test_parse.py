@@ -69,12 +69,33 @@ def test_grammar():
 
 
 def _tokenize(s, result):
-    eq_(parse.tokenize(s), result)
+    eq_(str(parse.tokenize(s)[0]).strip(), result.strip())
 
 
 def test_tokenize():
     _tokenize('+ 1 2',
-              [parse.Token('expression',
-               [parse.Token('identifier', '+'),
-                parse.Token('number', '1'),
-                parse.Token('number', '2')])])
+              """
+expression:
+  identifier: +
+  number: 1
+  number: 2
+              """)
+
+    _tokenize('let f (\ x: + x 1) in x 10',
+              """
+expression:
+  let:
+    bindings:
+      identifier: f
+      expression:
+        lambda:
+          params:
+            identifier: x
+          expression:
+            identifier: +
+            identifier: x
+            number: 1
+    expression:
+      identifier: x
+      number: 10
+              """)
