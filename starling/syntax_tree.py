@@ -1,7 +1,15 @@
 from starling import thunk, linked_list, environment, function
 
 
-class Token:
+class EmptyToken:
+    def __init__(self, value=None):
+        pass
+
+    def _display(self, indent=0):
+        return '%s%s' % ('  ' * indent, self.__class__.__name__)
+
+
+class Token(EmptyToken):
 
     def __init__(self, value):
         self._value = tuple(value)
@@ -62,19 +70,26 @@ class Expression(Token):
         return operator.apply(operand)
 
 
+class EmptyList(EmptyToken):
+
+    def eval(self, env):
+        return linked_list.empty
+
+
 class List(Token):
 
     @property
-    def elements(self):
-        return self._value
+    def head(self):
+        return self._value[0]
+
+    @property
+    def tail(self):
+        return self._value[1]
 
     def eval(self, env):
-        if len(self.elements) == 0:
-            return linked_list.empty
-        else:
-            head = thunk.Thunk(self.elements[0], 'head', env)
-            tail = thunk.Thunk(List(self.elements[1:]), 'tail', env)
-            return linked_list.List(head, tail)
+        head = thunk.Thunk(self.head, 'head', env)
+        tail = thunk.Thunk(self.tail, 'tail', env)
+        return linked_list.List(head, tail)
 
 
 class If(Token):
@@ -164,6 +179,6 @@ class Export(Token):
         return environment.Environment(env.ancestor(), exports)
 
 
-class None_(Token):
+class None_(EmptyToken):
     def eval(self, env):
         return None

@@ -8,7 +8,7 @@ from starling import error, syntax_tree
 lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
 llist = Suppress(Literal('['))
-rlist = Suppress(Literal(']'))
+rlist = Literal(']')
 comment = (Literal('#') + SkipTo(lineEnd))('comment*')
 number = Word(nums)('number*')
 
@@ -32,7 +32,9 @@ expr = Group(OneOrMore(atom))('expression')
 
 parentheses = (lpar - Optional(expr) - rpar)
 
-linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist
+list_inner = Forward()
+list_inner << (Group(atom + list_inner)('list') | rlist('emptylist'))
+linked_list = llist - list_inner
 
 binding = Group(ident + atom)('binding')
 bindings = Group(OneOrMore(binding))('bindings')
@@ -68,7 +70,7 @@ def tokenize(expr):
     if len(result):
         return result[0]
     else:
-        return syntax_tree.None_('')
+        return syntax_tree.None_()
 
 
 def _interpret_parse_result(parse_result):
@@ -108,6 +110,7 @@ token_classes = {
     'number': syntax_tree.Number,
     'string': syntax_tree.String,
     'expression': syntax_tree.Expression,
+    'emptylist': syntax_tree.EmptyList,
     'list': syntax_tree.List,
     'if': syntax_tree.If,
     'let': syntax_tree.Let,

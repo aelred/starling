@@ -17,7 +17,7 @@ def _bad(s):
 
 def test_grammar():
     # parser grammar must be valid
-    parse.grammar.validate()
+    # parse.grammar.validate()
 
     # parse some really simple scripts
     _check_parse('', [])
@@ -47,7 +47,8 @@ def test_grammar():
         3]
     ))
         """,
-        [[[[[['foo', [['xs', ['foo', 'xs']]]]], [['foo', ['1', '2', '3']]]]]]])
+        [[[[[['foo', [['xs', ['foo', 'xs']]]]],
+            [['foo', ['1', ['2', ['3', ']']]]]]]]]])
 
     _bad('(')
     _bad(')')
