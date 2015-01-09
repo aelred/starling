@@ -8,12 +8,21 @@ log = logging.getLogger('starling')
 _loc = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 lib_path = os.path.join(_loc, 'lib.star')
 
+_std_env = None
+
 
 def run(script, lib=True):
     return display.display(_run(script, lib))
 
 
 def _run(script, lib=True):
+    if lib and _std_env is None:
+        global _std_env
+        std_lib = ''
+        with open(lib_path, 'r') as f:
+            std_lib = f.read()
+        _std_env = _run(std_lib, False)
+
     log.debug('Running script:\n%s' % script)
     environment.Environment._env_ids = 1
 
@@ -25,8 +34,3 @@ def _run(script, lib=True):
 
     tokens = parse.tokenize(script)
     return thunk.Thunk(tokens, 'script', env).eval()
-
-_std_lib = ''
-with open(lib_path, 'r') as f:
-    _std_lib = f.read()
-_std_env = _run(_std_lib, False)
