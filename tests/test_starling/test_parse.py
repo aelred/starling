@@ -31,7 +31,7 @@ def test_grammar():
     _check_parse('6 # still commenting!', [['6']])
     _check_parse('foo "My string"', [['foo', 'My string']])
     _check_parse('let f (\ x: (* x x)) in f 10',
-                 [[[['f', [['x', [['*', 'x', 'x']]]]], ['f', '10']]]])
+                 [[[[['f', [['x', [['*', 'x', 'x']]]]]], ['f', '10']]]])
 
     # obnoxious code
     _check_parse(
@@ -47,7 +47,7 @@ def test_grammar():
         3]
     ))
         """,
-        [[[[['foo', [['xs', ['foo', 'xs']]]], [['foo', ['1', '2', '3']]]]]]])
+        [[[[[['foo', [['xs', ['foo', 'xs']]]]], [['foo', ['1', '2', '3']]]]]]])
 
     _bad('(')
     _bad(')')
@@ -81,16 +81,17 @@ expression:
               """
 let:
   bindings:
-    identifier: f
-    lambda:
-      identifier: x
+    binding:
+      identifier: f
       lambda:
-        identifier: y
-        expression:
-          expression:
-            identifier: +
-            identifier: x
+        identifier: x
+        lambda:
           identifier: y
+          expression:
+            expression:
+              identifier: +
+              identifier: x
+            identifier: y
   expression:
     expression:
       identifier: f

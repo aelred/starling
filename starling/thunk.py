@@ -53,13 +53,8 @@ def _let(value, env):
 
     bind_tokens.assert_is('bindings')
 
-    def get_bindings():
-        it = iter(bind_tokens.value)
-        while True:
-            yield next(it), next(it)
-
-    bindings = dict([(ident.value, Thunk(expr, ident.value))
-                     for ident, expr in get_bindings()])
+    bindings = dict([(b.value[0].value, Thunk(b.value[1], b.value[0].value))
+                     for b in bind_tokens.value])
 
     new_env = environment.Environment(env, bindings)
     for thunk_ in bindings.values():

@@ -34,7 +34,7 @@ parentheses = (lpar - Optional(expr) - rpar)
 
 linked_list = llist + Group(ZeroOrMore(atom))('list*') + rlist
 
-binding = ident + atom
+binding = Group(ident + atom)('binding')
 bindings = Group(OneOrMore(binding))('bindings')
 let_expr = Group(let + bindings + in_ - expr)('let*')
 
