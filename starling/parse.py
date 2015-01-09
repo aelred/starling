@@ -3,7 +3,7 @@ from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress, Forward
 from pyparsing import alphas, alphanums, nums, lineEnd
 from pyparsing import ParseException, ParseSyntaxException
 
-from starling import error
+from starling import error, syntax_tree
 
 lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
@@ -68,7 +68,7 @@ def tokenize(expr):
     if len(result):
         return result[0]
     else:
-        return Token('none', '')
+        return syntax_tree.None_('')
 
 
 def _interpret_parse_result(parse_result):
@@ -90,8 +90,7 @@ def _interpret_parse_result(parse_result):
             else:
                 value = [create_token('expression', value[0:-1]), value[-1]]
 
-        return Token(name, value)
-
+        return token_classes[name](value)
 
     def get_name(index, token):
         for name, tokens in intern_dict.items():
@@ -104,38 +103,16 @@ def _interpret_parse_result(parse_result):
     return tokens
 
 
-class Token:
-
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def __eq__(self, other):
-        return self.name == other.name and self.value == other.value
-
-    def __repr__(self):
-        return 'Token(%r, %r)' % (self.name, self.value)
-
-    def display(self, indent=0):
-        if isinstance(self.value, basestring):
-            child = ' ' + self.value
-        else:
-            child = '\n' + '\n'.join([t.display(indent+1) for t in self.value])
-        return '%s%s:%s' % ('  ' * indent, self.name, child)
-
-    def __str__(self):
-        return self.display()
-
-
-def display(obj):
-    try:
-        obj.eval_str
-    except AttributeError:
-        if obj is None:
-            return ''
-        elif isinstance(obj, basestring):
-            return '"%s"' % obj
-        else:
-            return str(obj)
-    else:
-        return obj.eval_str()
+token_classes = {
+    'identifier': syntax_tree.Identifier,
+    'number': syntax_tree.Number,
+    'string': syntax_tree.String,
+    'expression': syntax_tree.Expression,
+    'list': syntax_tree.List,
+    'if': syntax_tree.If,
+    'let': syntax_tree.Let,
+    'bindings': syntax_tree.Bindings,
+    'binding': syntax_tree.Binding,
+    'lambda': syntax_tree.Lambda,
+    'export': syntax_tree.Export
+}

@@ -1,7 +1,7 @@
 import logging
 import os
 
-from starling import environment, thunk, glob_env, parse
+from starling import environment, thunk, glob_env, parse, display
 
 log = logging.getLogger('starling')
 
@@ -10,7 +10,7 @@ lib_path = os.path.join(_loc, 'lib.star')
 
 
 def run(script, lib=True):
-    return parse.display(_run(script, lib))
+    return display.display(_run(script, lib))
 
 
 def _run(script, lib=True):

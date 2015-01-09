@@ -69,37 +69,37 @@ def _tokenize(s, result):
 
 def test_tokenize():
     _tokenize('+ 1 2',
-              'expression:\n'
-              '  expression:\n'
-              '    identifier: +\n'
-              '    number: 1\n'
-              '  number: 2')
+              'Expression:\n'
+              '  Expression:\n'
+              '    Identifier: +\n'
+              '    Number: 1\n'
+              '  Number: 2')
 
     _tokenize('let f (\ x y: + x y) in f 2 10',
-              'let:\n'
-              '  bindings:\n'
-              '    binding:\n'
-              '      identifier: f\n'
-              '      lambda:\n'
-              '        identifier: x\n'
-              '        lambda:\n'
-              '          identifier: y\n'
-              '          expression:\n'
-              '            expression:\n'
-              '              identifier: +\n'
-              '              identifier: x\n'
-              '            identifier: y\n'
-              '  expression:\n'
-              '    expression:\n'
-              '      identifier: f\n'
-              '      number: 2\n'
-              '    number: 10\n')
+              'Let:\n'
+              '  Bindings:\n'
+              '    Binding:\n'
+              '      Identifier: f\n'
+              '      Lambda:\n'
+              '        Identifier: x\n'
+              '        Lambda:\n'
+              '          Identifier: y\n'
+              '          Expression:\n'
+              '            Expression:\n'
+              '              Identifier: +\n'
+              '              Identifier: x\n'
+              '            Identifier: y\n'
+              '  Expression:\n'
+              '    Expression:\n'
+              '      Identifier: f\n'
+              '      Number: 2\n'
+              '    Number: 10\n')
 
     _tokenize('a b c x',
-              'expression:\n'
-              '  expression:\n'
-              '    expression:\n'
-              '      identifier: a\n'
-              '      identifier: b\n'
-              '    identifier: c\n'
-              '  identifier: x\n')
+              'Expression:\n'
+              '  Expression:\n'
+              '    Expression:\n'
+              '      Identifier: a\n'
+              '      Identifier: b\n'
+              '    Identifier: c\n'
+              '  Identifier: x\n')

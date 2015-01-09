@@ -1,5 +1,7 @@
 import logging
 
+from starling import thunk
+
 log = logging.getLogger(__name__)
 
 
@@ -23,6 +25,23 @@ class Builtin:
 
     def eval(self):
         return self._bi
+
+
+class Lambda(Function):
+
+    def __init__(self, param, body, env):
+        self._param = param
+        self._body = body
+        self._env = env
+
+        Function.__init__(self, 'lambda')
+
+    def _apply(self, thunk_):
+        self.log.debug('param: %s\nbody:\n%s' % (self._param,
+                                                 self._body))
+        bindings = {self._param: thunk_}
+        new_env = self._env.child(bindings)
+        return thunk.Thunk(self._body, 'lambda', new_env).eval()
 
 
 class _Builtin(Function):
