@@ -38,8 +38,9 @@ binding = ident + atom
 bindings = Group(OneOrMore(binding))('bindings')
 let_expr = Group(let + bindings + in_ - expr)('let*')
 
-params = Group(OneOrMore(ident))('params')
-lambda_expr = Group(lambda_ + params + colon - expr)('lambda*')
+lambda_inner = Forward()
+lambda_inner << Group(ident + ((colon + expr) | lambda_inner))('lambda')
+lambda_expr = lambda_ + lambda_inner
 
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 

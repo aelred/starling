@@ -71,21 +71,11 @@ def _let(value, env):
 class _Lambda(function.Function):
 
     def __init__(self, value, env):
-        params = value[0]
-        params.assert_is('params')
-
-        body = value[1]
-
-        param = params.value[0]
+        param = value[0]
         param.assert_is('identifier')
+
         self._param = param.value
-
-        if len(params.value) > 1:
-            less_params = parse.Token('params', params.value[1:])
-            self._body = parse.Token('lambda', [less_params, body])
-        else:
-            self._body = body
-
+        self._body = value[1]
         self._env = env
 
         function.Function.__init__(self, 'lambda')
