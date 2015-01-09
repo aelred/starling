@@ -1,7 +1,15 @@
 import logging
 import os
+import argparse
 
 from starling import environment, thunk, glob_env, parse
+
+_parser = argparse.ArgumentParser(description='Starling interpreter.')
+_parser.add_argument('-d', '--debug', action='store_true')
+_args = _parser.parse_args()
+
+if _args.debug:
+    logging.basicConfig(level=logging.DEBUG)
 
 log = logging.getLogger('starling')
 

@@ -18,7 +18,7 @@ class Thunk:
         if not self._remembers:
             log.info('eval\n%s' % self.token)
             self._memory = _evaluate(self.token, self.env)
-            log.debug('%s = %s' % (self.token, self._memory))
+            log.debug('result\n%s = %s' % (self.token, self._memory))
             self._remembers = True
         return self._memory
 

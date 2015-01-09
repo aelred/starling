@@ -9,7 +9,7 @@ class Function(object):
         self.log = log.getChild(self._name)
 
     def apply(self, thunk_arg):
-        self.log.debug('apply %r' % thunk_arg)
+        self.log.debug('apply:\n%s' % thunk_arg.token)
         return self._apply(thunk_arg)
 
     def __str__(self):
