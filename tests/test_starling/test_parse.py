@@ -69,43 +69,37 @@ def _tokenize(s, result):
 
 def test_tokenize():
     _tokenize('+ 1 2',
-              """
-expression:
-  expression:
-    identifier: +
-    number: 1
-  number: 2
-              """)
+              'expression:\n'
+              '  expression:\n'
+              '    identifier: +\n'
+              '    number: 1\n'
+              '  number: 2')
 
     _tokenize('let f (\ x y: + x y) in f 2 10',
-              """
-let:
-  bindings:
-    binding:
-      identifier: f
-      lambda:
-        identifier: x
-        lambda:
-          identifier: y
-          expression:
-            expression:
-              identifier: +
-              identifier: x
-            identifier: y
-  expression:
-    expression:
-      identifier: f
-      number: 2
-    number: 10
-              """)
+              'let:\n'
+              '  bindings:\n'
+              '    binding:\n'
+              '      identifier: f\n'
+              '      lambda:\n'
+              '        identifier: x\n'
+              '        lambda:\n'
+              '          identifier: y\n'
+              '          expression:\n'
+              '            expression:\n'
+              '              identifier: +\n'
+              '              identifier: x\n'
+              '            identifier: y\n'
+              '  expression:\n'
+              '    expression:\n'
+              '      identifier: f\n'
+              '      number: 2\n'
+              '    number: 10\n')
 
     _tokenize('a b c x',
-              """
-expression:
-  expression:
-    expression:
-      identifier: a
-      identifier: b
-    identifier: c
-  identifier: x
-              """)
+              'expression:\n'
+              '  expression:\n'
+              '    expression:\n'
+              '      identifier: a\n'
+              '      identifier: b\n'
+              '    identifier: c\n'
+              '  identifier: x\n')
