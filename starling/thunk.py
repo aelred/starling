@@ -50,8 +50,7 @@ def _list(value, env):
 def _let(value, env):
     bind_tokens = value[0]
     expr_token = value[1]
-
-    bind_tokens.assert_is('bindings')
+    assert bind_tokens.name == 'bindings'
 
     bindings = dict([(b.value[0].value, Thunk(b.value[1], b.value[0].value))
                      for b in bind_tokens.value])
@@ -67,7 +66,7 @@ class _Lambda(function.Function):
 
     def __init__(self, value, env):
         param = value[0]
-        param.assert_is('identifier')
+        assert param.name == 'identifier'
 
         self._param = param.value
         self._body = value[1]

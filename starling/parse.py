@@ -110,9 +110,6 @@ class Token:
         self.name = name
         self.value = value
 
-    def assert_is(self, name):
-        assert name == self.name, '%r != %r' % (name, self.name)
-
     def __eq__(self, other):
         return self.name == other.name and self.value == other.value
 
