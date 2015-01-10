@@ -35,10 +35,14 @@ class Environment:
 
         while env is not None:
             env.log.debug('resolve %s' % (name,))
-            if name in env.bindings:
-                return env.bindings[name].eval()
-            else:
+            try:
+                bind = env.bindings[name]
+            except KeyError:
                 env = env._parent
+            else:
+                # pull binding into this environment for effic:ency
+                self.bindings[name] = bind
+                return bind.eval()
 
         raise error.StarlingRuntimeError(
             'No binding for %r:\n%r' % (name, self))
