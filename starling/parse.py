@@ -1,5 +1,5 @@
 from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword, QuotedString
-from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress, Forward
+from pyparsing import Optional, OneOrMore, Group, Suppress, Forward
 from pyparsing import alphas, alphanums, nums, lineEnd, delimitedList
 from pyparsing import ParseException, ParseSyntaxException
 
