@@ -39,7 +39,7 @@ class List(object):
     def eval_str(self):
         # this isn't __str__ or __repr__ so we don't accidentally eval
         # an entire (potentially infinite) list.
-        return '[%s]' % ' '.join([display.display(elem) for elem in self])
+        return '[%s]' % ', '.join([display.display(elem) for elem in self])
 
 
 class ListIter:

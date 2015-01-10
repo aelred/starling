@@ -65,7 +65,7 @@ cat = \xs ys: fold cons ys xs,
 zip = \xs ys: 
     if or (= xs []) (= ys [])
     then []
-    else cons [(head xs) (head ys)] (zip (tail xs) (tail ys)),
+    else cons [head xs, head ys] (zip (tail xs) (tail ys)),
 
 # unzips a zipped list
 unzip = 
@@ -75,8 +75,8 @@ unzip =
             y = head (tail xy),
             xs = head accum,
             ys = head (tail accum) in 
-        [(cons x xs) (cons y ys)] 
-    in fold f [[] []],
+        [cons x xs, cons y ys] 
+    in fold f [[], []],
 
 # return a sorted version of the list
 sort = \xs:

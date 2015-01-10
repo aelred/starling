@@ -76,12 +76,12 @@ def test_list():
     return {
         '[]': '[]',
         '[1]': '[1]',
-        '[1 2]': '[1 2]',
-        'head [1 2 3]': '1',
-        'tail [1 2 3]': '[2 3]',
+        '[1, 2]': '[1, 2]',
+        'head [1, 2, 3]': '1',
+        'tail [1, 2, 3]': '[2, 3]',
         'cons 1 []': '[1]',
-        'cons 2 [10]': '[2 10]',
-        'cons 3 (cons 2 (cons 1 []))': '[3 2 1]',
+        'cons 2 [10]': '[2, 10]',
+        'cons 3 (cons 2 (cons 1 []))': '[3, 2, 1]',
     }
 
 
@@ -111,7 +111,7 @@ def test_lazy():
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
         'if False then let f=f in f else "good"': '"good"',
-        'head ["fine" (let f=f in f)]': '"fine"'
+        'head ["fine", (let f=f in f)]': '"fine"'
     }
 
 

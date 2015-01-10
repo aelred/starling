@@ -10,6 +10,7 @@ rpar = Suppress(Literal(')'))
 llist = Suppress(Literal('['))
 rlist = Literal(']')
 equals = Suppress(Literal('='))
+comma = Suppress(Literal(','))
 comment = (Literal('#') + SkipTo(lineEnd))('comment*')
 number = Word(nums)('number*')
 
@@ -33,9 +34,10 @@ expr = Group(OneOrMore(atom))('expression')
 
 parentheses = (lpar - Optional(expr) - rpar)
 
+empty_list = rlist('emptylist')
 list_inner = Forward()
-list_inner << (Group(atom + list_inner)('list') | rlist('emptylist'))
-linked_list = llist - list_inner
+list_inner << Group(expr + ((comma + list_inner) | empty_list))('list')
+linked_list = llist - (list_inner | empty_list)
 
 binding = Group(ident + equals + expr)('binding')
 bindings = Group(delimitedList(binding))('bindings')
