@@ -9,7 +9,16 @@ def test_math():
         '(min 4 9)': '4',
         '(min 2 2)': '2',
         'head nats': '0',
-        'take 5 nats': '[0 1 2 3 4]'
+        'take 5 nats': '[0 1 2 3 4]',
+        'sum []': '0',
+        'sum [145]': '145',
+        'sum [5 1 1 10]': '17',
+        'zip [1 2 3] ["a" "b" "c"]': '[[1 "a"] [2 "b"] [3 "c"]]',
+        'unzip [[1 "a"] [2 "b"] [3 "c"]]': '[[1 2 3] ["a" "b" "c"]]',
+        'zip [1 2] ["a" "b" "c"]': '[[1 "a"] [2 "b"]]',
+        'unzip [[1 "a"] [2 "b"]]': '[[1 2] ["a" "b"]]',
+        'zip [1 2 3] []': '[]',
+        'unzip []': '[[] []]'
     }
 
 
@@ -30,6 +39,12 @@ def test_logic():
         'or True True': 'True',
         'or True False': 'True',
         'or (= False True) False': 'False',
+        'any [True True True]': 'True',
+        'any [True False False]': 'True',
+        'any [False False False]': 'False',
+        'all [True True True]': 'True',
+        'all [False True False]': 'False',
+        'all [False False False]': 'False'
     }
 
 
@@ -80,7 +95,13 @@ def test_list_ops():
         'cat [1 2] [3 4]': '[1 2 3 4]',
         'sort [1 2 3 4]': '[1 2 3 4]',
         'sort [2 4 1 3]': '[1 2 3 4]',
-        'sort [4 3 2 1]': '[1 2 3 4]'
+        'sort [4 3 2 1]': '[1 2 3 4]',
+        'length []': '0',
+        'length ["hello"]': '1',
+        'length (take 5 nats)': '5',
+        'reverse [1 2 3]': '[3 2 1]',
+        'reverse []': '[]',
+        'reverse [5]': '[5]'
     }
 
 

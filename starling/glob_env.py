@@ -9,6 +9,7 @@ glob_env = environment.Environment(None, {
     '*': BI('*', 2, lambda a, b: a() * b()),
     '/': BI('/', 2, lambda a, b: a() / b()),
     'mod': BI('mod', 2, lambda a, b: a() % b()),
+    'pow': BI('pow', 2, lambda a, b: a() ** b()),
     '=': BI('=', 2, lambda a, b: a() == b()),
     '>': BI('>', 2, lambda a, b: a() > b()),
     '<': BI('<', 2, lambda a, b: a() < b()),
