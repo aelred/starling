@@ -1,7 +1,7 @@
 import logging
 import os
 
-from starling import environment, glob_env, parse, display
+from starling import environment, glob_env, parse
 
 log = logging.getLogger('starling')
 
@@ -12,7 +12,7 @@ _std_env = None
 
 
 def run(script, lib=True):
-    return display.display(_run(script, lib))
+    return _run(script, lib).str()
 
 
 def _run(script, lib=True):
@@ -21,7 +21,7 @@ def _run(script, lib=True):
         std_lib = ''
         with open(lib_path, 'r') as f:
             std_lib = f.read()
-        _std_env = _run(std_lib, False)
+        _std_env = _run(std_lib, False).value
 
     log.debug('Running script:\n%s' % script)
     environment.Environment._env_ids = 1

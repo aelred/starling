@@ -1,4 +1,4 @@
-from starling import thunk, linked_list, environment, function
+from starling import thunk, linked_list, environment, function, star_type
 
 
 class EmptyToken:
@@ -25,7 +25,14 @@ class Token(EmptyToken):
         return self._display()
 
 
-class Terminator(Token):
+class EvalToken:
+    def eval(self, env):
+        result = self._eval(env)
+        assert isinstance(result, star_type.StarType)
+        return result
+
+
+class Terminator(Token, EvalToken):
 
     def __init__(self, value):
         self._value = value
@@ -40,21 +47,21 @@ class Terminator(Token):
 
 
 class Identifier(Terminator):
-    def eval(self, env):
+    def _eval(self, env):
         return env.resolve(self.value)
 
 
 class Number(Terminator):
-    def eval(self, env):
-        return int(self.value)
+    def _eval(self, env):
+        return star_type.Number(int(self.value))
 
 
 class String(Terminator):
-    def eval(self, env):
-        return self.value
+    def _eval(self, env):
+        return star_type.String(self.value)
 
 
-class Expression(Token):
+class Expression(Token, EvalToken):
 
     @property
     def operator(self):
@@ -64,19 +71,19 @@ class Expression(Token):
     def operand(self):
         return self._value[1]
 
-    def eval(self, env):
+    def _eval(self, env):
         operator = self.operator.eval(env)
         operand = thunk.Thunk(self.operand, 'argument', env)
         return operator.apply(operand)
 
 
-class EmptyList(EmptyToken):
+class EmptyList(EmptyToken, EvalToken):
 
-    def eval(self, env):
+    def _eval(self, env):
         return linked_list.empty
 
 
-class List(Token):
+class List(Token, EvalToken):
 
     @property
     def head(self):
@@ -86,13 +93,13 @@ class List(Token):
     def tail(self):
         return self._value[1]
 
-    def eval(self, env):
+    def _eval(self, env):
         head = thunk.Thunk(self.head, 'head', env)
         tail = thunk.Thunk(self.tail, 'tail', env)
         return linked_list.List(head, tail)
 
 
-class If(Token):
+class If(Token, EvalToken):
 
     @property
     def predicate(self):
@@ -106,14 +113,14 @@ class If(Token):
     def alternative(self):
         return self._value[2]
 
-    def eval(self, env):
-        if self.predicate.eval(env):
+    def _eval(self, env):
+        if self.predicate.eval(env).value:
             return self.consequent.eval(env)
         else:
             return self.alternative.eval(env)
 
 
-class Let(Token):
+class Let(Token, EvalToken):
 
     @property
     def bindings(self):
@@ -123,7 +130,7 @@ class Let(Token):
     def body(self):
         return self._value[1]
 
-    def eval(self, env):
+    def _eval(self, env):
         bindings = dict([(b.identifier.value,
                           thunk.Thunk(b.body, b.identifier.value))
                         for b in self.bindings.elements])
@@ -153,7 +160,7 @@ class Binding(Token):
         return self._value[1]
 
 
-class Lambda(Token):
+class Lambda(Token, EvalToken):
 
     @property
     def parameter(self):
@@ -163,17 +170,18 @@ class Lambda(Token):
     def body(self):
         return self._value[1]
 
-    def eval(self, env):
+    def _eval(self, env):
         return function.Lambda(self.parameter.value, self.body, env)
 
 
-class Export(Token):
+class Export(Token, EvalToken):
 
     @property
     def identifiers(self):
         return self._value
 
-    def eval(self, env):
+    def _eval(self, env):
         exports = dict([(ex.value, thunk.Thunk(ex, ex.value, env))
                         for ex in self.identifiers])
-        return environment.Environment(env.ancestor(), exports)
+        new_env = environment.Environment(env.ancestor(), exports)
+        return star_type.Module(new_env)

@@ -1,21 +1,24 @@
 import logging
 
-from starling import display
+from starling import star_type
 
 log = logging.getLogger(__name__)
 
 
-class _EmptyList:
+class _EmptyList(star_type.StarType):
     def __iter__(self):
         return iter([])
 
-    def __str__(self):
+    def str(self):
         return '[]'
+
+    def eq(self, other):
+        return star_type.Boolean(self == other)
 
 empty = _EmptyList()
 
 
-class List(object):
+class List(star_type.StarType):
 
     def __init__(self, head, tail):
         self._head = head
@@ -27,19 +30,19 @@ class List(object):
     def tail(self):
         return self._tail.eval()
 
-    def __eq__(self, other):
+    def eq(self, other):
         try:
-            return self.head() == other.head() and self.tail() == other.tail()
+            heads = self.head() == other.head
+            tails = self.tail() == other.tail()
+            return star_type.Boolean(heads and tails)
         except AttributeError:
-            return False
+            return star_type.Boolean(False)
 
     def __iter__(self):
         return ListIter(self)
 
-    def eval_str(self):
-        # this isn't __str__ or __repr__ so we don't accidentally eval
-        # an entire (potentially infinite) list.
-        return '[%s]' % ', '.join([display.display(elem) for elem in self])
+    def str(self):
+        return '[%s]' % ', '.join([elem.str() for elem in self])
 
 
 class ListIter:

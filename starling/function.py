@@ -1,11 +1,11 @@
 import logging
 
-from starling import thunk
+from starling import star_type
 
 log = logging.getLogger(__name__)
 
 
-class Function(object):
+class Function(star_type.StarType):
     def __init__(self, name):
         self._name = name
         self.log = log.getChild(self._name)
@@ -19,6 +19,7 @@ class Function(object):
 
 
 class Builtin:
+    """ This behaves like a Thunk. """
 
     def __init__(self, *args, **kwargs):
         self._bi = _Builtin(*args, **kwargs)
@@ -66,6 +67,7 @@ class BI(Builtin):
 
 
 class Const:
+    """ This behaves like a Thunk. """
 
     def __init__(self, value):
         self._value = value
