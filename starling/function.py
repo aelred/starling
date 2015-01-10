@@ -14,6 +14,9 @@ class Function(star_type.StarType):
         self.log.debug('apply:\n%s' % thunk_arg.token)
         return self._apply(thunk_arg)
 
+    def str(self):
+        return str(self)
+
     def __str__(self):
         return self._name
 
