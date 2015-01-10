@@ -43,6 +43,12 @@ take = \n xs:
     then []
     else cons (head xs) (take (- n 1) (tail xs)),
 
+# return elements while predicate is true
+take_while = \p xs: 
+    if or (= xs []) (not (p (head xs)))
+    then []
+    else cons (head xs) (take_while p (tail xs)),
+
 # return all numbers between start (inclusive) and end (exclusive)
 range = \start end: 
     if = start end
@@ -90,4 +96,4 @@ sort = \xs:
 
 in 
 export not or and any all ? id const >= <= max min sum fold map filter take
-range nats length reverse cat zip unzip sort
+take_while range nats length reverse cat zip unzip sort
