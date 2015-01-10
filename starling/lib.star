@@ -24,11 +24,20 @@ min = \x y: ? (< x y) x y,
 # sum of a list of numbers
 sum = fold + 0,
 
-# return the function folded over the given list
-fold = \f init xs: 
+# return the function folded from the right over the given list
+foldr = \f init xs: 
     if = xs []
     then init
-    else f (head xs) (fold f init (tail xs)),
+    else f (head xs) (foldr f init (tail xs)),
+
+# return the function folded from the left over the given list
+foldl = \f init xs:
+    if = xs []
+    then init
+    else foldl f (f init (head xs)) (tail xs),
+
+# fold is a synonoym for foldr
+fold = foldr,
 
 # return the result of applying a function to everything in the list
 map = \f: fold (\x accum: cons (f x) accum) [],
@@ -94,6 +103,6 @@ sort = \xs:
         more = filter (< pivot) (tail xs) in 
     cat (sort less) (cons pivot (sort more))
 
-in 
-export not or and any all ? id const >= <= max min sum fold map filter take
-take_while range nats length reverse cat zip unzip sort
+in export 
+    not or and any all ? id const >= <= max min sum foldr foldl fold map filter
+    take take_while range nats length reverse cat zip unzip sort

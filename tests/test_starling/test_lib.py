@@ -83,6 +83,11 @@ def test_list_ops():
     return {
         'map not [False, True, False, False]': '[True, False, True, True]',
         'fold + 0 [1, 10, 100, 1000]': '1111',
+        'foldr + 0 [1, 10, 100, 1000]': '1111',
+        'foldl + 0 [1, 10, 100, 1000]': '1111',
+        'fold - 10 [1, 2, 3]': '-8',
+        'foldr - 10 [1, 2, 3]': '-8',
+        'foldl - 10 [1, 2, 3]': '4',
         'filter (const True) [1, 2, 3, 4, 5]': '[1, 2, 3, 4, 5]',
         'filter (const False) ["a", "b", "c"]': '[]',
         'filter (< 5) [1, 100, 5, 7, 2, 10]': '[100, 7, 10]',
