@@ -1,5 +1,20 @@
 class StarType(object):
-    pass
+    def str_generator(self):
+        """
+        Return generator for string representation.
+
+        Useful for representing potentially infinite objects.
+        Must implement one of str_generator or str.
+        """
+        yield self.str()
+
+    def str(self):
+        """"
+        Return string representation.
+
+        Must implement one of str_generator or str.
+        """
+        return ''.join(self.str_generator())
 
 
 class Primitive(StarType):

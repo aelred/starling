@@ -41,8 +41,20 @@ class List(star_type.StarType):
     def __iter__(self):
         return ListIter(self)
 
-    def str(self):
-        return '[%s]' % ', '.join([elem.str() for elem in self])
+    def str_generator(self):
+        yield '['
+        # generate the results one-by-one
+        # infinite lists continuously output!
+        prev_elem = None
+        for elem in self:
+            # this is to make sure there is no comma after last element
+            if prev_elem is not None:
+                yield prev_elem.str()
+                yield ', '
+            prev_elem = elem
+        if prev_elem is not None:
+            yield prev_elem.str()
+        yield ']'
 
 
 class ListIter:

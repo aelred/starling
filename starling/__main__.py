@@ -2,6 +2,16 @@ from starling import run
 
 import argparse
 import logging
+import sys
+
+
+def _print_run(script):
+    # print continuous output from script
+    for string in run(script, generator=True):
+        # avoid newlines or spaces between elements
+        sys.stdout.write(string)
+    # finally print a newline
+    print
 
 
 def cli():
@@ -10,7 +20,7 @@ def cli():
         inp = raw_input('>>> ')
         if inp == 'quit':
             break
-        print run(inp)
+        _print_run(inp)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Starling interpreter.')
@@ -25,4 +35,4 @@ if __name__ == '__main__':
         cli()
     else:
         with open(args.file, 'r') as f:
-            print run(f.read())
+            _print_run(f.read())

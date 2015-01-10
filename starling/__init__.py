@@ -11,8 +11,12 @@ lib_path = os.path.join(_loc, 'lib.star')
 _std_env = None
 
 
-def run(script, lib=True):
-    return _run(script, lib).str()
+def run(script, lib=True, generator=False):
+    result = _run(script, lib)
+    if generator:
+        return result.str_generator()
+    else:
+        return result.str()
 
 
 def _run(script, lib=True):
