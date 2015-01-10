@@ -41,7 +41,7 @@ class Lambda(Function):
                                                  self._body))
         bindings = {self._param: thunk_}
         new_env = self._env.child(bindings)
-        return thunk.Thunk(self._body, 'lambda', new_env).eval()
+        return self._body.eval(new_env)
 
 
 class _Builtin(Function):

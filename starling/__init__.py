@@ -1,7 +1,7 @@
 import logging
 import os
 
-from starling import environment, thunk, glob_env, parse, display
+from starling import environment, glob_env, parse, display
 
 log = logging.getLogger('starling')
 
@@ -33,4 +33,4 @@ def _run(script, lib=True):
         env = glob_env.glob_env
 
     tokens = parse.tokenize(script)
-    return thunk.Thunk(tokens, 'script', env).eval()
+    return tokens.eval(env)
