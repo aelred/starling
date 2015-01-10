@@ -177,8 +177,3 @@ class Export(Token):
         exports = dict([(ex.value, thunk.Thunk(ex, ex.value, env))
                         for ex in self.identifiers])
         return environment.Environment(env.ancestor(), exports)
-
-
-class None_(EmptyToken):
-    def eval(self, env):
-        return None

@@ -4,11 +4,6 @@ from util import programs, errors
 
 
 @programs(False)
-def test_run():
-    return {'': ''}
-
-
-@programs(False)
 def test_string():
     return {'"Hello World!"': '"Hello World!"'}
 
@@ -118,9 +113,9 @@ def test_lazy():
 @programs(False)
 def test_comment():
     return {
-        '# this is a comment': '',
-        '#so is this': '',
-        '#\t and this!': '',
+        '1 # this is a comment': '1',
+        '"hi" #so is this': '"hi"',
+        '"# not this" #\t and this!': '"# not this"',
         '5 # return 5': '5',
 
         """

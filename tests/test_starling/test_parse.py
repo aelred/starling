@@ -20,14 +20,12 @@ def test_grammar():
     # parse.grammar.validate()
 
     # parse some really simple scripts
-    _check_parse('', [])
     _check_parse('True', [['True']])
     _check_parse('5', [['5']])
     _check_parse('x', [['x']])
     _check_parse('map', [['map']])
     _check_parse('+ 1 2', [['+', '1', '2']])
     _check_parse('(not True)', [[['not', 'True']]])
-    _check_parse('# commenting!', [])
     _check_parse('6 # still commenting!', [['6']])
     _check_parse('foo "My string"', [['foo', 'My string']])
     _check_parse('let f = \ x: (* x x) in f 10',

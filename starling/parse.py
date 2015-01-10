@@ -54,7 +54,7 @@ export_expr = Group(export + OneOrMore(ident))('export')
 atom << (let_expr | lambda_expr | if_expr | export_expr | number | string |
          ident | parentheses | linked_list)
 
-grammar = (Optional(expr) + StringEnd()).ignore(comment)
+grammar = (expr + StringEnd()).ignore(comment)
 
 # speeds up parsing by memoizing
 grammar.enablePackrat()
@@ -70,10 +70,7 @@ def _parse(expr):
 
 def tokenize(expr):
     result = _interpret_parse_result(_parse(expr))
-    if len(result):
-        return result[0]
-    else:
-        return syntax_tree.None_()
+    return result[0]
 
 
 def _interpret_parse_result(parse_result):
