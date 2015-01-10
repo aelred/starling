@@ -15,7 +15,7 @@ number = Word(nums)('number*')
 
 let = Suppress(Keyword('let'))
 in_ = Suppress(Keyword('in'))
-lambda_ = Suppress(Keyword('\\'))
+lambda_ = Suppress(Literal('\\'))
 colon = Suppress(':')
 if_ = Suppress(Keyword('if'))
 then = Suppress(Keyword('then'))

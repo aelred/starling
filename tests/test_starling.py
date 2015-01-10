@@ -66,7 +66,7 @@ def test_const():
 @programs(False)
 def test_func():
     return {
-        'let square=\ x: * x x in (square 5)': '25',
+        'let square=\\x: * x x in (square 5)': '25',
         'let avg = (\ x y: (/ (+ x y) 2)) in (let a= 6 in (avg a 8))': '7'
     }
 
