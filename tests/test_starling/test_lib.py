@@ -50,12 +50,12 @@ def test_logic():
 
 @programs(True)
 def test_lazy():
-    # (let f f = f) means 'define a function f that calls f, then call f.
+    # (let f=f in f) means 'define a function f that calls f, then call f.
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
-        'or True (let f f in f)': 'True',
-        'and False (let f f in f)': 'False',
-        '(const "ok") (let f f in f)': '"ok"',
+        'or True (let f=f in f)': 'True',
+        'and False (let f=f in f)': 'False',
+        '(const "ok") (let f=f in f)': '"ok"',
     }
 
 

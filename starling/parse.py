@@ -1,6 +1,6 @@
 from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword, QuotedString
 from pyparsing import Optional, OneOrMore, ZeroOrMore, Group, Suppress, Forward
-from pyparsing import alphas, alphanums, nums, lineEnd
+from pyparsing import alphas, alphanums, nums, lineEnd, delimitedList
 from pyparsing import ParseException, ParseSyntaxException
 
 from starling import error, syntax_tree
@@ -9,6 +9,7 @@ lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
 llist = Suppress(Literal('['))
 rlist = Literal(']')
+equals = Suppress(Literal('='))
 comment = (Literal('#') + SkipTo(lineEnd))('comment*')
 number = Word(nums)('number*')
 
@@ -36,8 +37,8 @@ list_inner = Forward()
 list_inner << (Group(atom + list_inner)('list') | rlist('emptylist'))
 linked_list = llist - list_inner
 
-binding = Group(ident + atom)('binding')
-bindings = Group(OneOrMore(binding))('bindings')
+binding = Group(ident + equals + expr)('binding')
+bindings = Group(delimitedList(binding))('bindings')
 let_expr = Group(let + bindings + in_ - expr)('let*')
 
 lambda_inner = Forward()

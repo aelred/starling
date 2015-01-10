@@ -58,16 +58,16 @@ def test_if():
 @programs(False)
 def test_const():
     return {
-        'let a 5 in + a 1': '6',
-        'let x 2 in (/ (let x 10 in x) x)': '5',
+        'let a=5 in + a 1': '6',
+        'let x=2 in (/ (let x=10 in x) x)': '5',
     }
 
 
 @programs(False)
 def test_func():
     return {
-        'let square (\ x: * x x) in (square 5)': '25',
-        'let avg (\ x y: (/ (+ x y) 2)) in (let a 6 in (avg a 8))': '7'
+        'let square=\ x: * x x in (square 5)': '25',
+        'let avg = (\ x y: (/ (+ x y) 2)) in (let a= 6 in (avg a 8))': '7'
     }
 
 
@@ -89,30 +89,29 @@ def test_list():
 def test_recursion():
     return {
         """
-        let tri (\ x: (if = x 0 then 0 else + (tri (- x 1)) x))
-        in (tri 4)
+        let tri = \ x: (if = x 0 then 0 else + (tri (- x 1)) x) in
+        (tri 4)
         """: '10',
 
         """
-        let fib (\ x:
+        let fib = \ x:
             if = x 0
             then 0
             else if = x 1
             then 1
             else + (fib (- x 1)) (fib (- x 2))
-        ) in
-        (fib 6)
+        in fib 6
         """: '8',
     }
 
 
 @programs(False)
 def test_lazy():
-    # (let f f in f) means 'define a function f that calls f, then call f.
+    # (let f=f in f) means 'define a function f that calls f, then call f.
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
-        'if False then let f f in f else "good"': '"good"',
-        'head ["fine" (let f f in f)]': '"fine"'
+        'if False then let f=f in f else "good"': '"good"',
+        'head ["fine" (let f=f in f)]': '"fine"'
     }
 
 
@@ -126,7 +125,7 @@ def test_comment():
 
         """
         # inverts a number
-        let inv
+        let inv =
         (
             \ x:  # accepts one argument, x
             (    # and then... (this is my favourite bit)
@@ -157,6 +156,6 @@ def test_syntax_error():
 def test_runtime_error():
     return [
         'a',
-        '(+ (let y 10 in y) y)',
-        '(let foo (\ x: * 2 x) in (foo x))'
+        '(+ (let y=10 in y) y)',
+        '(let foo=(\ x: * 2 x) in (foo x))'
     ]
