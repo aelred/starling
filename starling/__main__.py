@@ -14,10 +14,15 @@ def cli():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Starling interpreter.')
+    parser.add_argument('file', nargs='?')
     parser.add_argument('-d', '--debug', action='store_true')
     args = parser.parse_args()
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    cli()
+    if args.file is None:
+        cli()
+    else:
+        with open(args.file, 'r') as f:
+            print run(f.read())
