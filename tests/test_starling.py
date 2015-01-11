@@ -165,5 +165,7 @@ def test_runtime_error():
         '(1 == 2)',
         'a',
         '((let y=10 in y) + y)',
-        '(let foo=(\ x: 2 * x) in (foo x))'
+        '(let foo=(\ x: 2 * x) in (foo x))',
+        'if 1 then 2 else 0',
+        '3 > "False"'
     ]

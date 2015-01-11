@@ -1,4 +1,5 @@
 from starling import thunk, linked_list, environment, function, star_type
+from starling import error
 
 
 class EmptyToken:
@@ -129,10 +130,13 @@ class If(Token, EvalToken):
         return self._value[2]
 
     def _eval(self, env):
-        if self.predicate.eval(env).value:
+        pred = self.predicate.eval(env)
+        if pred.value is True:
             return self.consequent.eval(env)
-        else:
+        elif pred.value is False:
             return self.alternative.eval(env)
+        else:
+            raise error.StarlingRuntimeError("Type error")
 
 
 class Let(Token, EvalToken):

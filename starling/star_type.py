@@ -1,3 +1,5 @@
+from starling import error
+
 class StarType(object):
     def str_generator(self):
         """
@@ -56,9 +58,13 @@ class Number(Primitive):
         return Number(self.value ** other.value)
 
     def gt(self, other):
+        if type(self) != type(other):
+            raise error.StarlingRuntimeError('Type error')
         return Boolean(self.value > other.value)
 
     def lt(self, other):
+        if type(self) != type(other):
+            raise error.StarlingRuntimeError('Type error')
         return Boolean(self.value < other.value)
 
 
