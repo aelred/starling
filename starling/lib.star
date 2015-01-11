@@ -18,8 +18,8 @@ const = \x y: x,
 <= = \x y: not (x > y),
 
 # max and min functions
-max = \x y: (x > y)? x y,
-min = \x y: (x < y)? x y,
+max = \x y: x > y? x y,
+min = \x y: x < y? x y,
 
 # sum of a list of numbers
 sum = fold (+) 0,
@@ -54,7 +54,7 @@ take = \n xs:
 
 # return elements while predicate is true
 take_while = \p xs: 
-    if (xs = []) or (not (p (head xs)))
+    if xs = [] or (not (p (head xs)))
     then []
     else cons (head xs) (take_while p (tail xs)),
 
@@ -78,7 +78,7 @@ cat = \xs ys: fold cons ys xs,
 
 # zip two lists together
 zip = \xs ys: 
-    if (xs = []) or (ys = [])
+    if xs = [] or (ys = [])
     then []
     else cons [head xs, head ys] (zip (tail xs) (tail ys)),
 

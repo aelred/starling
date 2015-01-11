@@ -5,6 +5,10 @@ class EmptyToken:
     def __init__(self, value=None):
         pass
 
+    @property
+    def is_infix(self):
+        return False
+
     def _display(self, indent=0):
         return '%s%s' % ('  ' * indent, self.__class__.__name__)
 
@@ -15,7 +19,10 @@ class Token(EmptyToken):
         self._value = tuple(value)
 
     def __eq__(self, other):
-        return type(self) == type(other) and self._value == other._value
+        try:
+            return type(self) == type(other) and self._value == other._value
+        except AttributeError:
+            return False
 
     def _display(self, indent=0):
         child = '\n' + '\n'.join([t._display(indent+1) for t in self._value])
@@ -47,6 +54,14 @@ class Terminator(Token, EvalToken):
 
 
 class Identifier(Terminator):
+    def __init__(self, value, is_infix):
+        Terminator.__init__(self, value)
+        self._is_infix = is_infix
+
+    @property
+    def is_infix(self):
+        return self._is_infix
+
     def _eval(self, env):
         return env.resolve(self.value)
 

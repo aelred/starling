@@ -30,6 +30,19 @@ def test_math():
 
 
 @programs(False)
+def test_infix():
+    return {
+        '2 + 3': '5',
+        '1 + 2 + 3': '6',
+        '5 - 1 - 2': '2',
+        '(+ 2) 3': '5',
+        '(2 +) 3': '5',
+        '(/ 2) 10': '5',
+        '(10 /) 2': '5'
+    }
+
+
+@programs(False)
 def test_logic():
     return {
         '3 = 0': 'False',
@@ -94,7 +107,7 @@ def test_recursion():
             then 0
             else if x = 1
             then 1
-            else (fib (x - 1)) + (fib (x - 2))
+            else fib (x - 1) + (fib (x - 2))
         in fib 6
         """: '8',
     }

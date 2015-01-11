@@ -24,17 +24,13 @@ else_ = Suppress(Keyword('else'))
 export = Suppress(Keyword('export'))
 reserved = let | in_ | lambda_ | colon | if_ | then | else_ | export
 
-word_id = Word(alphas + '_', alphanums + '_')
-infix_id = (Word('+-*/=<>?') | 'and' | 'or' | 'mod' | 'pow')('identifier')
-ident = ~reserved + (word_id | infix_id)('identifier*')
+word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
+infix_id = (Word('+-*/=<>?') | 'and' | 'or' | 'mod' | 'pow')('infix_id')
+ident = ~reserved + (infix_id | word_id)
 string = QuotedString(quoteChar='"')('string*')
 
 atom = Forward()
-infix_expr = Group(atom + infix_id + OneOrMore(atom))('infix_expression')
-infix_lpartial = Group(atom + infix_id)('infix_lpartial')
-infix_rpartial = Group(infix_id + atom)('infix_rpartial')
-infix_partial = infix_lpartial | infix_rpartial
-expr = infix_expr | infix_partial | Group(OneOrMore(atom))('expression')
+expr = Group(OneOrMore(atom))('expression')
 
 parentheses = (lpar - Optional(expr) - rpar)
 
@@ -89,27 +85,47 @@ def _interpret_parse_result(parse_result):
         return parse_result
 
     def create_token(name, value):
-        if name == 'infix_expression':
-            # when encoutering an infix expression, change it to prefix
-            name = 'expression'
-            value = [value[1], value[0]] + value[2:]
-        elif name == 'infix_lpartial':
-            # when encoutering an infix partial, change it to a lambda
-            temp_id = create_token('identifier', '$temp_partial')
-            name = 'lambda'
-            value = [temp_id,
-                     create_token('expression', [value[1], value[0], temp_id])]
-        elif name == 'infix_rpartial':
-            temp_id = create_token('identifier', '$temp_partial')
-            name = 'lambda'
-            value = [temp_id,
-                     create_token('expression', [value[0], temp_id, value[1]])]
+        assert len(value) > 0, name
 
-        # when encoutering an expression, left-recursively wrap it up
         if name == 'expression':
+            # transform infix operators into prefix ones
+            # use left associatino (furthest right infix operator)
+            try:
+                i, infix = next((i, t) for i, t in
+                                reversed(list(enumerate(value)))
+                                if t.is_infix)
+            except StopIteration:
+                pass
+            else:
+                # create a new prefix token
+                prefix = create_token('prefix_id', infix.value)
+                if len(value) > 2:
+                    # transform infix expression into prefix
+                    value = ([prefix, create_token('expression', value[0:i])] +
+                             value[i+1:])
+                    return create_token('expression', value)
+                elif len(value) == 2:
+                    # partial infix application
+                    temp_id = create_token('prefix_id', '$temp_partial')
+                    if value[0] == infix:
+                        arg1 = temp_id
+                        arg2 = value[1]
+                    else:
+                        arg1 = value[0]
+                        arg2 = temp_id
+                    value = [temp_id,
+                             create_token('expression',
+                                          [prefix, arg1, arg2])]
+                    return create_token('lambda', value)
+                else:
+                    # a lone infix operator e.g. (+), transform to prefix
+                    return prefix
+
             if len(value) == 1:
+                # redundant expression
                 return value[0]
             else:
+                # when encoutering an expression, left-recursively wrap it up
                 value = [create_token('expression', value[0:-1]), value[-1]]
 
         return token_classes[name](value)
@@ -126,7 +142,8 @@ def _interpret_parse_result(parse_result):
 
 
 token_classes = {
-    'identifier': syntax_tree.Identifier,
+    'prefix_id': lambda v: syntax_tree.Identifier(v, False),
+    'infix_id': lambda v: syntax_tree.Identifier(v, True),
     'number': syntax_tree.Number,
     'string': syntax_tree.String,
     'expression': syntax_tree.Expression,
