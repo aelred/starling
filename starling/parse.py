@@ -13,19 +13,19 @@ equals = Suppress(Literal('='))
 comma = Suppress(Literal(','))
 comment = (Literal('#') + SkipTo(lineEnd))('comment*')
 number = Word(nums)('number*')
+colon = Suppress(':')
 
 let = Suppress(Keyword('let'))
 in_ = Suppress(Keyword('in'))
 lambda_ = Suppress(Literal('\\'))
-colon = Suppress(':')
 if_ = Suppress(Keyword('if'))
 then = Suppress(Keyword('then'))
 else_ = Suppress(Keyword('else'))
 export = Suppress(Keyword('export'))
-reserved = let | in_ | lambda_ | colon | if_ | then | else_ | export
+reserved = let | in_ | lambda_ | if_ | then | else_ | export
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
-infix_id = (Word('+-*/=<>?') | 'and' | 'or' | 'mod' | 'pow')('infix_id')
+infix_id = (Word('+-*/=<>?:') | 'and' | 'or' | 'mod' | 'pow')('infix_id')
 ident = ~reserved + (infix_id | word_id)
 string = QuotedString(quoteChar='"')('string*')
 
