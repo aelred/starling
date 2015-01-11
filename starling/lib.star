@@ -17,8 +17,9 @@ const = \x y: x,
 . = \f g x: f (g x),
 
 # comparison operators
+< = \x: not . (<= x),
+> = \x y: not (x <= y),
 >= = \x: not . (> x),
-<= = \x: not . (< x),
 
 # max and min functions
 max = \x y: x > y? x y,
@@ -106,5 +107,5 @@ sort = \xs:
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const . >= <= max min sum foldr foldl fold map
+    not or and any all ? id const . < >= > max min sum foldr foldl fold map
     filter take take_while range nats length reverse cat zip unzip sort

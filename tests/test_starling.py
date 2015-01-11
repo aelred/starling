@@ -47,12 +47,9 @@ def test_logic():
     return {
         '3 = 0': 'False',
         '0 = 0': 'True',
-        '2 < 0': 'False',
-        '0 < 2': 'True',
-        '0 < 0': 'False',
-        '2 > 0': 'True',
-        '0 > 2': 'False',
-        '0 > 0': 'False',
+        '4 <= 6': 'True',
+        '6 <= 6': 'True',
+        '6 <= 4': 'False',
         'False': 'False',
         'True': 'True',
     }
@@ -60,7 +57,7 @@ def test_logic():
 
 @programs(False)
 def test_if():
-    return {'if 1 > 2 then "Oh dear..." else "Great!"': '"Great!"'}
+    return {'if 2 <= 1 then "Oh dear..." else "Great!"': '"Great!"'}
 
 
 @programs(False)
@@ -167,5 +164,5 @@ def test_runtime_error():
         '((let y=10 in y) + y)',
         '(let foo=(\ x: 2 * x) in (foo x))',
         'if 1 then 2 else 0',
-        '3 > "False"'
+        '3 <= "False"'
     ]

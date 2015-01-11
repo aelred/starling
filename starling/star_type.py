@@ -57,15 +57,10 @@ class Number(Primitive):
     def pow(self, other):
         return Number(self.value ** other.value)
 
-    def gt(self, other):
+    def le(self, other):
         if type(self) != type(other):
             raise error.StarlingRuntimeError('Type error')
-        return Boolean(self.value > other.value)
-
-    def lt(self, other):
-        if type(self) != type(other):
-            raise error.StarlingRuntimeError('Type error')
-        return Boolean(self.value < other.value)
+        return Boolean(self.value <= other.value)
 
 
 class String(Primitive):

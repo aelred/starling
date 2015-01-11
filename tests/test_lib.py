@@ -25,12 +25,15 @@ def test_math():
 @programs(True)
 def test_logic():
     return {
-        '4 <= 6': 'True',
-        '6 <= 6': 'True',
-        '6 <= 4': 'False',
+        '2 < 0': 'False',
+        '0 < 2': 'True',
+        '0 < 0': 'False',
         '4 >= 6': 'False',
         '6 >= 6': 'True',
         '6 >= 4': 'True',
+        '2 > 0': 'True',
+        '0 > 2': 'False',
+        '0 > 0': 'False',
         'not False': 'True',
         'not True': 'False',
         '(1 = 1) and (2 = 2)': 'True',
