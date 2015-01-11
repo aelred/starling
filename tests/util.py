@@ -24,9 +24,11 @@ def check_program(program, result, lib):
         program, output, result))
 
 
-def errors(f):
-    @wraps(f)
-    def errors_(err):
-        for program in f():
-            yield assert_raises, err, starling.run, program
-    return errors_
+def errors(err):
+    def error_wrapper(f):
+        @wraps(f)
+        def errors_():
+            for program in f():
+                yield assert_raises, err, starling.run, program
+        return errors_
+    return error_wrapper

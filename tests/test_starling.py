@@ -155,7 +155,6 @@ def test_partial():
 @errors(error.StarlingSyntaxError)
 def test_syntax_error():
     return [
-        '(1 == 2)',
         '(3 * 2'
     ]
 
@@ -163,6 +162,7 @@ def test_syntax_error():
 @errors(error.StarlingRuntimeError)
 def test_runtime_error():
     return [
+        '(1 == 2)',
         'a',
         '((let y=10 in y) + y)',
         '(let foo=(\ x: 2 * x) in (foo x))'
