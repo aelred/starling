@@ -25,12 +25,16 @@ export = Suppress(Keyword('export'))
 reserved = let | in_ | lambda_ | colon | if_ | then | else_ | export
 
 word_id = Word(alphas + '_', alphanums + '_')
-asc_id = Word('+-*/=<>?')
-ident = ~reserved + (word_id | asc_id)('identifier*')
+infix_id = (Word('+-*/=<>?') | 'and' | 'or' | 'mod' | 'pow')('identifier')
+ident = ~reserved + (word_id | infix_id)('identifier*')
 string = QuotedString(quoteChar='"')('string*')
 
 atom = Forward()
-expr = Group(OneOrMore(atom))('expression')
+infix_expr = Group(atom + infix_id + OneOrMore(atom))('infix_expression')
+infix_lpartial = Group(atom + infix_id)('infix_lpartial')
+infix_rpartial = Group(infix_id + atom)('infix_rpartial')
+infix_partial = infix_lpartial | infix_rpartial
+expr = infix_expr | infix_partial | Group(OneOrMore(atom))('expression')
 
 parentheses = (lpar - Optional(expr) - rpar)
 
@@ -85,6 +89,22 @@ def _interpret_parse_result(parse_result):
         return parse_result
 
     def create_token(name, value):
+        if name == 'infix_expression':
+            # when encoutering an infix expression, change it to prefix
+            name = 'expression'
+            value = [value[1], value[0]] + value[2:]
+        elif name == 'infix_lpartial':
+            # when encoutering an infix partial, change it to a lambda
+            temp_id = create_token('identifier', '$temp_partial')
+            name = 'lambda'
+            value = [temp_id,
+                     create_token('expression', [value[1], value[0], temp_id])]
+        elif name == 'infix_rpartial':
+            temp_id = create_token('identifier', '$temp_partial')
+            name = 'lambda'
+            value = [temp_id,
+                     create_token('expression', [value[0], temp_id, value[1]])]
+
         # when encoutering an expression, left-recursively wrap it up
         if name == 'expression':
             if len(value) == 1:

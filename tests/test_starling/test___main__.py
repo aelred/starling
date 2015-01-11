@@ -26,5 +26,5 @@ def _input(inputs, result):
 
 
 def test_input():
-    _input(['+ 2 1', 'quit'], ['3', ''])
+    _input(['2 + 1', 'quit'], ['3', ''])
     _input(['quit'], [''])

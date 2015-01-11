@@ -1,10 +1,10 @@
 let
 # basic logic
-not = \x: ? x False True,
+not = \x: x? False True,
 or = \x y: if x then True else if y then True else False,
 and = \x y: if x then (if y then True else False) else False,
-any = fold or False,
-all = fold and True,
+any = fold (or) False,
+all = fold (and) True,
 
 # useful, short if construct
 ? = \p c a: if p then c else a,
@@ -14,25 +14,25 @@ id = \x: x,
 const = \x y: x,
 
 # comparison operators
->= = \x y: not (< x y),
-<= = \x y: not (> x y),
+>= = \x y: not (x < y),
+<= = \x y: not (x > y),
 
 # max and min functions
-max = \x y: ? (> x y) x y,
-min = \x y: ? (< x y) x y,
+max = \x y: (x > y)? x y,
+min = \x y: (x < y)? x y,
 
 # sum of a list of numbers
-sum = fold + 0,
+sum = fold (+) 0,
 
 # return the function folded from the right over the given list
 foldr = \f init xs: 
-    if = xs []
+    if xs = []
     then init
     else f (head xs) (foldr f init (tail xs)),
 
 # return the function folded from the left over the given list
 foldl = \f init xs:
-    if = xs []
+    if xs = []
     then init
     else foldl f (f init (head xs)) (tail xs),
 
@@ -48,24 +48,24 @@ filter = \f:
 
 # return the first n elements from the list
 take = \n xs:
-    if = n 0
+    if n = 0
     then []
-    else cons (head xs) (take (- n 1) (tail xs)),
+    else cons (head xs) (take (n - 1) (tail xs)),
 
 # return elements while predicate is true
 take_while = \p xs: 
-    if or (= xs []) (not (p (head xs)))
+    if (xs = []) or (not (p (head xs)))
     then []
     else cons (head xs) (take_while p (tail xs)),
 
 # return all numbers between start (inclusive) and end (exclusive)
 range = \start end: 
-    if = start end
+    if start = end
     then []
-    else cons start (range (+ start 1) end),
+    else cons start (range (start + 1) end),
 
 # return all the natural numbers starting from 0
-nats = let nats_ = \n: cons n (nats_ (+ n 1)) in nats_ 0,
+nats = let nats_ = \n: cons n (nats_ (n + 1)) in nats_ 0,
 
 # return the length of a list
 length = fold (\x: +1) 0,
@@ -78,7 +78,7 @@ cat = \xs ys: fold cons ys xs,
 
 # zip two lists together
 zip = \xs ys: 
-    if or (= xs []) (= ys [])
+    if (xs = []) or (ys = [])
     then []
     else cons [head xs, head ys] (zip (tail xs) (tail ys)),
 
@@ -95,12 +95,12 @@ unzip =
 
 # return a sorted version of the list
 sort = \xs:
-    if = xs []
+    if xs = []
     then []
     else let 
         pivot = head xs,
-        less = filter (>= pivot) (tail xs),
-        more = filter (< pivot) (tail xs) in 
+        less = filter (< pivot) (tail xs),
+        more = filter (>= pivot) (tail xs) in 
     cat (sort less) (cons pivot (sort more))
 
 in export 

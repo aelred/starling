@@ -24,12 +24,12 @@ def test_grammar():
     _check_parse('5', [['5']])
     _check_parse('x', [['x']])
     _check_parse('map', [['map']])
-    _check_parse('+ 1 2', [['+', '1', '2']])
+    _check_parse('1 + 2', [['1', '+', '2']])
     _check_parse('(not True)', [[['not', 'True']]])
     _check_parse('6 # still commenting!', [['6']])
     _check_parse('foo "My string"', [['foo', 'My string']])
-    _check_parse('let f = \ x: (* x x) in f 10',
-                 [[[[['f', [['x', [['*', 'x', 'x']]]]]], ['f', '10']]]])
+    _check_parse('let f = \ x: (x * x) in f 10',
+                 [[[[['f', [['x', [['x', '*', 'x']]]]]], ['f', '10']]]])
 
     # obnoxious code
     _check_parse(
@@ -67,14 +67,14 @@ def _tokenize(s, result):
 
 
 def test_tokenize():
-    _tokenize('+ 1 2',
+    _tokenize('1 + 2',
               'Expression:\n'
               '  Expression:\n'
               '    Identifier: +\n'
               '    Number: 1\n'
               '  Number: 2')
 
-    _tokenize('let f = \ x y: + x y in f 2 10',
+    _tokenize('let f = \ x y: x + y in f 2 10',
               'Let:\n'
               '  Bindings:\n'
               '    Binding:\n'

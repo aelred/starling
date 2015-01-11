@@ -12,34 +12,34 @@ def test_string():
 def test_math():
     return {
         '14': '14',
-        '+ 14 3': '17',
-        '- 12 3': '9',
-        '* 1 2': '2',
-        '/ 6 2': '3',
-        '(+ 3 2)': '5',
-        '(+ 10 (* 3 3))': '19',
-        'mod 10 2': '0',
-        'mod 9 2': '1',
-        'mod 6 6': '0',
-        'mod 5 3': '2',
-        'pow 5 0': '1',
-        'pow 60 1': '60',
-        'pow 5 2': '25',
-        'pow 2 8': '256'
+        '14 + 3': '17',
+        '12 - 3': '9',
+        '1 * 2': '2',
+        '6 / 2': '3',
+        '(3 + 2)': '5',
+        '(10 + (3 * 3))': '19',
+        '10 mod 2': '0',
+        '9 mod 2': '1',
+        '6 mod 6': '0',
+        '5 mod 3': '2',
+        '5 pow 0': '1',
+        '60 pow 1': '60',
+        '5 pow 2': '25',
+        '2 pow 8': '256'
     }
 
 
 @programs(False)
 def test_logic():
     return {
-        '= 3 0': 'False',
-        '= 0 0': 'True',
-        '< 2 0': 'False',
-        '< 0 2': 'True',
-        '< 0 0': 'False',
-        '> 2 0': 'True',
-        '> 0 2': 'False',
-        '> 0 0': 'False',
+        '3 = 0': 'False',
+        '0 = 0': 'True',
+        '2 < 0': 'False',
+        '0 < 2': 'True',
+        '0 < 0': 'False',
+        '2 > 0': 'True',
+        '0 > 2': 'False',
+        '0 > 0': 'False',
         'False': 'False',
         'True': 'True',
     }
@@ -47,22 +47,22 @@ def test_logic():
 
 @programs(False)
 def test_if():
-    return {'if > 1 2 then "Oh dear..." else "Great!"': '"Great!"'}
+    return {'if 1 > 2 then "Oh dear..." else "Great!"': '"Great!"'}
 
 
 @programs(False)
 def test_const():
     return {
-        'let a=5 in + a 1': '6',
-        'let x=2 in (/ (let x=10 in x) x)': '5',
+        'let a=5 in a + 1': '6',
+        'let x=2 in ((let x=10 in x) / x)': '5',
     }
 
 
 @programs(False)
 def test_func():
     return {
-        'let square=\\x: * x x in (square 5)': '25',
-        'let avg = (\ x y: (/ (+ x y) 2)) in (let a= 6 in (avg a 8))': '7'
+        'let square=\\x: x * x in (square 5)': '25',
+        'let avg = (\ x y: ((x + y) / 2)) in (let a= 6 in (avg a 8))': '7'
     }
 
 
@@ -84,17 +84,17 @@ def test_list():
 def test_recursion():
     return {
         """
-        let tri = \ x: (if = x 0 then 0 else + (tri (- x 1)) x) in
+        let tri = \ x: (if x = 0 then 0 else (tri (x - 1)) + x) in
         (tri 4)
         """: '10',
 
         """
         let fib = \ x:
-            if = x 0
+            if x = 0
             then 0
-            else if = x 1
+            else if x = 1
             then 1
-            else + (fib (- x 1)) (fib (- x 2))
+            else (fib (x - 1)) + (fib (x - 2))
         in fib 6
         """: '8',
     }
@@ -124,7 +124,7 @@ def test_comment():
         (
             \ x:  # accepts one argument, x
             (    # and then... (this is my favourite bit)
-                - 0 x  # return 0 - x = -x
+                0 - x  # return 0 - x = -x
             )
         ) in
         inv 10  # call with arg 10, should return -10
@@ -151,6 +151,6 @@ def test_syntax_error():
 def test_runtime_error():
     return [
         'a',
-        '(+ (let y=10 in y) y)',
-        '(let foo=(\ x: * 2 x) in (foo x))'
+        '((let y=10 in y) + y)',
+        '(let foo=(\ x: 2 * x) in (foo x))'
     ]
