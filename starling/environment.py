@@ -42,7 +42,7 @@ class Environment:
             else:
                 # pull binding into this environment for effic:ency
                 self.bindings[name] = bind
-                return bind.eval()
+                return bind.dethunk()
 
         raise error.StarlingRuntimeError(
             'No binding for %r:\n%r' % (name, self))

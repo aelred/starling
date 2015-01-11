@@ -25,10 +25,10 @@ class List(star_type.StarType):
         self._tail = tail
 
     def head(self):
-        return self._head.eval()
+        return self._head.dethunk()
 
     def tail(self):
-        return self._tail.eval()
+        return self._tail.dethunk()
 
     def eq(self, other):
         try:

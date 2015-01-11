@@ -27,7 +27,7 @@ class Builtin:
     def __init__(self, *args, **kwargs):
         self._bi = _Builtin(*args, **kwargs)
 
-    def eval(self):
+    def dethunk(self):
         return self._bi
 
 
@@ -65,7 +65,7 @@ class BI(Builtin):
     """ Shorthand built-in function. """
 
     def __init__(self, name, num_params, func):
-        f = lambda *args: func(*[a.eval for a in args])
+        f = lambda *args: func(*[a.dethunk for a in args])
         Builtin.__init__(self, name, num_params, f)
 
 
@@ -75,5 +75,5 @@ class Const:
     def __init__(self, value):
         self._value = value
 
-    def eval(self):
+    def dethunk(self):
         return self._value
