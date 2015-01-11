@@ -4,12 +4,15 @@ from nose.tools import eq_, assert_raises
 from functools import wraps
 
 
-def programs(libs):
+def programs(libs, from_file=False):
     def programs_wrapper(f):
         @wraps(f)
         def programs_():
             # we have to go deeper!
             for program, result in f().iteritems():
+                if from_file:
+                    with open(program, 'r') as script:
+                        program = script.read()
                 yield check_program, program, result, libs
         return programs_
     return programs_wrapper
