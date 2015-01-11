@@ -13,9 +13,12 @@ id = \x: x,
 # const returns a function that always yields the given argument
 const = \x y: x,
 
+# function composition
+. = \f g x: f (g x),
+
 # comparison operators
->= = \x y: not (x < y),
-<= = \x y: not (x > y),
+>= = \x: not . (> x),
+<= = \x: not . (< x),
 
 # max and min functions
 max = \x y: x > y? x y,
@@ -28,13 +31,13 @@ sum = fold (+) 0,
 foldr = \f init xs: 
     if xs = []
     then init
-    else f (head xs) (foldr f init (tail xs)),
+    else f . head xs (foldr f init . tail xs),
 
 # return the function folded from the left over the given list
 foldl = \f init xs:
     if xs = []
     then init
-    else foldl f (f init (head xs)) (tail xs),
+    else foldl f (f init . head xs) . tail xs,
 
 # fold is a synonoym for foldr
 fold = foldr,
@@ -43,18 +46,17 @@ fold = foldr,
 map = \f: fold (\x accum: f x : accum) [],
 
 # return all elements in the list that satisfy the function
-filter = \f:
-    fold (\x accum: if f x then x : accum else accum) [],
+filter = \f: fold (\x accum: if f x then x : accum else accum) [],
 
 # return the first n elements from the list
 take = \n xs:
     if n = 0
     then []
-    else head xs : (take (n - 1) (tail xs)),
+    else head xs : (take (n - 1) . tail xs),
 
 # return elements while predicate is true
 take_while = \p xs: 
-    if xs = [] or (not (p (head xs)))
+    if xs = [] or (not . p . head xs)
     then []
     else head xs : (take_while p (tail xs)),
 
@@ -87,9 +89,9 @@ unzip =
     let f = \xy accum: 
         let 
             x = head xy,
-            y = head (tail xy),
+            y = head . tail xy,
             xs = head accum,
-            ys = head (tail accum) in 
+            ys = head . tail accum in 
         [x:xs, y:ys] 
     in fold f [[], []],
 
@@ -99,10 +101,10 @@ sort = \xs:
     then []
     else let 
         pivot = head xs,
-        less = filter (< pivot) (tail xs),
-        more = filter (>= pivot) (tail xs) in 
+        less = filter (< pivot) . tail xs,
+        more = filter (>= pivot) . tail xs in 
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const >= <= max min sum foldr foldl fold map filter
-    take take_while range nats length reverse cat zip unzip sort
+    not or and any all ? id const . >= <= max min sum foldr foldl fold map
+    filter take take_while range nats length reverse cat zip unzip sort

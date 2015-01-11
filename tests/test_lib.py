@@ -74,7 +74,8 @@ def test_misc():
         '(id not) False': 'True',
         'id "hi"': '"hi"',
         '(const 4) "a"': '4',
-        '(const []) []': '[]'
+        '(const []) []': '[]',
+        '(+ 1) . (* 2) 3': '7'
     }
 
 
