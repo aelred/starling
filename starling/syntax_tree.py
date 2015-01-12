@@ -36,7 +36,7 @@ class Token(EmptyToken):
 class EvalToken:
     def eval(self, env):
         result = self._eval(env)
-        assert isinstance(result, star_type.StarType)
+        assert isinstance(result, star_type.StarObject)
         return result
 
 

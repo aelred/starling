@@ -1,6 +1,7 @@
 from starling import error
 
-class StarType(object):
+
+class StarObject(object):
     def str_generator(self):
         """
         Return generator for string representation.
@@ -19,7 +20,7 @@ class StarType(object):
         return ''.join(self.str_generator())
 
 
-class Primitive(StarType):
+class Primitive(StarObject):
     def __init__(self, value):
         self._value = value
 

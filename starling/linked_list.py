@@ -5,7 +5,7 @@ from starling import star_type
 log = logging.getLogger(__name__)
 
 
-class _EmptyList(star_type.StarType):
+class _EmptyList(star_type.StarObject):
     def __iter__(self):
         return iter([])
 
@@ -18,7 +18,7 @@ class _EmptyList(star_type.StarType):
 empty = _EmptyList()
 
 
-class List(star_type.StarType):
+class List(star_type.StarObject):
 
     def __init__(self, head, tail):
         self._head = head

@@ -5,7 +5,7 @@ from starling import star_type
 log = logging.getLogger(__name__)
 
 
-class Function(star_type.StarType):
+class Function(star_type.StarObject):
     def __init__(self, name):
         self._name = name
         self.log = log.getChild(self._name)
