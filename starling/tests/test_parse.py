@@ -20,16 +20,16 @@ def test_grammar():
     # parse.grammar.validate()
 
     # parse some really simple scripts
-    _check_parse('True', [['True']])
-    _check_parse('5', [['5']])
-    _check_parse('x', [['x']])
-    _check_parse('map', [['map']])
-    _check_parse('1 + 2', [['1', '+', '2']])
-    _check_parse('(not True)', [[['not', 'True']]])
-    _check_parse('6 # still commenting!', [['6']])
-    _check_parse('foo "My string"', [['foo', 'My string']])
+    _check_parse('True', [[['True']]])
+    _check_parse('5', [[['5']]])
+    _check_parse('x', [[['x']]])
+    _check_parse('map', [[['map']]])
+    _check_parse('1 + 2', [[['1', '+', '2']]])
+    _check_parse('(not True)', [[[['not', 'True']]]])
+    _check_parse('6 # still commenting!', [[['6']]])
+    _check_parse('foo "My string"', [[['foo', 'My string']]])
     _check_parse('let f = \ x: (x * x) in f 10',
-                 [[[[['f', [['x', [['x', '*', 'x']]]]]], ['f', '10']]]])
+                 [[[[[['f', [['x', [['x', '*', 'x']]]]]], ['f', '10']]]]])
 
     # obnoxious code
     _check_parse(
@@ -45,8 +45,8 @@ def test_grammar():
         ,3]
     ))
         """,
-        [[[[[['foo', [['xs', ['foo', 'xs']]]]],
-            [['foo', [['1'], [['2'], [['3'], ']']]]]]]]]])
+        [[[[[[['foo', [['xs', ['foo', 'xs']]]]],
+             [['foo', [['1'], [['2'], [['3'], ']']]]]]]]]]])
 
     _bad('(')
     _bad(')')
@@ -68,37 +68,40 @@ def _tokenize(s, result):
 
 def test_tokenize():
     _tokenize('1 + 2',
-              'Expression:\n'
+              'Script:\n'
               '  Expression:\n'
-              '    Identifier: +\n'
-              '    Number: 1\n'
-              '  Number: 2')
+              '    Expression:\n'
+              '      Identifier: +\n'
+              '      Number: 1\n'
+              '    Number: 2')
 
     _tokenize('let f = \ x y: x + y in f 2 10',
-              'Let:\n'
-              '  Bindings:\n'
-              '    Binding:\n'
-              '      Identifier: f\n'
-              '      Lambda:\n'
-              '        Identifier: x\n'
+              'Script:\n'
+              '  Let:\n'
+              '    Bindings:\n'
+              '      Binding:\n'
+              '        Identifier: f\n'
               '        Lambda:\n'
-              '          Identifier: y\n'
-              '          Expression:\n'
-              '            Expression:\n'
-              '              Identifier: +\n'
-              '              Identifier: x\n'
+              '          Identifier: x\n'
+              '          Lambda:\n'
               '            Identifier: y\n'
-              '  Expression:\n'
+              '            Expression:\n'
+              '              Expression:\n'
+              '                Identifier: +\n'
+              '                Identifier: x\n'
+              '              Identifier: y\n'
               '    Expression:\n'
-              '      Identifier: f\n'
-              '      Number: 2\n'
-              '    Number: 10\n')
+              '      Expression:\n'
+              '        Identifier: f\n'
+              '        Number: 2\n'
+              '      Number: 10\n')
 
     _tokenize('a b c x',
-              'Expression:\n'
+              'Script:\n'
               '  Expression:\n'
               '    Expression:\n'
-              '      Identifier: a\n'
-              '      Identifier: b\n'
-              '    Identifier: c\n'
-              '  Identifier: x\n')
+              '      Expression:\n'
+              '        Identifier: a\n'
+              '        Identifier: b\n'
+              '      Identifier: c\n'
+              '    Identifier: x\n')

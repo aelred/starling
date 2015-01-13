@@ -40,6 +40,16 @@ class EvalToken:
         return result
 
 
+class Script(Token, EvalToken):
+
+    @property
+    def body(self):
+        return self._value[0]
+
+    def _eval(self, env):
+        return self.body.eval(env)
+
+
 class Terminator(Token, EvalToken):
 
     def __init__(self, value):

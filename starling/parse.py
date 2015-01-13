@@ -54,7 +54,7 @@ export_expr = Group(export + OneOrMore(ident))('export')
 atom << (let_expr | lambda_expr | if_expr | export_expr | number | string |
          ident | parentheses | linked_list)
 
-grammar = (expr + StringEnd()).ignore(comment)
+grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
 
 # speeds up parsing by memoizing
 grammar.enablePackrat()
@@ -142,6 +142,7 @@ def _interpret_parse_result(parse_result):
 
 
 token_classes = {
+    'script': syntax_tree.Script,
     'prefix_id': lambda v: syntax_tree.Identifier(v, False),
     'infix_id': lambda v: syntax_tree.Identifier(v, True),
     'number': syntax_tree.Number,
