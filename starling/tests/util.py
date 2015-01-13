@@ -1,7 +1,9 @@
 import starling
+from starling import star_path
 
 from nose.tools import eq_, assert_raises
 from functools import wraps
+import os
 
 
 def programs(libs, from_file=False, has_input=False):
@@ -15,7 +17,8 @@ def programs(libs, from_file=False, has_input=False):
                 else:
                     input_ = ""
                 if from_file:
-                    with open(program, 'r') as script:
+                    path = os.path.join(star_path.path, program + '.star')
+                    with open(path, 'r') as script:
                         program = script.read()
                 yield check_program, program, input_, result, libs
         return programs_

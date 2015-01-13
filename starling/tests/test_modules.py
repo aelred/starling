@@ -2,7 +2,7 @@ from util import programs
 
 
 @programs(True, True)
-def test_examples():
+def test_modules():
     return {
-        'examples/euler2.star': '4613732'
+        'euler2': '4613732'
     }
