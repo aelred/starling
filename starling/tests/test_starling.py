@@ -164,6 +164,12 @@ def test_input():
     }
 
 
+@programs(False)
+def test_export():
+    return {
+        'let foo = 3 in export foo': 'module'
+    }
+
 @errors(error.StarlingSyntaxError)
 def test_syntax_error():
     return [
