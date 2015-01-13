@@ -1,12 +1,11 @@
 import logging
 import os
 
-from starling import environment, glob_env, parse
+from starling import environment, glob_env, parse, star_path
 
 log = logging.getLogger('starling')
 
-_loc = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-lib_path = os.path.join(_loc, 'lib.star')
+lib_path = os.path.join(star_path.path, 'lib.star')
 
 _std_env = None
 
