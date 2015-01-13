@@ -84,52 +84,6 @@ def _interpret_parse_result(parse_result):
         # This is a string, so return it
         return parse_result
 
-    def create_token(name, value):
-        assert len(value) > 0, name
-
-        if name == 'expression':
-            # transform infix operators into prefix ones
-            # use left associatino (furthest right infix operator)
-            try:
-                i, infix = next((i, t) for i, t in
-                                reversed(list(enumerate(value)))
-                                if t.is_infix)
-            except StopIteration:
-                pass
-            else:
-                # create a new prefix token
-                prefix = create_token('prefix_id', infix.value)
-                if len(value) > 2:
-                    # transform infix expression into prefix
-                    value = ([prefix, create_token('expression', value[0:i])] +
-                             value[i+1:])
-                    return create_token('expression', value)
-                elif len(value) == 2:
-                    # partial infix application
-                    temp_id = create_token('prefix_id', '$temp_partial')
-                    if value[0] == infix:
-                        arg1 = temp_id
-                        arg2 = value[1]
-                    else:
-                        arg1 = value[0]
-                        arg2 = temp_id
-                    value = [temp_id,
-                             create_token('expression',
-                                          [prefix, arg1, arg2])]
-                    return create_token('lambda', value)
-                else:
-                    # a lone infix operator e.g. (+), transform to prefix
-                    return prefix
-
-            if len(value) == 1:
-                # redundant expression
-                return value[0]
-            else:
-                # when encoutering an expression, left-recursively wrap it up
-                value = [create_token('expression', value[0:-1]), value[-1]]
-
-        return token_classes[name](value)
-
     def get_name(index, token):
         for name, tokens in intern_dict.items():
             if (token, index) in [tt.tup for tt in tokens]:
@@ -137,8 +91,48 @@ def _interpret_parse_result(parse_result):
 
     tokens = []
     for i, t in enumerate(parse_result):
-        tokens.append(create_token(get_name(i, t), _interpret_parse_result(t)))
+        tokens.append(token_classes[get_name(i, t)]
+                      (_interpret_parse_result(t)))
     return tokens
+
+
+def _expr_token(value):
+    # transform infix operators into prefix ones
+    # use left associatino (furthest right infix operator)
+    try:
+        i, infix = next((i, t) for i, t in
+                        reversed(list(enumerate(value)))
+                        if t.is_infix)
+    except StopIteration:
+        pass
+    else:
+        # create a new prefix token
+        prefix = token_classes['prefix_id'](infix.value)
+        if len(value) > 2:
+            # transform infix expression into prefix
+            value = [prefix, _expr_token(value[0:i])] + value[i+1:]
+            return _expr_token(value)
+        elif len(value) == 2:
+            # partial infix application
+            temp_id = token_classes['prefix_id']('$temp_partial')
+            if value[0] == infix:
+                arg1 = temp_id
+                arg2 = value[1]
+            else:
+                arg1 = value[0]
+                arg2 = temp_id
+            value = [temp_id, _expr_token([prefix, arg1, arg2])]
+            return token_classes['lambda'](value)
+        else:
+            # a lone infix operator e.g. (+), transform to prefix
+            return prefix
+
+    if len(value) == 1:
+        # redundant expression
+        return value[0]
+    else:
+        # when encoutering an expression, left-recursively wrap it up
+        return syntax_tree.Expression([_expr_token(value[0:-1]), value[-1]])
 
 
 token_classes = {
@@ -147,7 +141,7 @@ token_classes = {
     'infix_id': lambda v: syntax_tree.Identifier(v, True),
     'number': syntax_tree.Number,
     'string': syntax_tree.String,
-    'expression': syntax_tree.Expression,
+    'expression': _expr_token,
     'emptylist': syntax_tree.EmptyList,
     'list': syntax_tree.List,
     'if': syntax_tree.If,
