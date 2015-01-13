@@ -15,7 +15,7 @@ def test_list():
     token = parse.tokenize(script)
     li = token.eval(glob_env)
     # test list equals itself
-    assert li.eq(li).value
+    assert li.eq(parse.tokenize(script).eval(glob_env)).value
     eq_(li.str(), script)
     # make sure list is not 'consumed' after evaluation
     eq_(li.str(), script)

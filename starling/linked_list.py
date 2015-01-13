@@ -32,8 +32,8 @@ class List(star_type.StarObject):
 
     def eq(self, other):
         try:
-            heads = self.head() == other.head()
-            tails = self.tail() == other.tail()
+            heads = self.head().eq(other.head()).value
+            tails = self.tail().eq(other.tail()).value
             return star_type.Boolean(heads and tails)
         except AttributeError:
             return star_type.Boolean(False)
