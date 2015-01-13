@@ -28,6 +28,9 @@ min = \x y: x < y? x y,
 # sum of a list of numbers
 sum = fold (+) 0,
 
+# list contains given element
+has = \xs x: any (map (= x) xs),
+
 # return the function folded from the right over the given list
 foldr = \f init xs: 
     if xs = []
@@ -107,5 +110,5 @@ sort = \xs:
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const . < >= > max min sum foldr foldl fold map
+    not or and any all ? id const . < >= > max min sum has foldr foldl fold map
     filter take take_while range nats length reverse cat zip unzip sort

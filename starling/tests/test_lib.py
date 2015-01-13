@@ -116,7 +116,11 @@ def test_list_ops():
         'length (take 5 nats)': '5',
         'reverse [1, 2, 3]': '[3, 2, 1]',
         'reverse []': '[]',
-        'reverse [5]': '[5]'
+        'reverse [5]': '[5]',
+        '[1, 2, 3] has 3': 'True',
+        '"hello" has \'y\'': 'False',
+        '[1, 2, 3] has 9': 'False',
+        '"hello" has \'l\'': 'True'
     }
 
 
