@@ -16,3 +16,16 @@ glob_env = environment.Environment(None, {
     'tail': BI('tail', 1, lambda xs: xs().tail()),
     ':': Builtin('cons', 2, lambda x, xs: linked_list.List(x, xs))
 })
+
+
+def const_string(string):
+    """ Create a binding for a constant string. """
+    li = linked_list.empty
+
+    # add chars of string to list
+    for char in reversed(string):
+        c = star_type.Char(char)
+        li = linked_list.List(Const(c), Const(li))
+
+    # return a constant that yields this string
+    return Const(li)

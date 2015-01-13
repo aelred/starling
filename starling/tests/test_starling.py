@@ -156,6 +156,13 @@ def test_partial():
     }
 
 
+@programs(False, has_input=True)
+def test_input():
+    return {
+        ('head input', 'Boo'): "'B'",
+        ('tail input', 'Boo'): '"oo"'
+    }
+
 @errors(error.StarlingSyntaxError)
 def test_syntax_error():
     return [
