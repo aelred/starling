@@ -4,8 +4,15 @@ from util import programs, errors
 
 
 @programs(False)
-def test_string():
-    return {'"Hello World!"': '"Hello World!"'}
+def test_char():
+    return {
+        '\'a\'': '\'a\'',
+        '"Hello World!"': '"Hello World!"',
+        'head "Hi"': '\'H\'',
+        'tail "Hi"': '"i"',
+        'tail "a"': '[]',
+        '\'H\' : (\'i\' : [])': '"Hi"'
+    }
 
 
 @programs(False)

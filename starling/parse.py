@@ -1,5 +1,5 @@
 from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword, QuotedString
-from pyparsing import Optional, OneOrMore, Group, Suppress, Forward
+from pyparsing import Optional, OneOrMore, Group, Suppress, Forward, Regex
 from pyparsing import alphas, alphanums, nums, lineEnd, delimitedList
 from pyparsing import ParseException, ParseSyntaxException
 
@@ -14,6 +14,7 @@ comma = Suppress(Literal(','))
 comment = (Literal('#') + SkipTo(lineEnd))('comment*')
 number = Word(nums)('number*')
 colon = Suppress(':')
+sgl_quote = Suppress(Literal("'"))
 
 let = Suppress(Keyword('let'))
 in_ = Suppress(Keyword('in'))
@@ -27,6 +28,7 @@ reserved = let | in_ | lambda_ | if_ | then | else_ | export
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
 infix_id = (Word('.+-*/=<>?:') | 'and' | 'or' | 'mod' | 'pow')('infix_id')
 ident = ~reserved + (infix_id | word_id)
+char = sgl_quote + Regex('.')('char') + sgl_quote
 string = QuotedString(quoteChar='"')('string*')
 
 atom = Forward()
@@ -51,8 +53,8 @@ if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
 export_expr = Group(export + OneOrMore(ident))('export')
 
-atom << (let_expr | lambda_expr | if_expr | export_expr | number | string |
-         ident | parentheses | linked_list)
+atom << (let_expr | lambda_expr | if_expr | export_expr | number | char |
+         string | ident | parentheses | linked_list)
 
 grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
 
@@ -135,12 +137,23 @@ def _expr_token(value):
         return syntax_tree.Expression([_expr_token(value[0:-1]), value[-1]])
 
 
+def _string_token(value):
+    # change string into a linked list of chars
+    if len(value) == 0:
+        # empty list
+        return token_classes['emptylist'](']')
+    else:
+        return token_classes['list']([token_classes['char'](value[0]),
+                                      _string_token(value[1:])])
+    return syntax_tree.String(value)
+
 token_classes = {
     'script': syntax_tree.Script,
     'prefix_id': lambda v: syntax_tree.Identifier(v, False),
     'infix_id': lambda v: syntax_tree.Identifier(v, True),
     'number': syntax_tree.Number,
-    'string': syntax_tree.String,
+    'char': syntax_tree.Char,
+    'string': _string_token,
     'expression': _expr_token,
     'emptylist': syntax_tree.EmptyList,
     'list': syntax_tree.List,

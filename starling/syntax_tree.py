@@ -82,9 +82,9 @@ class Number(Terminator):
         return star_type.Number(int(self.value))
 
 
-class String(Terminator):
+class Char(Terminator):
     def _eval(self, env):
-        return star_type.String(self.value)
+        return star_type.Char(self.value)
 
 
 class Expression(Token, EvalToken):

@@ -42,19 +42,35 @@ class List(star_type.StarObject):
         return ListIter(self)
 
     def str_generator(self):
-        yield '['
+        # first check the value of head element
+        head = next(iter(self))
+        if isinstance(head, star_type.Char):
+            # display as a string
+            lopen = '"'
+            ropen = '"'
+            show = lambda elem: elem.value
+            delim = False
+        else:
+            # display as a list
+            lopen = '['
+            ropen = ']'
+            show = lambda elem: elem.str()
+            delim = True
+
+        yield lopen
         # generate the results one-by-one
         # infinite lists continuously output!
         prev_elem = None
         for elem in self:
             # this is to make sure there is no comma after last element
             if prev_elem is not None:
-                yield prev_elem.str()
-                yield ', '
+                yield show(prev_elem)
+                if delim:
+                    yield ', '
             prev_elem = elem
         if prev_elem is not None:
-            yield prev_elem.str()
-        yield ']'
+            yield show(prev_elem)
+        yield ropen
 
 
 class ListIter:

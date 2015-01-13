@@ -64,9 +64,9 @@ class Number(Primitive):
         return Boolean(self.value <= other.value)
 
 
-class String(Primitive):
+class Char(Primitive):
     def str(self):
-        return '"%s"' % self.value
+        return '\'%s\'' % self.value
 
 
 class Module(Primitive):
