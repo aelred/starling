@@ -25,14 +25,14 @@ then = Suppress(Keyword('then'))
 else_ = Suppress(Keyword('else'))
 import_ = Suppress(Keyword('import'))
 export = Suppress(Keyword('export'))
-reserved = let | in_ | lambda_ | if_ | then | else_ |import_ | export
+reserved = let | in_ | lambda_ | if_ | then | else_ | import_ | export
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
 infix_id = (Word('.+-*/=<>?:') | 'and' | 'or' | 'mod' | 'pow' | 'has'
             )('infix_id')
 ident = ~reserved + (infix_id | word_id)
 char = sgl_quote + Regex('.')('char') + sgl_quote
-string = QuotedString(quoteChar='"')('string*')
+string = QuotedString(quoteChar='"', unquoteResults=False)('string*')
 
 atom = Forward()
 expr = Group(OneOrMore(atom))('expression')
@@ -144,13 +144,13 @@ def _expr_token(value):
 
 def _string_token(value):
     # change string into a linked list of chars
-    if len(value) == 0:
+    if len(value) == 2:
         # empty list
         return token_classes['emptylist'](']')
     else:
-        return token_classes['list']([token_classes['char'](value[0]),
-                                      _string_token(value[1:])])
-    return syntax_tree.String(value)
+        return token_classes['list']([token_classes['char'](value[1]),
+                                      _string_token(value[0:1] + value[2:])])
+    return syntax_tree.String(value[1:-1])
 
 
 def _imports_token(value):

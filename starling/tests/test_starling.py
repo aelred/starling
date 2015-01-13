@@ -6,6 +6,7 @@ from util import programs, errors
 @programs(False)
 def test_char():
     return {
+        '""': '[]',
         '\'a\'': '\'a\'',
         '"Hello World!"': '"Hello World!"',
         'head "Hi"': '\'H\'',
