@@ -2,8 +2,9 @@ from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword, QuotedString
 from pyparsing import Optional, OneOrMore, Group, Suppress, Forward, Regex
 from pyparsing import alphas, alphanums, nums, lineEnd, delimitedList
 from pyparsing import ParseException, ParseSyntaxException
+import os
 
-from starling import error, syntax_tree
+from starling import error, syntax_tree, star_path
 
 lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
@@ -22,8 +23,9 @@ lambda_ = Suppress(Literal('\\'))
 if_ = Suppress(Keyword('if'))
 then = Suppress(Keyword('then'))
 else_ = Suppress(Keyword('else'))
+import_ = Suppress(Keyword('import'))
 export = Suppress(Keyword('export'))
-reserved = let | in_ | lambda_ | if_ | then | else_ | export
+reserved = let | in_ | lambda_ | if_ | then | else_ |import_ | export
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
 infix_id = (Word('.+-*/=<>?:') | 'and' | 'or' | 'mod' | 'pow' | 'has'
@@ -52,10 +54,12 @@ lambda_expr = lambda_ + lambda_inner
 
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
+imports = Group(OneOrMore(ident))('imports')
+import_expr = Group(import_ + imports + in_ - expr)('import')
 export_expr = Group(export + OneOrMore(ident))('export')
 
-atom << (let_expr | lambda_expr | if_expr | export_expr | number | char |
-         string | ident | parentheses | linked_list)
+atom << (let_expr | lambda_expr | if_expr | import_expr | export_expr |
+         number | char | string | ident | parentheses | linked_list)
 
 grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
 
@@ -148,6 +152,18 @@ def _string_token(value):
                                       _string_token(value[1:])])
     return syntax_tree.String(value)
 
+
+def _imports_token(value):
+    # import immediately and add to syntax tree
+    tokens = []
+    for imp in value:
+        path = os.path.join(star_path.path, imp.value + '.star')
+        with open(path, 'r') as f:
+            script = f.read()
+        tokens.append(tokenize(script))
+    return syntax_tree.Imports(tokens)
+
+
 token_classes = {
     'script': syntax_tree.Script,
     'prefix_id': lambda v: syntax_tree.Identifier(v, False),
@@ -163,5 +179,7 @@ token_classes = {
     'bindings': syntax_tree.Bindings,
     'binding': syntax_tree.Binding,
     'lambda': syntax_tree.Lambda,
+    'imports': _imports_token,
+    'import': syntax_tree.Import,
     'export': syntax_tree.Export
 }

@@ -170,6 +170,13 @@ def test_export():
         'let foo = 3 in export foo': 'module'
     }
 
+
+@programs(False)
+def test_import():
+    return {
+        'import test_module in test_message': '"Import successful!"'
+    }
+
 @errors(error.StarlingSyntaxError)
 def test_syntax_error():
     return [

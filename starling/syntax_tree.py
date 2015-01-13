@@ -203,6 +203,29 @@ class Lambda(Token, EvalToken):
         return function.Lambda(self.parameter.value, self.body, env)
 
 
+class Imports(Token):
+
+    @property
+    def elements(self):
+        return self._value
+
+
+class Import(Token, EvalToken):
+
+    @property
+    def imports(self):
+        return self._value[0]
+
+    @property
+    def body(self):
+        return self._value[1]
+
+    def _eval(self, env):
+        for imp in self.imports.elements:
+            env = env.child(imp.eval(env.ancestor()).value)
+        return self.body.eval(env)
+
+
 class Export(Token, EvalToken):
 
     @property
@@ -212,5 +235,4 @@ class Export(Token, EvalToken):
     def _eval(self, env):
         exports = dict([(ex.value, thunk.Thunk(ex, ex.value, env))
                         for ex in self.identifiers])
-        new_env = environment.Environment(env.ancestor(), exports)
-        return star_type.Module(new_env)
+        return star_type.Module(exports)

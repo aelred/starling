@@ -7,31 +7,31 @@ log = logging.getLogger('starling')
 
 lib_path = os.path.join(star_path.path, 'lib.star')
 
-_std_env = None
+_std_binds = None
 
 
 def run(script, input_='', lib=True, generator=False):
-    result = _run(script, input_, lib)
+    result = run_raw(script, input_, lib)
     if generator:
         return result.str_generator()
     else:
         return result.str()
 
 
-def _run(script, input_='', lib=True):
-    if lib and _std_env is None:
-        global _std_env
+def run_raw(script, input_='', lib=True):
+    if lib and _std_binds is None:
+        global _std_binds
         std_lib = ''
         with open(lib_path, 'r') as f:
             std_lib = f.read()
-        _std_env = _run(std_lib, lib=False).value
+        _std_binds = run_raw(std_lib, lib=False).value
 
     log.debug('Running script:\n%s' % script)
     environment.Environment._env_ids = 1
 
     # wrap script in standard library bindings
     if lib:
-        env = _std_env
+        env = glob_env.glob_env.child(_std_binds)
     else:
         env = glob_env.glob_env
 
