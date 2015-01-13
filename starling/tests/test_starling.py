@@ -163,6 +163,7 @@ def test_input():
         ('tail input', 'Boo'): '"oo"'
     }
 
+
 @errors(error.StarlingSyntaxError)
 def test_syntax_error():
     return [
