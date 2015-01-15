@@ -28,7 +28,7 @@ export = Suppress(Keyword('export'))
 reserved = let | in_ | lambda_ | if_ | then | else_ | import_ | export
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
-infix_id = (Word('.+-*/=<>?:') | 'and' | 'or' | 'mod' | 'pow' | 'has'
+infix_id = (Word('.+-*/=<>?:@') | 'and' | 'or' | 'mod' | 'pow' | 'has'
             )('infix_id')
 ident = ~reserved + (infix_id | word_id)
 char = sgl_quote + Regex('.')('char') + sgl_quote

@@ -85,6 +85,9 @@ def test_misc():
 @programs(True)
 def test_list_ops():
     return {
+        '[1] @ 0': '1',
+        '[1, 2, 3]@ 2': '3',
+        '"hello"@1': '\'e\'',
         'map not [False, True, False, False]': '[True, False, True, True]',
         'fold (+) 0 [1, 10, 100, 1000]': '1111',
         'foldr (+) 0 [1, 10, 100, 1000]': '1111',

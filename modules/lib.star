@@ -16,6 +16,9 @@ const = \x y: x,
 # function composition
 . = \f g x: f (g x),
 
+# access array elements
+@ = \xs n: if n = 0 then head xs else (tail xs) @ (n - 1),
+
 # comparison operators
 < = \x: not . (<= x),
 > = \x y: not (x <= y),
@@ -110,5 +113,5 @@ sort = \xs:
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const . < >= > max min sum has foldr foldl fold map
-    filter take take_while range nats length reverse cat zip unzip sort
+    not or and any all ? id const . @ < >= > max min sum has foldr foldl fold
+    map filter take take_while range nats length reverse cat zip unzip sort
