@@ -15,7 +15,7 @@ glob_env = environment.Environment(None, {
     'head': BI('head', 1, lambda xs: xs().head()),
     'tail': BI('tail', 1, lambda xs: xs().tail()),
     ':': Builtin('cons', 2, lambda x, xs: linked_list.List(x, xs))
-})
+}, 'global')
 
 
 def const_string(string):

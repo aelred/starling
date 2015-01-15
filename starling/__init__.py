@@ -31,7 +31,7 @@ def run_raw(script, input_='', lib=True):
 
     # wrap script in standard library bindings
     if lib:
-        env = glob_env.glob_env.child(_std_binds)
+        env = glob_env.glob_env.child(_std_binds, 'global')
     else:
         env = glob_env.glob_env
 

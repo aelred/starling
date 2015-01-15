@@ -8,11 +8,12 @@ log = logging.getLogger(__name__)
 class Environment:
     _env_ids = 0
 
-    def __init__(self, parent, bindings):
+    def __init__(self, parent, bindings, label=None):
         self._id = Environment._env_ids
         Environment._env_ids += 1
 
         self._parent = parent
+        self._label = label
         self.bindings = dict(bindings)
 
         self.log = log.getChild(str(self))
@@ -21,12 +22,12 @@ class Environment:
             self.log.debug('env %s -> %s: %r' %
                            (self, self._parent, self.bindings.keys()))
 
-    def child(self, bindings):
-        return Environment(self, bindings)
+    def child(self, bindings, label=None):
+        return Environment(self, bindings, label)
 
     def ancestor(self):
         env = self
-        while env._parent is not None:
+        while env._parent is not None and env._label != 'global':
             env = env._parent
         return env
 
