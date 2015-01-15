@@ -27,7 +27,7 @@ def test_grammar():
     _check_parse('1 + 2', [[['1', '+', '2']]])
     _check_parse('(not True)', [[[['not', 'True']]]])
     _check_parse('6 # still commenting!', [[['6']]])
-    _check_parse('foo "My string"', [[['foo', 'My string']]])
+    _check_parse('foo "My string"', [[['foo', '"My string"']]])
     _check_parse('let f = \ x: (x * x) in f 10',
                  [[[[[['f', [['x', [['x', '*', 'x']]]]]], ['f', '10']]]]])
 
