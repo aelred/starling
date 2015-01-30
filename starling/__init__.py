@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 
 from starling import environment, glob_env, parse, star_path
 
@@ -8,6 +9,8 @@ log = logging.getLogger('starling')
 lib_path = os.path.join(star_path.path, 'lib.star')
 
 _std_binds = None
+
+sys.setrecursionlimit(10000)
 
 
 def run(script, input_='', lib=True, generator=False):
