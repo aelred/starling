@@ -212,6 +212,35 @@ to_nfa = \tree: let
     add_node = \nfa: [stack nfa, transitions nfa, new_node nfa : (nodes nfa)],
     # create a copy of the top subautomata
     copy = \nfa: [stack nfa@0 : (stack nfa), transitions nfa, nodes nfa],
+
+    relabel_nfa = \nfa nfa_other: let
+        offset = (head . nodes nfa_other) + 1,
+        relabel = (+ offset),
+        relabel_trans = \t: [relabel . t_start t, relabel . t_end t, t_sym t],
+        new_start_end = [map relabel . head . start_end nfa],
+        new_transitions = map relabel_trans . transitions nfa,
+        new_nodes = map relabel . nodes nfa in
+        [new_start_end, new_transitions, new_nodes],
+
+    join = \nfa1 nfa2: let
+        rnfa2 = relabel_nfa nfa2 nfa1,
+        new_transitions = cat (transitions rnfa2) (transitions nfa1),
+        new_nodes = cat (nodes rnfa2) (nodes nfa1) in
+        [[], new_transitions, new_nodes],
+    
+    parse_tree = \node: let
+        nfas = map parse_tree . children node,
+        sym = label node in
+        if is_leaf node
+        then [[[0, 1]], [[0, 1, label node]], [1, 0]]
+        # concatenate the two subautomata together
+        else if sym = concat then let
+        new_start_end = [[start_node (nfas@0), final_node (nfas@1)]],
+        trans = [final_node (nfas@0), start_node (nfas@1), eps] in
+        push new_start_end (add_trans trans (join (nfas@0) (nfas@1))),
+        # loop over the subautomata
+        else 
+
     # parse a postfix expression
     parse_pf = foldl (flip parse_sym),
     # parse a single symbol
@@ -243,29 +272,7 @@ to_nfa = \tree: let
         # add a character transition
         else let
         n1 = new_node nfa, n2 = n1 + 1 in
-        push [n1, n2] . (add_trans [[n1, n2, sym]]) . add_node . add_node nfa,
-
-    relabel_nfa = \nfa offset: let
-        relabel = (+ offset),
-        relabel_trans = \t: [relabel . t_start t, relabel . t_end t, t_sym t],
-        new_start_end = [map relabel . head . start_end nfa],
-        new_transitions = map relabel_trans . transitions nfa,
-        new_nodes = map relabel . nodes nfa in
-        [new_start_end, new_transitions, new_nodes],
-    
-    parse_tree = \node: let
-        sym = label node in
-        if is_leaf node
-        then [[[0, 1]], [[0, 1, label node]], [1, 0]]
-        else let
-        nfa1 = parse_tree ((children node)@0),
-        offset = (head . nodes nfa1) + 1,
-        nfa2 = relabel_nfa (parse_tree ((children node)@1)) offset,
-        new_start_end = [[start_node nfa1, final_node nfa2]],
-        trans = [final_node nfa1, start_node nfa2, eps],
-        new_transitions = cat (transitions nfa2) (trans : (transitions nfa1)),
-        new_nodes = cat (nodes nfa2) (nodes nfa1) in
-        [new_start_end, new_transitions, new_nodes]
+        push [n1, n2] . (add_trans [[n1, n2, sym]]) . add_node . add_node nfa
     in
     if tree = []
     then [[[0, 0]], [], [0]]
