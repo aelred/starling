@@ -38,6 +38,8 @@ test_all [
     ["^^a$$", ["a"], ["", "aa", "b", "^^a$$"]],
     ["ba(na)*$", ["ba", "bana", "banana"], ["", "na", "ban", "banabana"]],
     ["((a|d)c)*$", ["", "ac", "dc", "acdc"], ["adc", "c", "aac", "a"]],
+    ["a?$", ["a", ""], ["e", "aa", "a?"]],
+    ["a+$", ["a", "aa", "aaa"], ["", "ab", "ba", "a+"]],
     ["e{3}$", ["eee"], ["", "e", "ee", "eeee", "aaa"]],
     ["e{3,}$", ["eee", "eeee"], ["", "e", "ee", "aaa", "eeea"]],
     ["a{3,5}$", ["aaa", "aaaa", "aaaaa"], ["aa", "aaaaaa", "a", "bbb"]]

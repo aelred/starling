@@ -48,7 +48,7 @@ interp_char_set = \pat: let
 # interpret a regex pattern, identifying special characters
 interp_pattern = \pat: let
     sym = head pat,
-    is_op = "|*{" has, is_par = "()" has, is_all = "." has, 
+    is_op = "|*{?+" has, is_par = "()" has, is_all = "." has, 
     is_assert = "^$" has,
     type = 
         if is_op sym then "op" else if is_par sym then "par" 
@@ -68,7 +68,7 @@ interp_pattern = \pat: let
         m = parse_int . (take_until ("}," has)) . tail pat,
         rem1 = drop_until ("}," has) . tail pat,
         n_str = take_until (= '}') . tail rem1,
-        n = if n_str = "" then m else parse_int n_str,
+        n = if take 1 rem1 = "}" or (n_str = "") then m else parse_int n_str,
         rem2 = tail (drop_until (= '}') rem1),
         unbounded = (head rem1 = ',') and (n_str = "") in
         (type : (if unbounded then ["urep", m] else ["crep", m, n])) : 
@@ -87,11 +87,12 @@ is_op = (= "op") . sym_type,
 is_this_op = \op sym: take 2 sym = op,
 is_crep = is_this_op ["op", "crep"],
 is_urep = is_this_op ["op", "urep"],
-rep_n = @2, rep_m = @3,
+rep_m = @2, rep_n = @3,
 lpar = ["par", "("], rpar = ["par", ")"], 
 alt = ["op", "|"], star = ["op", "*"], concat = ["op", "."],
-dot = ["all", "."], start = ["ass", "^"], end = ["ass", "$"],
-is_unary = \op: any [is_crep op, is_urep op, op = star],
+opt = ["op", "?"], plus = ["op", "+"],
+dot = ["all", "."], ass_start = ["ass", "^"], end = ["ass", "$"],
+is_unary = \op: any [is_crep op, is_urep op, [star, opt, plus] has op],
 
 # return true if a character matches the given symbol
 sym_match = \sym char: 
@@ -106,7 +107,7 @@ add_concat = \pat:
     let concatenate = \xs accum: let 
         l = xs@0, r = xs@1,
         lop = [lpar, alt] has l,
-        rop = any [[rpar, alt, star] has r, is_crep r, is_urep r] in
+        rop = (is_op r) or (r = rpar) in
         if lop or rop
         then r : accum 
         else concat : (r : accum) in
@@ -160,9 +161,7 @@ to_tree = \pfix: let
     head (foldl subtree [[]] pfix),
 
 # NFA/DFA accessors
-start_node = (@0) . head . head, 
-final_node = (@1) . head . head,
-start_end = @0, transitions = @1, nodes = @2,
+start = @0, final = @1, transitions = @2, nodes = @3,
 t_start = @0, t_end = @1, t_sym = @2,
 new_node = \fa: if (nodes fa) = [] then 0 else (head (nodes fa)) + 1,
 edges = \fa node: filter (\t: t_start t = node) (transitions fa),
@@ -184,90 +183,89 @@ closure = \fa sym ns: let
 
 # turn a tree into a nondeterministic finite automata (NFA)
 to_nfa = \tree: let
-    # accessors for NFA elements: stack of nodes and transitions
-    stack = @0, in_node = @0, out_node = @1,
-    # push a new pair of start/end nodes
-    push = \ns nfa: [ns : (stack nfa), transitions nfa, nodes nfa],
-    # pop a pair of start/end nodes
-    pop = \n nfa: [(drop n) . stack nfa, transitions nfa, nodes nfa],
+    # change the start/end nodes of an automata
+    set_start = \n nfa: [n, final nfa, transitions nfa, nodes nfa],
+    set_final = \n nfa: [start nfa, n, transitions nfa, nodes nfa],
     # add new transitions to the automata
-    add_trans = \ts nfa: [stack nfa, cat ts (transitions nfa), nodes nfa],
-    # add a new node to the automata
-    add_node = \nfa: [stack nfa, transitions nfa, new_node nfa : (nodes nfa)],
-    # create a copy of the top subautomata
-    copy = \nfa: [stack nfa@0 : (stack nfa), transitions nfa, nodes nfa],
+    add_trans = \ts nfa: [start nfa, final nfa, cat ts (transitions nfa), nodes nfa],
+    # an empty nfa
+    empty = [0, 0, [], [0]],
 
     relabel_nfa = \nfa nfa_other: let
         offset = (head . nodes nfa_other) + 1,
         relabel = (+ offset),
         relabel_trans = \t: [relabel . t_start t, relabel . t_end t, t_sym t],
-        new_start_end = [map relabel . head . start_end nfa],
+        new_start = relabel . start nfa,
+        new_final = relabel . final nfa,
         new_transitions = map relabel_trans . transitions nfa,
         new_nodes = map relabel . nodes nfa in
-        [new_start_end, new_transitions, new_nodes],
+        [new_start, new_final, new_transitions, new_nodes],
 
     join = \nfa1 nfa2: let
         rnfa2 = relabel_nfa nfa2 nfa1,
         new_transitions = cat (transitions rnfa2) (transitions nfa1),
         new_nodes = cat (nodes rnfa2) (nodes nfa1) in
-        [[], new_transitions, new_nodes],
+        [[start nfa1, final nfa1, new_transitions, new_nodes], nfa1, rnfa2],
     
     parse_tree = \node: let
         nfas = map parse_tree . children node,
         sym = label node in
         if is_leaf node
-        then [[[0, 1]], [[0, 1, label node]], [1, 0]]
+        # basic transition
+        then [0, 1, [[0, 1, label node]], [1, 0]]
         # concatenate the two subautomata together
         else if sym = concat then let
-        new_start_end = [[start_node (nfas@0), final_node (nfas@1)]],
-        trans = [final_node (nfas@0), start_node (nfas@1), eps] in
-        push new_start_end (add_trans trans (join (nfas@0) (nfas@1))),
+        joined = join (nfas@0) (nfas@1), 
+        new_nfa = joined@0, nfa1 = joined@1, nfa2 = joined@2,
+        trans = [[final nfa1, start nfa2, eps]] in
+        set_final (final nfa2) (add_trans trans new_nfa)
         # loop over the subautomata
-        else 
-
-    # parse a postfix expression
-    parse_pf = foldl (flip parse_sym),
-    # parse a single symbol
-    parse_sym = \sym nfa:
-        # concatenate the two subautomata together
-        if sym = concat then let
-        e2 = stack nfa@0, e1 = stack nfa@1,
-        trans = [[out_node e1, in_node e2, eps]] in
-        push [in_node e1, out_node e2] . (pop 2) . (add_trans trans) nfa 
-        # create a loop in the automata
         else if sym = star then let
-        e = head . stack nfa,
-        n = new_node nfa,
-        trans = [[n, in_node e, eps], [out_node e, n, eps]] in
-        push [n, n] . (pop 1) . (add_trans trans) . add_node nfa
-        # create an alternate route in the automata
+        joined = join [0, 0, [], [0]] (nfas@0),
+        new_nfa = joined@0, sub = joined@2 in
+        add_trans [[0, start sub, eps], [final sub, 0, eps]] new_nfa
+        # alternate between subautomata
         else if sym = alt then let
-        n1 = new_node nfa, n2 = n1 + 1,
-        e2 = stack nfa@0, e1 = stack nfa@1,
-        trans = [[n1, in_node e1, eps], [n1, in_node e2, eps], 
-                 [out_node e1, n2, eps], [out_node e2, n2, eps]] in
-        push [n1, n2] . (pop 2) . (add_trans trans) . add_node . add_node nfa
-        # transform counted repetition into simpler form
+        join1 = join [0, 1, [], [1, 0]] (nfas@0),
+        new_nfa1 = join1@0, nfa1 = join1@2,
+        join2 = join new_nfa1 (nfas@1),
+        new_nfa2 = join2@0, nfa2 = join2@2,
+        trans = [[0, start nfa1, eps], [0, start nfa2, eps],
+                 [final nfa1, 1, eps], [final nfa2, 1, eps]] in
+        add_trans trans new_nfa2 
+        # optionally accept the subautomata
+        else if sym = opt then let
+        joined = join [0, 1, [[0, 1, eps]], [1, 0]] (nfas@0),
+        new_nfa = joined@0, sub = joined@2 in
+        add_trans [[0, start sub, eps], [final sub, 1, eps]] new_nfa
+        # one or more repetitions
+        else if sym = plus then let
+        child = children node in
+        parse_tree ["node", concat, ["node", star, child] : child]
+        # handle counted repetitions like a{3,5}
         else if is_crep sym then let
-        n = rep_n sym, m = rep_m sym in
-        if n=1  # we can ignore repetitions like a{1}
-        then nfa
-        else parse_pf (copy nfa) [concat, ["op", "crep", n-1, m-1]] 
-        # add a character transition
+        m = rep_m sym, n = rep_n sym, child = children node,
+        next_rep = ["node", ["op", "crep", m=0? 0 (m-1), n-1], child],
+        recurse_tree = ["node", concat, next_rep : child] in
+        if n = 0 
+        then empty 
+        else parse_tree (m=0? ["node", opt, [recurse_tree]] recurse_tree)
+        # handle unbounded repetitions like a{3,}
         else let
-        n1 = new_node nfa, n2 = n1 + 1 in
-        push [n1, n2] . (add_trans [[n1, n2, sym]]) . add_node . add_node nfa
-    in
-    if tree = []
-    then [[[0, 0]], [], [0]]
-    else parse_tree tree,
+        m = rep_m sym,
+        next_rep = ["node", ["op", "urep", m-1], children node] in
+        if m = 0
+        then parse_tree ["node", star, children node]
+        else parse_tree ["node", concat, next_rep : (children node)] in
+
+    if tree = [] then empty else parse_tree tree,
 
 # turn an NFA into a deterministic finite automata (DFA)
 to_dfa = \nfa: let
     epsclosure = closure nfa eps,
     syms = all_syms nfa,
-    new_start = epsclosure [start_node nfa],
-    new_finals = \dfa: filter (has (final_node nfa)) (nodes dfa),
+    new_start = epsclosure [start nfa],
+    new_finals = \dfa: filter (has (final nfa)) (nodes dfa),
     convert = \stack dfa: let 
         nodeset = head stack,
         not_empty = \t: not ((t_end t) = []),
@@ -275,10 +273,10 @@ to_dfa = \nfa: let
         new_trans = filter not_empty . (map trans_closure) syms,
         new_nodes = map t_end new_trans,
         filt_nodes = filter (not . (nodes dfa has)) new_nodes,
-        new_dfa = [start_end dfa, cat new_trans (transitions dfa), nodeset : (nodes dfa)] in
+        new_dfa = [start dfa, final dfa, cat new_trans (transitions dfa), nodeset : (nodes dfa)] in
         if stack = [] then dfa else convert (nub (cat filt_nodes (tail stack))) new_dfa,
-    result = convert [new_start] [[[new_start, new_start]], [], []] in
-    [[[start_node result, new_finals result]], transitions result, nodes result],
+    result = convert [new_start] [new_start, new_start, [], []] in
+    [start result, new_finals result, transitions result, nodes result],
 
 # match a string using a DFA
 match_dfa = \dfa str: let
@@ -294,14 +292,14 @@ match_dfa = \dfa str: let
         else if new_nodes = []
         then [node state, False, True]
         # if final DFA node found, this is a match
-        else [new_node, (final_node dfa) has new_node, False],
+        else [new_node, (final dfa) has new_node, False],
 
     # find first node, given '^' symbols
     fst_node = let
         start_trans = \node: let
-            s = succ start dfa node in
+            s = succ ass_start dfa node in
             if s = [] then node else start_trans . head s in
-        start_trans . start_node dfa,
+        start_trans . start dfa,
     
     result = foldl mdfa [fst_node, False, False] str,
 
@@ -312,15 +310,17 @@ match_dfa = \dfa str: let
             if e = [] then node else end_trans . head e in
         end_trans . node result in
 
-    if (final_node dfa) has fst_node
+    if (final dfa) has fst_node
     then True
-    else (not . is_fail result) and ((final_node dfa) has end_node),
+    else (not . is_fail result) and ((final dfa) has end_node),
 
 # take a pattern and return a function that will match strings
 match = match_dfa . to_dfa . nfa,
 
-nfa = to_nfa . to_tree . to_postfix . add_concat . interp_pattern
+nfa = to_nfa . to_tree . lex_pattern,
+
+lex_pattern = to_postfix . add_concat . interp_pattern
 
 in 
 export match add_concat to_postfix to_nfa nfa interp_pattern interp_char_set
-parse_int is_crep sym_match to_tree
+parse_int is_crep sym_match to_tree to_dfa lex_pattern
