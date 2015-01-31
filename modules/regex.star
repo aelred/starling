@@ -51,9 +51,9 @@ interp_pattern = \pat: let
     is_op = "|*{?+" has, is_par = "()" has, is_all = "." has, 
     is_assert = "^$" has,
     type = 
-        if is_op sym then "op" else if is_par sym then "par" 
-        else if is_all sym then "all" else if (take 2 pat) = "[^" then "not" 
-        else if is_assert sym then "ass" else "lit",
+        if "|*{?+" has sym then "op" else if "()" has sym then "par" 
+        else if sym = '.' then "all" else if (take 2 pat) = "[^" then "not" 
+        else if "^$" has sym then "ass" else "lit",
 
     char_set = let
         negate = pat@1 = '^',
@@ -76,6 +76,8 @@ interp_pattern = \pat: let
 
     if pat = []
     then []
+    else if sym = '\'
+    then [type, [pat@1]] : (interp_pattern (tail . tail pat))
     else if sym = '['
     then char_set
     else if sym = '{'
