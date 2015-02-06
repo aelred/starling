@@ -1,21 +1,5 @@
 let 
 
-flip = \f x y: f y x,
-
-drop = \n xs:
-    if n = 0
-    then xs
-    else drop (n-1) (tail xs),
-
-take_until = \p: take_while (not . p),
-
-drop_while = \p xs: 
-    if not (xs = []) and (p . head xs)
-    then drop_while p (tail xs)
-    else xs,
-
-drop_until = \p: drop_while (not . p),
-
 between = \x1 x2 xs: cat (take_until (=x2) . (drop_until (=x1)) xs) [x2],
 
 flatten = fold cat [],

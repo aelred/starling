@@ -78,7 +78,8 @@ def test_misc():
         'id "hi"': '"hi"',
         '(const 4) "a"': '4',
         '(const []) []': '[]',
-        '(+ 1) . (* 2) 3': '7'
+        '(+ 1) . (* 2) 3': '7',
+        '(flip take) nats 3': '[0, 1, 2]'
     }
 
 
@@ -106,6 +107,18 @@ def test_list_ops():
         'take_while (< 2) []': '[]',
         'take_while (const True) [1, 2, 3]': '[1, 2, 3]',
         'take_while (< 3) nats': '[0, 1, 2]',
+        'take_until (= 5) [0, 6, 4, 5]': '[0, 6, 4]',
+        'take_until (const True) nats': '[]',
+        'take_until (const False) [1, 2]': '[1, 2]',
+        'drop 0 [1, 2, 3]': '[1, 2, 3]',
+        'drop 1 [1, 2, 3]': '[2, 3]',
+        'drop 3 [1, 2, 3]': '[]',
+        'drop_while (= 2) [2, 2, 2, 3, 1]': '[3, 1]',
+        'drop_while (const True) [1]': '[]',
+        'drop_while (const False) [2, 2, 3]': '[2, 2, 3]',
+        'drop_until (=\'=\') "x=2+3"': '"=2+3"',
+        'drop_until (const False) "hello"': '[]',
+        'drop_until (const True) [2, 2, 3]': '[2, 2, 3]',
         'cat [] []': '[]',
         'cat [1, 2] []': '[1, 2]',
         'cat [] [3, 4]': '[3, 4]',

@@ -34,6 +34,9 @@ sum = fold (+) 0,
 # list contains given element
 has = \xs x: any (map (= x) xs),
 
+# swap function arguments
+flip = \f x y: f y x,
+
 # return the function folded from the right over the given list
 foldr = \f init xs: 
     if xs = []
@@ -66,6 +69,24 @@ take_while = \p xs:
     if xs = [] or (not . p . head xs)
     then []
     else head xs : (take_while p (tail xs)),
+
+# return elements until predicate is true
+take_until = \p: take_while (not . p),
+
+# drop the first n elements from the list
+drop = \n xs:
+    if n = 0
+    then xs
+    else drop (n-1) (tail xs),
+
+# drop elements while predicate is true
+drop_while = \p xs: 
+    if (not (xs = [])) and (p . head xs)
+    then drop_while p (tail xs)
+    else xs,
+
+# drop elements until the predicate is true
+drop_until = \p: drop_while (not . p),
 
 # return all numbers between start (inclusive) and end (exclusive)
 range = \start end: 
@@ -113,5 +134,6 @@ sort = \xs:
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const . @ < >= > max min sum has foldr foldl fold
-    map filter take take_while range nats length reverse cat zip unzip sort
+    not or and any all ? id const . @ < >= > max min sum flip has foldr foldl 
+    fold map filter take take_while take_until drop drop_while drop_until 
+    range nats length reverse cat zip unzip sort
