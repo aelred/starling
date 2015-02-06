@@ -2,8 +2,6 @@ let
 
 between = \x1 x2 xs: cat (take_until (=x2) . (drop_until (=x1)) xs) [x2],
 
-flatten = fold cat [],
-
 nub = \l: let
     nub_ = \xs ls:
         if xs = []
@@ -210,7 +208,7 @@ all_syms = nub . (filter (not . (= eps))) . (map t_sym) . transitions,
 get_trans = \p fa: (map t_end) . (filter (p . t_sym)) . (edges fa),
 succ = \sym: get_trans (=sym),
 
-succ_all = \fa sym ns: flatten (map (succ sym fa) ns),
+succ_all = \fa sym ns: join (map (succ sym fa) ns),
 closure = \fa sym ns: let
     closure_ = \ns visited: let
         filt_ns = filter (not . (visited has)) ns in

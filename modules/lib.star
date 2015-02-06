@@ -88,6 +88,9 @@ drop_while = \p xs:
 # drop elements until the predicate is true
 drop_until = \p: drop_while (not . p),
 
+# join a list of lists into a single list
+join = fold cat [],
+
 # return all numbers between start (inclusive) and end (exclusive)
 range = \start end: 
     if start = end
@@ -136,4 +139,4 @@ sort = \xs:
 in export 
     not or and any all ? id const . @ < >= > max min sum flip has foldr foldl 
     fold map filter take take_while take_until drop drop_while drop_until 
-    range nats length reverse cat zip unzip sort
+    join range nats length reverse cat zip unzip sort

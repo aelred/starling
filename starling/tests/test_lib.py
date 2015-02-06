@@ -136,7 +136,9 @@ def test_list_ops():
         '[1, 2, 3] has 3': 'True',
         '"hello" has \'y\'': 'False',
         '[1, 2, 3] has 9': 'False',
-        '"hello" has \'l\'': 'True'
+        '"hello" has \'l\'': 'True',
+        'join [[1, 2, 3], [4, 5, 6]]': '[1, 2, 3, 4, 5, 6]',
+        'join ["Hello", " ", "World!"]': '"Hello World!"'
     }
 
 
