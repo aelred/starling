@@ -124,7 +124,8 @@ def test_lazy():
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
         'if False then let f=f in f else "good"': '"good"',
-        'head ["fine", (let f=f in f)]': '"fine"'
+        'head ["fine", (let f=f in f)]': '"fine"',
+        '[0, let f=f in f] = [10, let f=f in f]': 'False'
     }
 
 

@@ -32,9 +32,11 @@ class List(star_type.StarObject):
 
     def eq(self, other):
         try:
-            heads = self.head().eq(other.head()).value
-            tails = self.tail().eq(other.tail()).value
-            return star_type.Boolean(heads and tails)
+            if not self.head().eq(other.head()).value:
+                # don't evaluate tail if heads aren't equal
+                return star_type.Boolean(False)
+            else:
+                return self.tail().eq(other.tail())
         except AttributeError:
             return star_type.Boolean(False)
 
