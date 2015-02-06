@@ -20,11 +20,18 @@ at_least = \n xs:
     then False
     else at_least (n-1) (tail xs),
 
+starts_with = \xs sub: 
+    if sub = []
+    then True
+    else if xs = []
+    then False
+    else if (head xs) = (head sub)
+    then starts_with (tail xs) (tail sub)
+    else False,
+
 ascii = cat 
     " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`"
     "abcdefghijklmnopqrstuvwxyz{|}~",
-
-digits = "0123456789",
 
 char_to_digit = \c: 
     if c='0' then 0 else if c='1' then 1 else if c='2' then 2 else
@@ -33,17 +40,48 @@ char_to_digit = \c:
 
 parse_int = foldl (\x c: (10 * x) + (char_to_digit c)) 0,
 
+upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+lower = "abcdefghijklmnopqrstuvwxyz",
+alpha = cat upper lower,
+digit = "0123456789",
+xdigit = cat digit "ABCDEFabcdef",
+alnum = cat alpha digit,
+punct = "!#$%&'()*+,-./:;<=>?@[\]^_`{|}~",
+space = " ",
+cntrl = "",
+graph = cat alnum punct,
+print = " " : graph,
+
+char_classes = [
+    ["[:upper:]", upper], ["[:lower:]", lower], ["[:alpha:]", alpha], 
+    ["[:digit:]", digit], ["[:xdigit:]", xdigit], ["[:alnum:]", alnum], 
+    ["[:punct:]", punct], ["[:space:]", space], ["[:cntrl:]", cntrl], 
+    ["[:graph:]", graph], ["[:print:]", print]
+],
+
 # interpret bracket expressions such as [0-9a-f] and [^+-]
 interp_bracket_expr = \pat: let
-    is_range = (at_least 3 pat) and (pat@1 = '-'),
-    range_start = pat@0,
-    range_stop = pat@2,
-    get_range = between range_start range_stop ascii in
-    if pat = []
-    then []
-    else if is_range
-    then cat get_range (interp_bracket_expr (drop 3 pat))
-    else head pat : (interp_bracket_expr (tail pat)), 
+    bexpr = @0, remainder = @1,
+    add_bexpr = \new_bexpr result: 
+        [cat new_bexpr . bexpr result, remainder result],
+    interp = \pat: let
+        is_range = (at_least 4 pat) and (pat@1 = '-'),
+        class_matches = filter (\cl: starts_with pat (cl@0)) char_classes,
+        class = head class_matches,
+        range_start = pat@0,
+        range_stop = pat@2,
+        get_range = between range_start range_stop ascii in
+        if head pat = ']'
+        then ["", tail pat]
+        else if is_range
+        then add_bexpr get_range . interp (drop 3 pat)
+        else if not (class_matches = [])
+        then add_bexpr (class@1) . interp (drop (length (class@0)) pat)
+        else add_bexpr [head pat] . interp (tail pat) in
+    # first element is allowed to be a ']', e.g. "[]]" is valid
+    if head pat = ']' 
+    then add_bexpr [head pat] . interp (tail pat)
+    else interp pat,
 
 # interpret a regex pattern, identifying special characters
 interp_pattern = \pat: let
@@ -58,11 +96,9 @@ interp_pattern = \pat: let
     bracket_expr = let
         negate = pat@1 = '^',
         pat_dropped = drop (negate? 2 1) pat,
-        # first element is allowed to be a ']', e.g. "[]]" is valid
-        pat_head = head pat_dropped, pat_tail = tail pat_dropped,
-        chars = pat_head : (take_until (= ']') pat_tail),
-        remainder = tail (drop_until (= ']') pat_tail) in
-        [type, interp_bracket_expr chars] : (interp_pattern remainder),
+        result = interp_bracket_expr pat_dropped,
+        bexpr = result@0, remainder = result@1 in
+        [type, bexpr] : (interp_pattern remainder),
 
     counted_rep = let
         m = parse_int . (take_until ("}," has)) . tail pat,
@@ -325,4 +361,4 @@ lex_pattern = to_postfix . add_concat . interp_pattern
 
 in 
 export match add_concat to_postfix to_nfa nfa interp_pattern interp_char_set
-parse_int is_crep sym_match to_tree to_dfa lex_pattern
+parse_int is_crep sym_match to_tree to_dfa lex_pattern interp_bracket_expr
