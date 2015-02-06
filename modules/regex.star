@@ -33,8 +33,8 @@ char_to_digit = \c:
 
 parse_int = foldl (\x c: (10 * x) + (char_to_digit c)) 0,
 
-# interpret character sets such as [0-9a-f] and [^+-]
-interp_char_set = \pat: let
+# interpret bracket expressions such as [0-9a-f] and [^+-]
+interp_bracket_expr = \pat: let
     is_range = (at_least 3 pat) and (pat@1 = '-'),
     range_start = pat@0,
     range_stop = pat@2,
@@ -42,8 +42,8 @@ interp_char_set = \pat: let
     if pat = []
     then []
     else if is_range
-    then cat get_range (interp_char_set (drop 3 pat))
-    else head pat : (interp_char_set (tail pat)), 
+    then cat get_range (interp_bracket_expr (drop 3 pat))
+    else head pat : (interp_bracket_expr (tail pat)), 
 
 # interpret a regex pattern, identifying special characters
 interp_pattern = \pat: let
@@ -55,14 +55,14 @@ interp_pattern = \pat: let
         else if sym = '.' then "all" else if (take 2 pat) = "[^" then "not" 
         else if "^$" has sym then "ass" else "lit",
 
-    char_set = let
+    bracket_expr = let
         negate = pat@1 = '^',
         pat_dropped = drop (negate? 2 1) pat,
         # first element is allowed to be a ']', e.g. "[]]" is valid
         pat_head = head pat_dropped, pat_tail = tail pat_dropped,
         chars = pat_head : (take_until (= ']') pat_tail),
         remainder = tail (drop_until (= ']') pat_tail) in
-        [type, interp_char_set chars] : (interp_pattern remainder),
+        [type, interp_bracket_expr chars] : (interp_pattern remainder),
 
     counted_rep = let
         m = parse_int . (take_until ("}," has)) . tail pat,
@@ -79,7 +79,7 @@ interp_pattern = \pat: let
     else if sym = '\'
     then [type, [pat@1]] : (interp_pattern (tail . tail pat))
     else if sym = '['
-    then char_set
+    then bracket_expr
     else if sym = '{'
     then counted_rep
     else [type, [sym]] : (interp_pattern (tail pat)),
