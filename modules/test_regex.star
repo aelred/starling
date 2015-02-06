@@ -1,16 +1,11 @@
-import regex in let 
+import regex test in let 
 
-test = \p xs ys: let
-    false_neg = filter (not . (match p)) xs,
-    false_pos = filter (match p) ys in
-    cat false_neg false_pos,
+re_test = \pat pos neg: let
+    pos_t = map (\x: [match pat x, join [pat, "doesn't match", x]]) pos,
+    neg_t = map (\x: [not (match pat x), join [pat, "matches", x]]) neg in
+    cat pos_t neg_t,
 
-test_all = let 
-    fold_test = \t accum: let 
-        failures = test (t@0) (t@1) (t@2),
-        pass = failures = [] in
-        if pass then accum else [t@0, failures] : accum in
-    fold fold_test [] in
+test_all = test . join . (map (\t: re_test (t@0) (t@1) (t@2))) in
 
 test_all [
     ["", ["anything", "at", "all"], []],
