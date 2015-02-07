@@ -50,13 +50,13 @@ class List(star_type.StarObject):
             # display as a string
             lopen = '"'
             ropen = '"'
-            show = lambda elem: elem.value
+            show = lambda elem: [elem.value]
             delim = False
         else:
             # display as a list
             lopen = '['
             ropen = ']'
-            show = lambda elem: elem.str()
+            show = lambda elem: elem.str_generator()
             delim = True
 
         yield lopen
@@ -66,12 +66,14 @@ class List(star_type.StarObject):
         for elem in self:
             # this is to make sure there is no comma after last element
             if prev_elem is not None:
-                yield show(prev_elem)
+                for out in show(prev_elem):
+                    yield out
                 if delim:
                     yield ', '
             prev_elem = elem
         if prev_elem is not None:
-            yield show(prev_elem)
+            for out in show(prev_elem):
+                yield out
         yield ropen
 
 
