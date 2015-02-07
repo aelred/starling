@@ -1,6 +1,4 @@
-import test in let
-uncurry = \f x: f (x@0) (x@1) in
-
+import test in 
 test . (map . uncurry assert_equal) [
     # maths
     [max 4 9, 9],
@@ -55,6 +53,8 @@ test . (map . uncurry assert_equal) [
     [(const []) [], []],
     [(+ 1) . (* 2) 3, 7],
     [(flip take) nats 3, [0, 1, 2]],
+    [curry (\xs: (xs@0) + (xs@1)) 3 8, 11],
+    [uncurry (+) [3, 8], 11],
 
     # list operations
     [[1] @ 0, 1],

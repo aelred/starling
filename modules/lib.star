@@ -16,6 +16,12 @@ const = \x y: x,
 # function composition
 . = \f g x: f (g x),
 
+# transform a function that takes a two-element list into a curried function
+curry = \f x y: f [x, y],
+
+# transform a curried function into one that takes a two-element list
+uncurry = \f xs: f (xs@0) (xs@1),
+
 # access array elements
 @ = \xs n: if n = 0 then head xs else (tail xs) @ (n - 1),
 
@@ -137,6 +143,6 @@ sort = \xs:
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const . @ < >= > max min sum flip has foldr foldl 
-    fold map filter take take_while take_until drop drop_while drop_until 
-    join range nats length reverse cat zip unzip sort
+    not or and any all ? id const . curry uncurry @ < >= > max min sum flip 
+    has foldr foldl fold map filter take take_while take_until drop 
+    drop_while drop_until join range nats length reverse cat zip unzip sort
