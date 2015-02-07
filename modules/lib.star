@@ -88,7 +88,7 @@ drop = \n xs:
 
 # drop elements while predicate is true
 drop_while = \p xs: 
-    if (not (xs = [])) and (p . head xs)
+    if (xs != []) and (p . head xs)
     then drop_while p (tail xs)
     else xs,
 

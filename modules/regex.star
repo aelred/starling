@@ -73,7 +73,7 @@ interp_bracket_expr = \pat: let
         then ["", tail pat]
         else if is_range
         then add_bexpr get_range . interp (drop 3 pat)
-        else if not (class_matches = [])
+        else if class_matches != []
         then add_bexpr (class@1) . interp (drop (length (class@0)) pat)
         else add_bexpr [head pat] . interp (tail pat) in
     # first element is allowed to be a ']', e.g. "[]]" is valid
@@ -173,7 +173,7 @@ to_postfix = \pat: let
         # push '(' onto the stack
         if sym = lpar then push sym 
         # pop symbols to output until a '(', then remove the '('
-        else if sym = rpar then drop . (pop (not . (= lpar)))
+        else if sym = rpar then drop . (pop (!= lpar))
         # pop higher-precedence operators to output, then push operator
         else if is_op sym
         then push sym . (pop \op: is_op op and ((prec sym) < (prec op)))
@@ -202,7 +202,7 @@ t_start = @0, t_end = @1, t_sym = @2,
 new_node = \fa: if (nodes fa) = [] then 0 else (head (nodes fa)) + 1,
 edges = \fa node: filter (\t: t_start t = node) (transitions fa),
 eps = ["eps", "eps"],
-all_syms = nub . (filter (not . (= eps))) . (map t_sym) . transitions,
+all_syms = nub . (filter (!= eps)) . (map t_sym) . transitions,
 
 # return all potential transition nodes given a predicate on the transition
 get_trans = \p fa: (map t_end) . (filter (p . t_sym)) . (edges fa),
@@ -304,7 +304,7 @@ to_dfa = \nfa: let
     new_finals = \dfa: filter (has (final nfa)) (nodes dfa),
     convert = \stack dfa: let 
         nodeset = head stack,
-        not_empty = \t: not ((t_end t) = []),
+        not_empty = \t: (t_end t) != [],
         trans_closure = \sym: [nodeset, epsclosure (succ_all nfa sym nodeset), sym],
         new_trans = filter not_empty . (map trans_closure) syms,
         new_nodes = map t_end new_trans,
