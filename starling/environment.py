@@ -16,11 +16,10 @@ class Environment:
         self._label = label
         self.bindings = dict(bindings)
 
-        self.log = log.getChild(str(self))
 
         if self._parent is not None:
-            self.log.debug('env %s -> %s: %r' %
-                           (self, self._parent, self.bindings.keys()))
+            log.debug('env %s -> %s: %r' %
+                      (self, self._parent, self.bindings.keys()))
 
     def child(self, bindings, label=None):
         return Environment(self, bindings, label)
@@ -33,9 +32,9 @@ class Environment:
 
     def resolve(self, name):
         env = self
+        log.debug('resolve %s in %s' % (name, self._id))
 
         while env is not None:
-            env.log.debug('resolve %s' % (name,))
             try:
                 bind = env.bindings[name]
             except KeyError:
