@@ -26,6 +26,7 @@ uncurry = \f xs: f (xs@0) (xs@1),
 @ = \xs n: if n = 0 then head xs else (tail xs) @ (n - 1),
 
 # comparison operators
+!= = \x y: not (x = y),
 < = \x: not . (<= x),
 > = \x y: not (x <= y),
 >= = \x: not . (> x),
@@ -143,6 +144,6 @@ sort = \xs:
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const . curry uncurry @ < >= > max min sum flip 
-    has foldr foldl fold map filter take take_while take_until drop 
+    not or and any all ? id const . curry uncurry @ != < >= > max min sum 
+    flip has foldr foldl fold map filter take take_while take_until drop 
     drop_while drop_until join range nats length reverse cat zip unzip sort

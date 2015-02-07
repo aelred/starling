@@ -12,6 +12,8 @@ test . (map . uncurry assert_equal) [
     [sum [5, 1, 1, 10], 17],
 
     # logic
+    [2 != 2, False],
+    [2 != 3, True],
     [2 < 0, False],
     [0 < 2, True],
     [0 < 0, False],
