@@ -25,7 +25,8 @@ then = Suppress(Keyword('then'))
 else_ = Suppress(Keyword('else'))
 import_ = Suppress(Keyword('import'))
 export = Suppress(Keyword('export'))
-reserved = let | in_ | lambda_ | if_ | then | else_ | import_ | export
+strict = Suppress(Keyword('strict'))
+reserved = let | in_ | lambda_ | if_ | then | else_ | import_ | export | strict
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
 infix_id = (Word('.+-*/=<>?:@') | 'and' | 'or' | 'mod' | 'pow' | 'has'
@@ -58,8 +59,11 @@ imports = Group(OneOrMore(ident))('imports')
 import_expr = Group(import_ + imports + in_ - expr)('import')
 export_expr = Group(export + OneOrMore(ident))('export')
 
+strict_expr = Group(strict + expr)('strict')
+
 atom << (let_expr | lambda_expr | if_expr | import_expr | export_expr |
-         number | char | string | ident | parentheses | linked_list)
+         strict_expr | number | char | string | ident | parentheses |
+         linked_list)
 
 grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
 
@@ -181,5 +185,6 @@ token_classes = {
     'lambda': syntax_tree.Lambda,
     'imports': _imports_token,
     'import': syntax_tree.Import,
-    'export': syntax_tree.Export
+    'export': syntax_tree.Export,
+    'strict': syntax_tree.Strict
 }

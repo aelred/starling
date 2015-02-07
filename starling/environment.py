@@ -8,14 +8,17 @@ log = logging.getLogger(__name__)
 class Environment:
     _env_ids = 0
 
-    def __init__(self, parent, bindings, label=None):
+    def __init__(self, parent, bindings=None, label=None):
         self._id = Environment._env_ids
         Environment._env_ids += 1
 
         self._parent = parent
         self._label = label
-        self.bindings = dict(bindings)
 
+        if bindings:
+            self.bindings = dict(bindings)
+        else:
+            self.bindings = None
 
         if self._parent is not None:
             log.debug('env %s -> %s: %r' %
@@ -42,7 +45,7 @@ class Environment:
             else:
                 # pull binding into this environment for effic:ency
                 self.bindings[name] = bind
-                return bind.dethunk()
+                return lambda: bind.dethunk()
 
         raise error.StarlingRuntimeError(
             'No binding for %r:\n%r' % (name, self))

@@ -12,7 +12,7 @@ class Function(star_type.StarObject):
 
     def apply(self, thunk_arg):
         self.log.debug('apply:\n%s' % thunk_arg.token)
-        return self._apply(thunk_arg)
+        return lambda: self._apply(thunk_arg)
 
     def str(self):
         return str(self)

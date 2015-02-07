@@ -1,6 +1,18 @@
 from starling import error
-
 from util import programs, errors
+
+from nose import with_setup
+import sys
+
+rec_limit = sys.getrecursionlimit()
+
+
+def setup_low_rec():
+    sys.setrecursionlimit(300)
+
+
+def teardown_low_rec():
+    sys.setrecursionlimit(rec_limit)
 
 
 @programs(False)
@@ -118,6 +130,7 @@ def test_recursion():
     }
 
 
+@with_setup(setup_low_rec, teardown_low_rec)
 @programs(False)
 def test_lazy():
     # (let f=f in f) means 'define a function f that calls f, then call f.
@@ -125,7 +138,12 @@ def test_lazy():
     return {
         'if False then let f=f in f else "good"': '"good"',
         'head ["fine", (let f=f in f)]': '"fine"',
-        '[0, let f=f in f] = [10, let f=f in f]': 'False'
+        '[0, let f=f in f] = [10, let f=f in f]': 'False',
+        'strict 4 : [2]': '[4, 2]',
+        """
+        let r = \\n:
+            strict if n = 0 then [] else r strict (n - 1) in r 1000
+        """: '[]'
     }
 
 
