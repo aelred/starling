@@ -1,8 +1,8 @@
 import regex test in let 
 
 re_test = \pat pos neg: let
-    pos_t = map (\x: [match pat x, join [pat, "doesn't match", x]]) pos,
-    neg_t = map (\x: [not (match pat x), join [pat, "matches", x]]) neg in
+    pos_t = map (\x: [match pat x, join [pat, " doesn't match ", x]]) pos,
+    neg_t = map (\x: [not (match pat x), join [pat, " matches ", x]]) neg in
     cat pos_t neg_t,
 
 test_all = test . join . (map (\t: re_test (t@0) (t@1) (t@2))) in
