@@ -31,10 +31,7 @@ ascii = cat
     " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
     "abcdefghijklmnopqrstuvwxyz{|}~",
 
-char_to_digit = \c: 
-    if c='0' then 0 else if c='1' then 1 else if c='2' then 2 else
-    if c='3' then 3 else if c='4' then 4 else if c='5' then 5 else
-    if c='6' then 6 else if c='7' then 7 else if c='8' then 8 else 9,
+char_to_digit = \c: (ord c) - 48,
 
 parse_int = foldl (\x c: (10 * x) + (char_to_digit c)) 0,
 
