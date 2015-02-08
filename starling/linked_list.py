@@ -50,7 +50,7 @@ class List(star_type.StarObject):
             # display as a string
             lopen = '"'
             ropen = '"'
-            show = lambda elem: [elem.value]
+            show = lambda elem: [elem.str()[1:-1]]
             delim = False
         else:
             # display as a list

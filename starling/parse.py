@@ -29,11 +29,14 @@ strict = Suppress(Keyword('strict'))
 reserved = let | in_ | lambda_ | if_ | then | else_ | import_ | export | strict
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
-infix_id = (Word('.+-*/=<>?:@!') | 'and' | 'or' | 'mod' | 'pow' | 'has'
-            )('infix_id')
+infix_id = (Word('.+-*/=<>?:@!') | Keyword('and') | Keyword('or')
+            | Keyword('mod') | Keyword('pow') | Keyword('has'))('infix_id')
 ident = ~reserved + (infix_id | word_id)
-char = sgl_quote + Regex('.')('char') + sgl_quote
-string = QuotedString(quoteChar='"', unquoteResults=False)('string*')
+char = (sgl_quote +
+        Regex(r"\\([bfnrtv\\\"']|x[0-9a-fA-F]{2}|[0-7]{1,3})|.")('char') +
+        sgl_quote)
+string = QuotedString(quoteChar='"', escChar='\\',
+                      unquoteResults=False)('string*')
 
 atom = Forward()
 expr = Group(OneOrMore(atom))('expression')
@@ -152,7 +155,8 @@ def _string_token(value):
         # empty list
         return token_classes['emptylist'](']')
     else:
-        return token_classes['list']([token_classes['char'](value[1]),
+        encoded = value[1].encode('string_escape')
+        return token_classes['list']([token_classes['char'](encoded),
                                       _string_token(value[0:1] + value[2:])])
     return syntax_tree.String(value[1:-1])
 
@@ -174,7 +178,7 @@ token_classes = {
     'infix_id': lambda v: syntax_tree.Identifier(v, True),
     'number': syntax_tree.Number,
     'char': syntax_tree.Char,
-    'string': _string_token,
+    'string': lambda v: _string_token(v.decode('string_escape')),
     'expression': _expr_token,
     'emptylist': syntax_tree.EmptyList,
     'list': syntax_tree.List,

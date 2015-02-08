@@ -1,6 +1,6 @@
 import test in
 test . (map . uncurry assert_equal) [
-    # chars
+    # chars and strings
     ["", []],
     ['a', 'a'],
     ["Hello World!", "Hello World!"],
@@ -8,6 +8,20 @@ test . (map . uncurry assert_equal) [
     [tail "Hi", "i"],
     [tail "a", []],
     ['H' : ('i' : []), "Hi"],
+    [
+        map chr [39, 92, 34, 8, 12, 10, 13, 9, 11, 69, 14, 83, 16, 7],
+        "'\\\"\b\f\n\r\t\v\x45\x0e\123\20\7"
+    ],
+    [
+        map ord ['\'', '\\', '"', '\b', '\f', '\n', '\r', '\t', '\v',
+                 '\x45', '\x0e', '\123', '\20', '\7'],
+        [39, 92, 34, 8, 12, 10, 13, 9, 11, 69, 14, 83, 16, 7]
+    ],
+    [chr 98, 'b'],
+    [ord 'b', 98],
+    ['Z', '\x5a'], 
+    ['\x5a', '\x5A'], 
+    ['\x5A', '\132'],
 
     # maths
     [14, 14],

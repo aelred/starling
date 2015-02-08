@@ -39,9 +39,12 @@ test_all [
     ["e{3}$", ["eee"], ["", "e", "ee", "eeee", "aaa"]],
     ["e{3,}$", ["eee", "eeee"], ["", "e", "ee", "aaa", "eeea"]],
     ["a{3,5}$", ["aaa", "aaaa", "aaaaa"], ["aa", "aaaaaa", "a", "bbb"]],
-    ["\\\{\}\[\]\(\)\^\$\.\|\*\+\?", ["\{}[]()^$.|*+?"], ["", "\\"]],
-    # the double backslash isn't important here! for syntax colouring
-    ["[\(.]", ["\\", "(", "."], ["", "a"]],
+    # '\\\\' because we must first escape starling, then regex to get a '\'
+    [
+        "\\\\\\{\\}\\[\\]\\(\\)\\^\\$\\.\\|\\*\\+\\?", 
+        ["\\{}[]()^$.|*+?"], ["", "\\\\"]
+    ],
+    ["[\\(.]", ["\\", "(", "."], ["", "a"]],
     ["[[:digit:]]", ["0", "1", "8", "9"], ["a", ""]],
     ["[[:upper:]][[:lower:]]*", ["Hello", "A"], ["", "world", "b"]],
     ["[1[:alpha:]]", ["1", "B", "C", "d"], ["", "0"]],

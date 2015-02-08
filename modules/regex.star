@@ -28,7 +28,7 @@ starts_with = \xs sub:
     else False,
 
 ascii = cat 
-    " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`"
+    " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
     "abcdefghijklmnopqrstuvwxyz{|}~",
 
 char_to_digit = \c: 
@@ -44,7 +44,7 @@ alpha = cat upper lower,
 digit = "0123456789",
 xdigit = cat digit "ABCDEFabcdef",
 alnum = cat alpha digit,
-punct = "!#$%&'()*+,-./:;<=>?@[\]^_`{|}~",
+punct = "!#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
 space = " ",
 cntrl = "",
 graph = cat alnum punct,
@@ -110,7 +110,7 @@ interp_pattern = \pat: let
 
     if pat = []
     then []
-    else if sym = '\'
+    else if sym = '\\'
     then [type, [pat@1]] : (interp_pattern (tail . tail pat))
     else if sym = '['
     then bracket_expr

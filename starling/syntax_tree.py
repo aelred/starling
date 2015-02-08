@@ -94,7 +94,7 @@ class Number(Terminator):
 
 class Char(Terminator):
     def _eval(self, env):
-        return star_type.Char(self.value)
+        return star_type.Char(self.value.decode('string_escape'))
 
 
 class Expression(Token, EvalToken):

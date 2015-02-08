@@ -66,7 +66,7 @@ class Number(Primitive):
 
 class Char(Primitive):
     def str(self):
-        return '\'%s\'' % self.value
+        return repr(self.value)
 
 
 class Module(Primitive):
