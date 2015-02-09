@@ -35,11 +35,17 @@ class Primitive(StarObject):
         return Boolean(type(self) == type(other) and self.value == other.value)
 
 
+class Comp(Primitive):
+    def le(self, other):
+        if type(self) != type(other):
+            raise error.StarlingRuntimeError('Type error')
+        return Boolean(self.value <= other.value)
+
 class Boolean(Primitive):
     pass
 
 
-class Number(Primitive):
+class Number(Comp):
     def add(self, other):
         return Number(self.value + other.value)
 
@@ -58,13 +64,8 @@ class Number(Primitive):
     def pow(self, other):
         return Number(self.value ** other.value)
 
-    def le(self, other):
-        if type(self) != type(other):
-            raise error.StarlingRuntimeError('Type error')
-        return Boolean(self.value <= other.value)
 
-
-class Char(Primitive):
+class Char(Comp):
     def str(self):
         return repr(self.value)
 

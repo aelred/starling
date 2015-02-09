@@ -22,6 +22,8 @@ test . (map . uncurry assert_equal) [
     ['Z', '\x5a'], 
     ['\x5a', '\x5A'], 
     ['\x5A', '\132'],
+    ['a' <= 'b', True],
+    ['5' <= '5', True],
 
     # maths
     [14, 14],
