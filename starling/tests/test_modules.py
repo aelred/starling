@@ -8,5 +8,6 @@ def test_modules():
         'euler2': '4613732',
         'test_regex': '[]',
         'test_test': '[]',
-        'test_lib': '[]'
+        'test_lib': '[]',
+        'test_set': '[]'
     }
