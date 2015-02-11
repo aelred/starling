@@ -44,11 +44,7 @@ class EvalToken:
         return result
 
     def eval(self, env):
-        try:
-            result = self._eval(env)
-        except Exception, e:
-            # really simple stack trace
-            raise error.StarlingRuntimeError("%s:\n\n%s" % (self, e))
+        result = self._eval(env)
         assert isinstance(result, star_type.StarObject) or callable(result)
         return result
 
