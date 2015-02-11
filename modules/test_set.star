@@ -1,6 +1,5 @@
 import set test in let
 
-set_empty = set [],
 set1 = set [1],
 set2 = set [1, 5, 4, 10],
 set3 = set "hello world" in
@@ -28,6 +27,9 @@ test . (map . uncurry assert_equal) [
     [set_items (set_add 10 set1), [1, 10]],
     [set_items (set_add 4 set2), [1, 4, 5, 10]],
     [set_items (set_add 'a' set3), " adehlorw"],
+
+    [set_add_all [] set3, set3],
+    [set_items (set_add_all (range 0 5) set2), [0, 1, 2, 3, 4, 5, 10]],
 
     [set_items (set_rem 0 set_empty), []],
     [set_items (set_rem 1 set1), []],
