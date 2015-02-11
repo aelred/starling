@@ -208,10 +208,11 @@ succ = \sym: get_trans (=sym),
 succ_all = \fa sym ns: join (map (succ sym fa) ns),
 closure = \fa sym ns: let
     closure_ = \ns visited: let
-        filt_ns = filter (not . (visited has)) ns in
+        filt_ns = filter (not . (visited has)) ns,
+        new_visited = cat filt_ns visited in
         if filt_ns = []
-        then []
-        else cat filt_ns (closure_ (succ_all fa sym filt_ns) (cat filt_ns visited)) in
+        then visited
+        else closure_ (succ_all fa sym filt_ns) new_visited in
     closure_ ns [],
 
 # turn a tree into a nondeterministic finite automata (NFA)
