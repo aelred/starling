@@ -29,8 +29,10 @@ test . (map . uncurry assert_equal) [
     [set_items (set_add 4 set2), [1, 4, 5, 10]],
     [set_items (set_add 'a' set3), " adehlorw"],
 
-    [set_items (set_rem set_empty 0), []],
-    [set_items (set_rem set1 1), []],
-    [set_items (set_rem set2 4), [1, 5, 10]],
-    [set_items (set_rem set3 'o'), " dehlrw"]
+    [set_items (set_rem 0 set_empty), []],
+    [set_items (set_rem 1 set1), []],
+    [set_items (set_rem 4 set2), [1, 5, 10]],
+    [set_items (set_rem 8 set2), [1, 4, 5, 10]],
+    [set_items (set_rem 'o' set3), " dehlrw"],
+    [any (map (\c: set_has c (set_rem c set3)) "hello world"), False]
 ]
