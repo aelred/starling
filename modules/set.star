@@ -1,4 +1,5 @@
 let
+# concise, slow defitions are commented out
 
 node = \val left right: 
     [(max (node_height left) (node_height right)) + 1, val, left, right], 
@@ -49,16 +50,42 @@ set = foldr set_add set_empty,
 
 set_size = tree_fold (\n l r: 1 + l + r) 0,
 
-set_items = tree_fold (\n l r: join [l, [node_val n], r]) [],
+# set_items = tree_fold (\n l r: join [l, [node_val n], r]) [],
+set_items = \n: 
+    if n = set_empty
+    then []
+    else cat (set_items (node_left n)) 
+             ((node_val n) : (set_items (node_right n))),
 
-set_reverse = tree_fold (\n l r: join [r, [node_val n], l]) [],
+# set_reverse = tree_fold (\n l r: join [r, [node_val n], l]) [],
+set_reverse = \n: 
+    if n = set_empty
+    then []
+    else cat (set_items (node_right n)) 
+             ((node_val n) : (set_items (node_left n))),
     
-set_has = tree_walk const const (const True) False,
+# set_has = tree_walk const const (const True) False,
+set_has = \x n:
+    if n = set_empty
+    then False
+    else if x < (node_val n)
+    then set_has x (node_left n)
+    else if x > (node_val n)
+    then set_has x (node_right n)
+    else True,
 
-set_add = \x: let
-    left_case = \l: rebalance_left . (ch_left . const l),
-    right_case = \r: rebalance_right . (ch_right . const r) in
-    tree_walk left_case right_case id (node x set_empty set_empty) x,
+# set_add = \x: let
+#     left_case = \l: rebalance_left . (ch_left . const l),
+#     right_case = \r: rebalance_right . (ch_right . const r) in
+#     tree_walk left_case right_case id (node x set_empty set_empty) x,
+set_add = \x n:
+    if n = set_empty
+    then node x set_empty set_empty
+    else if x < (node_val n)
+    then rebalance_left (ch_left (set_add x) n)
+    else if x > (node_val n)
+    then rebalance_right (ch_right (set_add x) n)
+    else n,
 
 set_add_all = flip (foldr set_add),
 
