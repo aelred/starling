@@ -15,6 +15,10 @@ class _EmptyList(star_type.StarObject):
     def eq(self, other):
         return star_type.Boolean(self == other)
 
+    def le(self, other):
+        # empty list is the 'first' element when ordered
+        return star_type.Boolean(True)
+
 empty = _EmptyList()
 
 
@@ -38,6 +42,16 @@ class List(star_type.StarObject):
             else:
                 return self.tail().eq(other.tail())
         except AttributeError:
+            return star_type.Boolean(False)
+
+    def le(self, other):
+        try:
+            if self.head().eq(other.head()).value:
+                return self.tail().le(other.tail())
+            else:
+                return self.head().le(other.head())
+        except AttributeError:
+            # if other is empty list, return false
             return star_type.Boolean(False)
 
     def __iter__(self):
