@@ -42,6 +42,13 @@ test . (map . uncurry assert_equal) [
     [True or (let f=f in f), True],
     [False and (let f=f in f), False],
     [(const "ok") (let f=f in f), "ok"],
+    
+    # tail call elimination test
+    [sum (range 0 1000), 499500],
+    [length (range 0 1000), 1000],
+    [any (map (\x: x<0) (range 0 1000)), False],
+    [all (map (\x: x>=0) (range 0 1000)), True],
+    [head (reverse (range 0 1000)), 999],
 
     # partial application
     [map (* 2) [1, 2, 3], [2, 4, 6]],

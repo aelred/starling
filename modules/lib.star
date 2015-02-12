@@ -3,8 +3,8 @@ let
 not = \x: if x then False else True,
 or = \x y: if x then True else if y then True else False,
 and = \x y: if x then (if y then True else False) else False,
-any = fold (or) False,
-all = fold (and) True,
+any = foldl (or) False,
+all = foldl (and) True,
 
 # useful, short if construct
 ? = \p c a: if p then c else a,
@@ -36,7 +36,7 @@ max = \x y: x > y? x y,
 min = \x y: x < y? x y,
 
 # sum of a list of numbers
-sum = fold (+) 0,
+sum = foldl (+) 0,
 
 # list contains given element
 has = \xs x: any (map (= x) xs),
@@ -54,7 +54,7 @@ foldr = \f init xs:
 foldl = \f init xs:
     if xs = []
     then init
-    else foldl f (f init . head xs) . tail xs,
+    else foldl f (strict (f init . head xs)) . tail xs,
 
 # fold is a synonoym for foldr
 fold = foldr,
@@ -108,10 +108,10 @@ range = \start end:
 nats = let nats_ = \n: n : (nats_ (n + 1)) in nats_ 0,
 
 # return the length of a list
-length = fold (\x: +1) 0,
+length = foldl (const . (+1)) 0,
 
 # reverse a list
-reverse = fold (\x accum: cat accum [x]) [],
+reverse = foldl (flip (:)) [],
 
 # return the concatenation of two lists
 cat = \xs ys: fold (:) ys xs,
