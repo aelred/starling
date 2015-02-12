@@ -21,7 +21,7 @@ def run(script, input_='', lib=True, generator=False):
         return result.str()
 
 
-def run_raw(script, input_='', lib=True):
+def interp(script, input_='', lib=True):
     if lib and _std_binds is None:
         global _std_binds
         std_lib = ''
@@ -43,3 +43,12 @@ def run_raw(script, input_='', lib=True):
 
     tokens = parse.tokenize(script)
     return tokens.eval(env)
+
+
+def run_raw(script, input_='', lib=True):
+    tokens = parse.tokenize(script)
+    code = tokens.gen_python()
+    log.debug('\n'.join(
+        ['%d\t%s' % (i, c) for i, c in enumerate(code.split('\n'))]))
+    exec code
+    return result
