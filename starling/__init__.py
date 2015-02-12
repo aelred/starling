@@ -46,9 +46,17 @@ def interp(script, input_='', lib=True):
 
 
 def run_raw(script, input_='', lib=True):
-    tokens = parse.tokenize(script)
+    tokens = parse.tokenize('let input="%s" in\n%s' % (input_, script))
+
+    # wrap script in standard library bindings
+    if lib:
+        with open(lib_path, 'r') as f:
+            std_lib = f.read()
+        tokens = tokens.wrap_import(parse.tokenize(std_lib))
+
     code = tokens.gen_python()
     log.debug('\n'.join(
-        ['%d\t%s' % (i, c) for i, c in enumerate(code.split('\n'))]))
-    exec code
-    return result
+        ['%d\t%s' % (i+1, c) for i, c in enumerate(code.split('\n'))]))
+
+    exec code in globals(), locals()
+    return _result

@@ -23,11 +23,21 @@ class EmptyToken:
         return '%s%s' % ('  ' * indent, self.__class__.__name__)
 
     def gen_python(self, indent=False):
-        if indent:
-            pad = '    '
-        else:
-            pad = ''
-        return pad + ('\n'+pad).join(self._gen_python().split('\n'))
+        def add_indent(code):
+            if indent:
+                pad = '    '
+            else:
+                pad = ''
+            return pad + ('\n'+pad).join(code.split('\n'))
+
+        result = self._gen_python()
+
+        if not self.lazy:
+            # make sure this is evaluated immediately
+            # done by utterly abusing docstrings
+            result = '"""strict"""\n%s' % result
+
+        return add_indent(result)
 
 
 class Token(EmptyToken):
@@ -76,8 +86,40 @@ class Script(Token, EvalToken):
 
     def _gen_python(self):
         return """
-def main():
-    import star_type, linked_list
+import star_type, linked_list, error
+
+def _trampoline(f):
+    f = f()
+    while True:
+        try:
+            f = f()
+        except TypeError:
+            return f
+
+def _main():
+    def _trampoline(f):
+        f = f()
+        while True:
+            try:
+                f = f()
+            except TypeError:
+                return f
+
+    class _thunk:
+
+        def __init__(self, f):
+            self._f = f
+            self._mem = None
+            # if this function is strict, eval immediately
+            if getattr(self._f, '__doc__', None) == 'strict':
+                self()
+                self.__doc__ = 'strict'
+
+        def __call__(self):
+            if self._mem is None:
+                self._mem = _trampoline(self._f)
+                self._f = None
+            return self._mem
 
     def _True():
         return star_type.Boolean(True)
@@ -88,7 +130,7 @@ def main():
         return lambda a: lambda: lambda b: a().add(b())
     def _s():
         return lambda a: lambda: lambda b: a().sub(b())
-    def _m():
+    def _a():
         return lambda a: lambda: lambda b: a().mul(b())
     def _d():
         return lambda a: lambda: lambda b: a().div(b())
@@ -107,7 +149,7 @@ def main():
         return lambda xs: xs().tail()
 
     def _c():
-        return lambda x: lambda xs: linked_list.List(x, xs)
+        return lambda x: lambda: lambda xs: linked_list.List(x, xs)
     def _chr():
         return lambda x: star_type.Char(chr(x().value))
     def _ord():
@@ -115,8 +157,14 @@ def main():
 
 %s
 
-result = main()
+try:
+    _result = _trampoline(_main)
+except NameError, e:
+    raise error.StarlingRuntimeError(str(e))
         """ % self.body.gen_python(True)
+
+    def wrap_import(self, imp):
+        return Script([Import([imp.body, self.body])])
 
 
 class Terminator(Token, EvalToken):
@@ -148,7 +196,7 @@ class Identifier(Terminator):
 
     def python_name(self):
         convert = {
-            '.': 'd', '+': 'p', '-': 's', '*': 'a', '/': 'd', '=': 'e',
+            '.': 'f', '+': 'p', '-': 's', '*': 'a', '/': 'd', '=': 'e',
             '<': 'l', '>': 'g', '?': 'q', ':': 'c', '@': 't', '!': 'x',
             '$': 'o'
         }
@@ -200,9 +248,14 @@ class Expression(Token, EvalToken):
         return lambda: self.operator.trampoline(env).apply(operand)
 
     def _gen_python(self):
-        i = _get_id()
-        return 'def _f%s():\n%s\n%s()(_f%s)' % (
-            i, self.operand.gen_python(True), self.operator.gen_python(), i)
+        i1 = _get_id()
+        i2 = _get_id()
+        it = _get_id()
+        return (
+            'def _f%s():\n%s\ndef _f%s():\n%s\n_t%s = _thunk(_f%s)\n'
+            'return lambda: _trampoline(_f%s)(_t%s)' % (
+                i1, self.operand.gen_python(True),
+                i2, self.operator.gen_python(True), it, i1, i2, it))
 
 
 class EmptyList(EmptyToken, EvalToken):
@@ -211,7 +264,7 @@ class EmptyList(EmptyToken, EvalToken):
         return linked_list.empty
 
     def _gen_python(self):
-        return 'linked_list.empty'
+        return 'return linked_list.empty'
 
 
 class List(Token, EvalToken):
@@ -227,17 +280,42 @@ class List(Token, EvalToken):
     def _eval(self, env):
         head = thunk.Thunk(self.head, 'head', env)
         tail = thunk.Thunk(self.tail, 'tail', env)
-        return linked_list.List(head, tail)
+        return linked_list.List(head.dethunk, tail.dethunk)
 
     def _gen_python(self):
-        i1 = _get_id()
-        i2 = _get_id()
-        return (
+        result = ''
+
+        # build the list in a flat way
+        lists = []
+        li = self
+        while isinstance(li, List):
+            lists.append(li)
+            li = li.tail
+
+        # last element is not an explicit list
+        last = li
+        i_last = _get_id()
+        result += (
             'def _f%s():\n%s\n'
-            'def _f%s():\n%s\n'
-            'return linked_list.LinkedList(f%s(), f%s())') % (
-                i1, self.head.gen_python(True), i2, self.tail.gen_python(True),
-                i1, i2)
+            '_t%s = _thunk(_f%s)\n' % (i_last, last.gen_python(True),
+                                       i_last, i_last))
+
+        for li in reversed(lists):
+            i_head = _get_id()
+            i_list = _get_id()
+            result += (
+                'def _f%s():\n%s\n'
+                '_t%s = _thunk(_f%s)\n'
+                'def _f%s():\n'
+                '    return lambda: _c()(_t%s)()(_t%s)\n'
+                '_t%s = _thunk(_f%s)\n' % (
+                    i_head, li.head.gen_python(True), i_head, i_head, i_list,
+                    i_head, i_last, i_list, i_list))
+            i_last = i_list
+
+        result += 'return _f%s' % i_last
+
+        return result
 
 
 class If(Token, EvalToken):
@@ -264,11 +342,19 @@ class If(Token, EvalToken):
             raise error.StarlingRuntimeError("Type error")
 
     def _gen_python(self):
-        i = _get_id()
-        return 'def _f%s():\n%s\nif _f%s():\n%s()\nelse:\n%s()' % (
-            i, self.predicate.gen_python(True), i,
-            self.consequent.gen_python(True),
-            self.alternative.gen_python(True))
+        i1 = _get_id()
+        it = _get_id()
+        i2 = _get_id()
+        i3 = _get_id()
+        return (
+            'def _f%s():\n%s\ndef _f%s():\n%s\ndef _f%s():\n%s\n'
+            '_t%s = _trampoline(_f%s).value\n'
+            'if _t%s is True: return _f%s\n'
+            'elif _t%s is False: return _f%s\n'
+            'else: raise error.StarlingRuntimeError("Type error")' % (
+                i1, self.predicate.gen_python(True),
+                i2, self.consequent.gen_python(True),
+                i3, self.alternative.gen_python(True), it, i1, it, i2, it, i3))
 
 
 class Let(Token, EvalToken):
@@ -350,6 +436,9 @@ class Imports(Token):
     def elements(self):
         return self._value
 
+    def _gen_python(self):
+        return '\n'.join(['%s' % e.gen_python() for e in self.elements])
+
 
 class Import(Token, EvalToken):
 
@@ -367,7 +456,7 @@ class Import(Token, EvalToken):
         return lambda: self.body.eval(env)
 
     def _gen_python(self):
-        return '# import stuff here\n%s' % self.body.gen_python()
+        return '%s\n%s' % (self.imports.gen_python(), self.body.gen_python())
 
 
 class Export(Token, EvalToken):
@@ -382,14 +471,14 @@ class Export(Token, EvalToken):
         return star_type.Module(exports)
 
     def _gen_python(self):
-        return 'return "EXPORT"'
+        return ''
 
 
 class Strict(Token, EvalToken):
 
     def __init__(self, value):
-        self.lazy = False
         Token.__init__(self, value)
+        self.lazy = False
 
     @property
     def body(self):
@@ -397,3 +486,6 @@ class Strict(Token, EvalToken):
 
     def _eval(self, env):
         return lambda: self.body.eval(env)
+
+    def _gen_python(self):
+        return self.body.gen_python()
