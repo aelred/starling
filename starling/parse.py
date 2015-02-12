@@ -168,7 +168,7 @@ def _imports_token(value):
         path = os.path.join(star_path.path, imp.value + '.star')
         with open(path, 'r') as f:
             script = f.read()
-        tokens.append(tokenize(script))
+        tokens.append(tokenize(script).body)
     return syntax_tree.Imports(tokens)
 
 
