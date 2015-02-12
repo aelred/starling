@@ -1,6 +1,6 @@
 let
 # basic logic
-not = \x: x? False True,
+not = \x: if x then False else True,
 or = \x y: if x then True else if y then True else False,
 and = \x y: if x then (if y then True else False) else False,
 any = fold (or) False,
