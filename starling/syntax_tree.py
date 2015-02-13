@@ -1,8 +1,12 @@
-from starling import thunk, linked_list, environment, function, star_type
-from starling import error
+import logging
 
+# these are imported for execing starling scripts
+from starling import star_type, linked_list, error  # NOQA
+from starling.glob_env import *  # NOQA
 
 _id = 0
+
+log = logging.getLogger('starling.syntax_tree')
 
 
 def _get_id():
@@ -60,114 +64,34 @@ class Token(EmptyToken):
         return self._display()
 
 
-class EvalToken:
-
-    def trampoline(self, env):
-        result = self.eval(env)
-        # 'trampoline' result, until it is not callable
-        while callable(result):
-            result = result()
-        return result
-
-    def eval(self, env):
-        result = self._eval(env)
-        assert isinstance(result, star_type.StarObject) or callable(result)
-        return result
-
-
-class Script(Token, EvalToken):
+class Script(Token):
 
     @property
     def body(self):
         return self._value[0]
 
-    def _eval(self, env):
-        return self.body.trampoline(env)
-
     def _gen_python(self):
-        return """
-import star_type, linked_list, error
-
-def _trampoline(f):
-    f = f()
-    while True:
-        try:
-            f = f()
-        except TypeError:
-            return f
-
-def _main():
-    def _trampoline(f):
-        f = f()
-        while True:
-            try:
-                f = f()
-            except TypeError:
-                return f
-
-    class _thunk:
-
-        def __init__(self, f):
-            self._f = f
-            self._mem = None
-            # if this function is strict, eval immediately
-            if getattr(self._f, '__doc__', None) == 'strict':
-                self()
-                self.__doc__ = 'strict'
-
-        def __call__(self):
-            if self._mem is None:
-                self._mem = _trampoline(self._f)
-                self._f = None
-            return self._mem
-
-    def _True():
-        return star_type.Boolean(True)
-    def _False():
-        return star_type.Boolean(False)
-
-    def _p():
-        return lambda a: lambda: lambda b: a().add(b())
-    def _s():
-        return lambda a: lambda: lambda b: a().sub(b())
-    def _a():
-        return lambda a: lambda: lambda b: a().mul(b())
-    def _d():
-        return lambda a: lambda: lambda b: a().div(b())
-    def mod():
-        return lambda a: lambda: lambda b: a().mod(b())
-    def pow():
-        return lambda a: lambda: lambda b: a().pow(b())
-    def _e():
-        return lambda a: lambda: lambda b: a().eq(b())
-    def _le():
-        return lambda a: lambda: lambda b: a().le(b())
-
-    def head():
-        return lambda xs: xs().head()
-    def tail():
-        return lambda xs: xs().tail()
-
-    def _c():
-        return lambda x: lambda: lambda xs: linked_list.List(x, xs)
-    def _chr():
-        return lambda x: star_type.Char(chr(x().value))
-    def _ord():
-        return lambda c: star_type.Number(ord(c().value))
-
-%s
-
-try:
-    _result = _trampoline(_main)
-except NameError, e:
-    raise error.StarlingRuntimeError(str(e))
-        """ % self.body.gen_python(True)
+        return (
+            'def _main():\n'
+            '%s\n'
+            'try:\n'
+            '    _result = trampoline(_main)\n'
+            'except NameError, e:\n'
+            '    raise error.StarlingRuntimeError(str(e))' % (
+                self.body.gen_python(True)))
 
     def wrap_import(self, imp):
         return Script([Import([imp.body, self.body])])
 
+    def evaluate(self):
+        code = self.gen_python()
+        log.debug('\n'.join(
+            ['%d\t%s' % (i+1, c) for i, c in enumerate(code.split('\n'))]))
+        exec code in globals(), locals()
+        return _result
 
-class Terminator(Token, EvalToken):
+
+class Terminator(Token):
 
     def __init__(self, value):
         self._value = value
@@ -191,9 +115,6 @@ class Identifier(Terminator):
     def is_infix(self):
         return self._is_infix
 
-    def _eval(self, env):
-        return env.resolve(self.value)
-
     def python_name(self):
         convert = {
             '.': 'f', '+': 'p', '-': 's', '*': 'a', '/': 'd', '=': 'e',
@@ -206,10 +127,11 @@ class Identifier(Terminator):
                           'pass', 'yield', 'break', 'except', 'import',
                           'print', 'class', 'exec', 'in', 'raise', 'continue',
                           'finally', 'is', 'return', 'def', 'for', 'lambda',
-                          'try', 'False', 'True', 'chr', 'ord']:
-            return '_' + self.value
+                          'try', 'False', 'True', 'chr', 'ord', 'trampoline',
+                          'Thunk']:
+            return self.value + '__'
         elif any(x in self.value for x in convert.keys()):
-            return '_' + ''.join([convert.get(c, c) for c in self.value])
+            return ''.join([convert.get(c, c) for c in self.value]) + '__'
         else:
             return self.value
 
@@ -218,22 +140,16 @@ class Identifier(Terminator):
 
 
 class Number(Terminator):
-    def _eval(self, env):
-        return star_type.Number(int(self.value))
-
     def _gen_python(self):
         return 'return star_type.Number(%s)' % self.value
 
 
 class Char(Terminator):
-    def _eval(self, env):
-        return star_type.Char(self.value.decode('string_escape'))
-
     def _gen_python(self):
         return 'return star_type.Char(\'%s\')' % self.value
 
 
-class Expression(Token, EvalToken):
+class Expression(Token):
 
     @property
     def operator(self):
@@ -243,31 +159,24 @@ class Expression(Token, EvalToken):
     def operand(self):
         return self._value[1]
 
-    def _eval(self, env):
-        operand = thunk.Thunk(self.operand, 'argument', env)
-        return lambda: self.operator.trampoline(env).apply(operand)
-
     def _gen_python(self):
         i1 = _get_id()
         i2 = _get_id()
         it = _get_id()
         return (
-            'def _f%s():\n%s\ndef _f%s():\n%s\n_t%s = _thunk(_f%s)\n'
-            'return lambda: _trampoline(_f%s)(_t%s)' % (
+            'def _f%s():\n%s\ndef _f%s():\n%s\n_t%s = Thunk(_f%s)\n'
+            'return lambda: trampoline(_f%s)(_t%s)' % (
                 i1, self.operand.gen_python(True),
                 i2, self.operator.gen_python(True), it, i1, i2, it))
 
 
-class EmptyList(EmptyToken, EvalToken):
-
-    def _eval(self, env):
-        return linked_list.empty
+class EmptyList(EmptyToken):
 
     def _gen_python(self):
         return 'return linked_list.empty'
 
 
-class List(Token, EvalToken):
+class List(Token):
 
     @property
     def head(self):
@@ -276,11 +185,6 @@ class List(Token, EvalToken):
     @property
     def tail(self):
         return self._value[1]
-
-    def _eval(self, env):
-        head = thunk.Thunk(self.head, 'head', env)
-        tail = thunk.Thunk(self.tail, 'tail', env)
-        return linked_list.List(head.dethunk, tail.dethunk)
 
     def _gen_python(self):
         result = ''
@@ -297,18 +201,18 @@ class List(Token, EvalToken):
         i_last = _get_id()
         result += (
             'def _f%s():\n%s\n'
-            '_t%s = _thunk(_f%s)\n' % (i_last, last.gen_python(True),
-                                       i_last, i_last))
+            '_t%s = Thunk(_f%s)\n' % (i_last, last.gen_python(True),
+                                      i_last, i_last))
 
         for li in reversed(lists):
             i_head = _get_id()
             i_list = _get_id()
             result += (
                 'def _f%s():\n%s\n'
-                '_t%s = _thunk(_f%s)\n'
+                '_t%s = Thunk(_f%s)\n'
                 'def _f%s():\n'
-                '    return lambda: _c()(_t%s)()(_t%s)\n'
-                '_t%s = _thunk(_f%s)\n' % (
+                '    return lambda: c__()(_t%s)()(_t%s)\n'
+                '_t%s = Thunk(_f%s)\n' % (
                     i_head, li.head.gen_python(True), i_head, i_head, i_list,
                     i_head, i_last, i_list, i_list))
             i_last = i_list
@@ -318,7 +222,7 @@ class List(Token, EvalToken):
         return result
 
 
-class If(Token, EvalToken):
+class If(Token):
 
     @property
     def predicate(self):
@@ -332,15 +236,6 @@ class If(Token, EvalToken):
     def alternative(self):
         return self._value[2]
 
-    def _eval(self, env):
-        pred = self.predicate.trampoline(env)
-        if pred.value is True:
-            return lambda: self.consequent.eval(env)
-        elif pred.value is False:
-            return lambda: self.alternative.eval(env)
-        else:
-            raise error.StarlingRuntimeError("Type error")
-
     def _gen_python(self):
         i1 = _get_id()
         it = _get_id()
@@ -348,7 +243,7 @@ class If(Token, EvalToken):
         i3 = _get_id()
         return (
             'def _f%s():\n%s\ndef _f%s():\n%s\ndef _f%s():\n%s\n'
-            '_t%s = _trampoline(_f%s).value\n'
+            '_t%s = trampoline(_f%s).value\n'
             'if _t%s is True: return _f%s\n'
             'elif _t%s is False: return _f%s\n'
             'else: raise error.StarlingRuntimeError("Type error")' % (
@@ -357,7 +252,7 @@ class If(Token, EvalToken):
                 i3, self.alternative.gen_python(True), it, i1, it, i2, it, i3))
 
 
-class Let(Token, EvalToken):
+class Let(Token):
 
     @property
     def bindings(self):
@@ -366,21 +261,6 @@ class Let(Token, EvalToken):
     @property
     def body(self):
         return self._value[1]
-
-    def _eval(self, env):
-        bindings = dict([(b.identifier.value,
-                          thunk.Thunk(b.body, b.identifier.value))
-                        for b in self.bindings.elements])
-
-        new_env = environment.Environment(env, bindings)
-        for thunk_ in bindings.values():
-            thunk_.env = new_env
-
-        # dethunk any strict thunks
-        for thunk_ in bindings.values():
-            thunk_.strict_dethunk()
-
-        return lambda: self.body.eval(new_env)
 
     def _gen_python(self):
         return '%s\n%s' % (self.bindings.gen_python(), self.body.gen_python())
@@ -411,7 +291,7 @@ class Binding(Token):
                                   self.body.gen_python(True))
 
 
-class Lambda(Token, EvalToken):
+class Lambda(Token):
 
     @property
     def parameter(self):
@@ -420,9 +300,6 @@ class Lambda(Token, EvalToken):
     @property
     def body(self):
         return self._value[1]
-
-    def _eval(self, env):
-        return function.Lambda(self.parameter.value, self.body, env)
 
     def _gen_python(self):
         i = _get_id()
@@ -440,7 +317,7 @@ class Imports(Token):
         return '\n'.join(['%s' % e.gen_python() for e in self.elements])
 
 
-class Import(Token, EvalToken):
+class Import(Token):
 
     @property
     def imports(self):
@@ -450,31 +327,21 @@ class Import(Token, EvalToken):
     def body(self):
         return self._value[1]
 
-    def _eval(self, env):
-        for imp in self.imports.elements:
-            env = env.child(imp.eval(env.ancestor()).value)
-        return lambda: self.body.eval(env)
-
     def _gen_python(self):
         return '%s\n%s' % (self.imports.gen_python(), self.body.gen_python())
 
 
-class Export(Token, EvalToken):
+class Export(Token):
 
     @property
     def identifiers(self):
         return self._value
 
-    def _eval(self, env):
-        exports = dict([(ex.value, thunk.Thunk(ex, ex.value, env))
-                        for ex in self.identifiers])
-        return star_type.Module(exports)
-
     def _gen_python(self):
         return ''
 
 
-class Strict(Token, EvalToken):
+class Strict(Token):
 
     def __init__(self, value):
         Token.__init__(self, value)
@@ -483,9 +350,6 @@ class Strict(Token, EvalToken):
     @property
     def body(self):
         return self._value[0]
-
-    def _eval(self, env):
-        return lambda: self.body.eval(env)
 
     def _gen_python(self):
         return self.body.gen_python()

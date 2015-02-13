@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-from starling import environment, glob_env, parse, star_path
+from starling import parse, star_path
 
 log = logging.getLogger('starling')
 
@@ -21,30 +21,6 @@ def run(script, input_='', lib=True, generator=False):
         return result.str()
 
 
-def interp(script, input_='', lib=True):
-    if lib and _std_binds is None:
-        global _std_binds
-        std_lib = ''
-        with open(lib_path, 'r') as f:
-            std_lib = f.read()
-        _std_binds = run_raw(std_lib, lib=False).value
-
-    log.debug('Running script:\n%s' % script)
-    environment.Environment._env_ids = 1
-
-    # wrap script in standard library bindings
-    if lib:
-        env = glob_env.glob_env.child(_std_binds, 'global')
-    else:
-        env = glob_env.glob_env
-
-    # input environment
-    env = env.child({'input': glob_env.const_string(input_)})
-
-    tokens = parse.tokenize(script)
-    return tokens.eval(env)
-
-
 def run_raw(script, input_='', lib=True):
     tokens = parse.tokenize('let input="%s" in\n%s' % (input_, script))
 
@@ -54,9 +30,4 @@ def run_raw(script, input_='', lib=True):
             std_lib = f.read()
         tokens = tokens.wrap_import(parse.tokenize(std_lib))
 
-    code = tokens.gen_python()
-    log.debug('\n'.join(
-        ['%d\t%s' % (i+1, c) for i, c in enumerate(code.split('\n'))]))
-
-    exec code in globals(), locals()
-    return _result
+    return tokens.evaluate()

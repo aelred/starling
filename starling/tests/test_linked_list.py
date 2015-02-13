@@ -1,5 +1,5 @@
 from starling.linked_list import empty
-from starling import glob_env, parse
+from starling import parse
 
 from nose.tools import eq_
 
@@ -13,9 +13,9 @@ def test_empty():
 def test_list():
     script = '["apple", "banana", "cabbage"]'
     token = parse.tokenize(script)
-    li = token.eval(glob_env)
+    li = token.evaluate()
     # test list equals itself
-    assert li.eq(parse.tokenize(script).eval(glob_env)).value
+    assert li.eq(parse.tokenize(script).evaluate()).value
     eq_(li.str(), script)
     # make sure list is not 'consumed' after evaluation
     eq_(li.str(), script)
