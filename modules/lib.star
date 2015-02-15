@@ -14,7 +14,7 @@ id = \x: x,
 const = \x y: x,
 
 # function composition
-. = \f g x: f (g x),
+>> = \f g x: f (g x),
 
 # transform a function that takes a two-element list into a curried function
 curry = \f x y: f [x, y],
@@ -27,9 +27,9 @@ uncurry = \f xs: f (xs@0) (xs@1),
 
 # comparison operators
 != = \x y: not (x = y),
-< = \x: not . (<= x),
+< = \x: not >> (<= x),
 > = \x y: not (x <= y),
->= = \x: not . (> x),
+>= = \x: not >> (> x),
 
 # max and min functions
 max = \x y: x > y? x y,
@@ -48,13 +48,13 @@ flip = \f x y: f y x,
 foldr = \f init xs: 
     if xs = []
     then init
-    else f . head xs (foldr f init . tail xs),
+    else f >> head xs (foldr f init >> tail xs),
 
 # return the function folded from the left over the given list
 foldl = \f init xs:
     if xs = []
     then init
-    else foldl f (strict (f init . head xs)) . tail xs,
+    else foldl f (strict (f init >> head xs)) >> tail xs,
 
 # fold is a synonoym for foldr
 fold = foldr,
@@ -69,16 +69,16 @@ filter = \f: fold (\x accum: if f x then x : accum else accum) [],
 take = \n xs:
     if n = 0
     then []
-    else head xs : (take (n - 1) . tail xs),
+    else head xs : (take (n - 1) >> tail xs),
 
 # return elements while predicate is true
 take_while = \p xs: 
-    if xs = [] or (not . p . head xs)
+    if xs = [] or (not >> p >> head xs)
     then []
     else head xs : (take_while p (tail xs)),
 
 # return elements until predicate is true
-take_until = \p: take_while (not . p),
+take_until = \p: take_while (not >> p),
 
 # drop the first n elements from the list
 drop = \n xs:
@@ -88,12 +88,12 @@ drop = \n xs:
 
 # drop elements while predicate is true
 drop_while = \p xs: 
-    if (xs != []) and (p . head xs)
+    if (xs != []) and (p >> head xs)
     then drop_while p (tail xs)
     else xs,
 
 # drop elements until the predicate is true
-drop_until = \p: drop_while (not . p),
+drop_until = \p: drop_while (not >> p),
 
 # join a list of lists into a single list
 join = fold cat [],
@@ -108,7 +108,7 @@ range = \start end:
 nats = let nats_ = \n: n : (nats_ (n + 1)) in nats_ 0,
 
 # return the length of a list
-length = foldl (const . (+1)) 0,
+length = foldl (const >> (+1)) 0,
 
 # reverse a list
 reverse = foldl (flip (:)) [],
@@ -127,9 +127,9 @@ unzip =
     let f = \xy accum: 
         let 
             x = head xy,
-            y = head . tail xy,
+            y = head >> tail xy,
             xs = head accum,
-            ys = head . tail accum in 
+            ys = head >> tail accum in 
         [x:xs, y:ys] 
     in fold f [[], []],
 
@@ -139,11 +139,11 @@ sort = \xs:
     then []
     else let 
         pivot = head xs,
-        less = filter (< pivot) . tail xs,
-        more = filter (>= pivot) . tail xs in 
+        less = filter (< pivot) >> tail xs,
+        more = filter (>= pivot) >> tail xs in 
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const . curry uncurry @ != < >= > max min sum 
+    not or and any all ? id const >> curry uncurry @ != < >= > max min sum 
     flip has foldr foldl fold map filter take take_while take_until drop 
     drop_while drop_until join range nats length reverse cat zip unzip sort

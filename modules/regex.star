@@ -1,6 +1,6 @@
 let 
 
-between = \x1 x2 xs: cat (take_until (=x2) . (drop_until (=x1)) xs) [x2],
+between = \x1 x2 xs: cat (take_until (=x2) >> (drop_until (=x1)) xs) [x2],
 
 nub = \l: let
     nub_ = \xs ls:
@@ -58,7 +58,7 @@ char_classes = [
 interp_bracket_expr = \pat: let
     bexpr = @0, remainder = @1,
     add_bexpr = \new_bexpr result: 
-        [cat new_bexpr . bexpr result, remainder result],
+        [cat new_bexpr >> bexpr result, remainder result],
     interp = \pat: let
         is_range = (at_least 4 pat) and (pat@1 = '-'),
         class_matches = filter (\cl: starts_with pat (cl@0)) char_classes,
@@ -69,13 +69,13 @@ interp_bracket_expr = \pat: let
         if head pat = ']'
         then ["", tail pat]
         else if is_range
-        then add_bexpr get_range . interp (drop 3 pat)
+        then add_bexpr get_range >> interp (drop 3 pat)
         else if class_matches != []
-        then add_bexpr (class@1) . interp (drop (length (class@0)) pat)
-        else add_bexpr [head pat] . interp (tail pat) in
+        then add_bexpr (class@1) >> interp (drop (length (class@0)) pat)
+        else add_bexpr [head pat] >> interp (tail pat) in
     # first element is allowed to be a ']', e.g. "[]]" is valid
     if head pat = ']' 
-    then add_bexpr [head pat] . interp (tail pat)
+    then add_bexpr [head pat] >> interp (tail pat)
     else interp pat,
 
 # interpret a regex pattern, identifying special characters
@@ -96,9 +96,9 @@ interp_pattern = \pat: let
         [type, bexpr] : (interp_pattern remainder),
 
     counted_rep = let
-        m = parse_int . (take_until ("}," has)) . tail pat,
-        rem1 = drop_until ("}," has) . tail pat,
-        n_str = take_until (= '}') . tail rem1,
+        m = parse_int >> (take_until ("}," has)) >> tail pat,
+        rem1 = drop_until ("}," has) >> tail pat,
+        n_str = take_until (= '}') >> tail rem1,
         n = if take 1 rem1 = "}" or (n_str = "") then m else parse_int n_str,
         rem2 = tail (drop_until (= '}') rem1),
         unbounded = (head rem1 = ',') and (n_str = "") in
@@ -108,7 +108,7 @@ interp_pattern = \pat: let
     if pat = []
     then []
     else if sym = '\\'
-    then [type, [pat@1]] : (interp_pattern (tail . tail pat))
+    then [type, [pat@1]] : (interp_pattern (tail >> tail pat))
     else if sym = '['
     then bracket_expr
     else if sym = '{'
@@ -116,7 +116,7 @@ interp_pattern = \pat: let
     else [type, [sym]] : (interp_pattern (tail pat)),
 
 sym_type = @0, sym_val = @1,
-is_op = (= "op") . sym_type,
+is_op = (= "op") >> sym_type,
 is_this_op = \op sym: take 2 sym = op,
 is_crep = is_this_op ["op", "crep"],
 is_urep = is_this_op ["op", "urep"],
@@ -159,29 +159,29 @@ to_postfix = \pat: let
     # output a symbol
     output = \sym state: [stack state, sym : (out state)],
     # drop the top stack symbol
-    drop = \state: [tail . stack state, out state],
+    drop = \state: [tail >> stack state, out state],
     # pop symbols off the stack onto output while they satisfy p
     pop = \p state: let
-        stack_popped = take_while p . stack state,
-        stack_remainder = drop_while p . stack state in
+        stack_popped = take_while p >> stack state,
+        stack_remainder = drop_while p >> stack state in
         [stack_remainder, cat (reverse stack_popped) (out state)],
     # fold function
     pf = \sym: 
         # push '(' onto the stack
         if sym = lpar then push sym 
         # pop symbols to output until a '(', then remove the '('
-        else if sym = rpar then drop . (pop (!= lpar))
+        else if sym = rpar then drop >> (pop (!= lpar))
         # pop higher-precedence operators to output, then push operator
         else if is_op sym
-        then push sym . (pop \op: is_op op and ((prec sym) < (prec op)))
+        then push sym >> (pop \op: is_op op and ((prec sym) < (prec op)))
         # otherwise, push identifier to output
         else output sym,
     pf_fold = fold pf [[], []] (reverse pat) in
     # fold over pattern, then append stack to output
-    cat (reverse . out pf_fold) (stack pf_fold),
+    cat (reverse >> out pf_fold) (stack pf_fold),
 
 # tree accessors
-is_leaf = ("leaf" =) . (@0), label = @1, children=@2,
+is_leaf = ("leaf" =) >> (@0), label = @1, children=@2,
 
 # transform a postfix regex into a tree
 to_tree = \pfix: let
@@ -199,16 +199,16 @@ t_start = @0, t_end = @1, t_sym = @2,
 new_node = \fa: if (nodes fa) = [] then 0 else (head (nodes fa)) + 1,
 edges = \fa node: filter (\t: t_start t = node) (transitions fa),
 eps = ["eps", "eps"],
-all_syms = nub . (filter (!= eps)) . (map t_sym) . transitions,
+all_syms = nub >> (filter (!= eps)) >> (map t_sym) >> transitions,
 
 # return all potential transition nodes given a predicate on the transition
-get_trans = \p fa: (map t_end) . (filter (p . t_sym)) . (edges fa),
+get_trans = \p fa: (map t_end) >> (filter (p >> t_sym)) >> (edges fa),
 succ = \sym: get_trans (=sym),
 
 succ_all = \fa sym ns: join (map (succ sym fa) ns),
 closure = \fa sym ns: let
     closure_ = \ns visited: let
-        filt_ns = filter (not . (visited has)) ns,
+        filt_ns = filter (not >> (visited has)) ns,
         new_visited = cat filt_ns visited in
         if filt_ns = []
         then visited
@@ -226,13 +226,13 @@ to_nfa = \tree: let
     empty = [0, 0, [], [0]],
 
     relabel_nfa = \nfa nfa_other: let
-        offset = (head . nodes nfa_other) + 1,
+        offset = (head >> nodes nfa_other) + 1,
         relabel = (+ offset),
-        relabel_trans = \t: [relabel . t_start t, relabel . t_end t, t_sym t],
-        new_start = relabel . start nfa,
-        new_final = relabel . final nfa,
-        new_transitions = map relabel_trans . transitions nfa,
-        new_nodes = map relabel . nodes nfa in
+        relabel_trans = \t: [relabel >> t_start t, relabel >> t_end t, t_sym t],
+        new_start = relabel >> start nfa,
+        new_final = relabel >> final nfa,
+        new_transitions = map relabel_trans >> transitions nfa,
+        new_nodes = map relabel >> nodes nfa in
         [new_start, new_final, new_transitions, new_nodes],
 
     join = \nfa1 nfa2: let
@@ -242,7 +242,7 @@ to_nfa = \tree: let
         [[start nfa1, final nfa1, new_transitions, new_nodes], nfa1, rnfa2],
     
     parse_tree = \node: let
-        nfas = map parse_tree . children node,
+        nfas = map parse_tree >> children node,
         sym = label node in
         if is_leaf node
         # basic transition
@@ -304,9 +304,9 @@ to_dfa = \nfa: let
         nodeset = head stack,
         not_empty = \t: (t_end t) != [],
         trans_closure = \sym: [nodeset, epsclosure (succ_all nfa sym nodeset), sym],
-        new_trans = filter not_empty . (map trans_closure) syms,
+        new_trans = filter not_empty >> (map trans_closure) syms,
         new_nodes = map t_end new_trans,
-        filt_nodes = filter (not . (nodes dfa has)) new_nodes,
+        filt_nodes = filter (not >> (nodes dfa has)) new_nodes,
         new_dfa = [start dfa, final dfa, cat new_trans (transitions dfa), nodeset : (nodes dfa)] in
         if stack = [] then dfa else convert (nub (cat filt_nodes (tail stack))) new_dfa,
     result = convert [new_start] [new_start, new_start, [], []] in
@@ -318,7 +318,7 @@ match_dfa = \dfa str: let
     node = @0, is_match = @1, is_fail = @2,
 
     mdfa = \state char: let
-        new_nodes = get_trans (\sym: sym_match sym char) dfa . node state,
+        new_nodes = get_trans (\sym: sym_match sym char) dfa >> node state,
         new_node = head new_nodes in
         if (is_match state) or (is_fail state)
         then state 
@@ -332,8 +332,8 @@ match_dfa = \dfa str: let
     fst_node = let
         start_trans = \node: let
             s = succ ass_start dfa node in
-            if s = [] then node else start_trans . head s in
-        start_trans . start dfa,
+            if s = [] then node else start_trans >> head s in
+        start_trans >> start dfa,
     
     result = foldl mdfa [fst_node, False, False] str,
 
@@ -341,19 +341,19 @@ match_dfa = \dfa str: let
     end_node = let
         end_trans = \node: let
             e = succ end dfa node in
-            if e = [] then node else end_trans . head e in
-        end_trans . node result in
+            if e = [] then node else end_trans >> head e in
+        end_trans >> node result in
 
     if (final dfa) has fst_node
     then True
-    else (not . is_fail result) and ((final dfa) has end_node),
+    else (not >> is_fail result) and ((final dfa) has end_node),
 
 # take a pattern and return a function that will match strings
-match = match_dfa . to_dfa . nfa,
+match = match_dfa >> to_dfa >> nfa,
 
-nfa = to_nfa . to_tree . lex_pattern,
+nfa = to_nfa >> to_tree >> lex_pattern,
 
-lex_pattern = to_postfix . add_concat . interp_pattern
+lex_pattern = to_postfix >> add_concat >> interp_pattern
 
 in 
 export match add_concat to_postfix to_nfa nfa interp_pattern interp_char_set

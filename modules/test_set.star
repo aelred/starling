@@ -4,7 +4,7 @@ set1 = set [1],
 set2 = set [1, 5, 4, 10],
 set3 = set "hello world" in
 
-test . (map . uncurry assert_equal) [
+test >> (map >> uncurry assert_equal) [
     [set_size set_empty, 0],
     [set_size set1, 1],
     [set_size set2, 4],

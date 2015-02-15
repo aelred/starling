@@ -1,5 +1,5 @@
 import test in
-test . (map . uncurry assert_equal) [
+test >> (map >> uncurry assert_equal) [
     # chars and strings
     ["", []],
     ['a', 'a'],
