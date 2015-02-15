@@ -217,7 +217,7 @@ class List(Token):
                     i_head, i_last, i_list, i_list))
             i_last = i_list
 
-        result += 'return _f%s' % i_last
+        result += 'return _t%s' % i_last
 
         return result
 
@@ -305,6 +305,20 @@ class Lambda(Token):
         i = _get_id()
         return 'def _f%s(%s):\n%s\nreturn _f%s' % (
             i, self.parameter.python_name(), self.body.gen_python(True), i)
+
+
+class Object(Token):
+    @property
+    def bindings(self):
+        return self._value[0]
+
+    def _gen_python(self):
+        names = [b.identifier.python_name() for b in self.bindings.elements]
+        return (
+            '%s\n'
+            'return star_type.Object({%s})'
+        ) % (self.bindings._gen_python(),
+             ', '.join('\'%s\': Thunk(%s)' % (n, n) for n in names))
 
 
 class Imports(Token):

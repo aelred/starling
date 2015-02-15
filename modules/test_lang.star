@@ -96,6 +96,14 @@ test . (map . uncurry assert_equal) [
         in fib 6,
         8
     ],
+
+    # objects
+    [{}, {}],
+    [{x=3}, {x=3}],
+    [{} = {a=1}, False],
+    [{n1=1} = {n2=1}, False],
+    [{x='a'} = {x='b'}, False],
+    [{a={t=[]}, b=[1]}, {a={t=[]}, b=[1]}],
     
     # comments
     [

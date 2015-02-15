@@ -10,6 +10,8 @@ lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
 llist = Suppress(Literal('['))
 rlist = Literal(']')
+lobj = Suppress(Literal('{'))
+robj = Suppress(Literal('}'))
 equals = Suppress(Literal('='))
 comma = Suppress(Literal(','))
 comment = (Literal('#') + SkipTo(lineEnd))('comment*')
@@ -56,6 +58,8 @@ lambda_inner = Forward()
 lambda_inner << Group(ident + ((colon + expr) | lambda_inner))('lambda')
 lambda_expr = lambda_ + lambda_inner
 
+object_expr = Group(lobj + Optional(bindings) + robj)('object')
+
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
 imports = Group(OneOrMore(ident))('imports')
@@ -64,9 +68,9 @@ export_expr = Group(export + OneOrMore(ident))('export')
 
 strict_expr = Group(strict + expr)('strict')
 
-atom << (let_expr | lambda_expr | if_expr | import_expr | export_expr |
-         strict_expr | number | char | string | ident | parentheses |
-         linked_list)
+atom << (let_expr | lambda_expr | object_expr | if_expr | import_expr |
+         export_expr | strict_expr | number | char | string | ident |
+         parentheses | linked_list)
 
 grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
 
@@ -161,6 +165,13 @@ def _string_token(value):
     return syntax_tree.String(value[1:-1])
 
 
+def _object_token(value):
+    # handle case of object with no bindings
+    if value == []:
+        value = [token_classes['bindings']([])]
+    return syntax_tree.Object(value)
+
+
 def _imports_token(value):
     # import immediately and add to syntax tree
     tokens = []
@@ -187,6 +198,7 @@ token_classes = {
     'bindings': syntax_tree.Bindings,
     'binding': syntax_tree.Binding,
     'lambda': syntax_tree.Lambda,
+    'object': _object_token,
     'imports': _imports_token,
     'import': syntax_tree.Import,
     'export': syntax_tree.Export,
