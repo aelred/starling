@@ -7,7 +7,7 @@ test [
 
     assert_equal (assert_equal 3 3) {pass=True},
     assert_equal (assert_equal 3 (10 - 6)) 
-        {message=["unequal", 3, 4], pass=False},
+        {message={type=unequal, x=3, y=4}, pass=False},
 
     assert_equal (test []) [],
 
@@ -26,7 +26,8 @@ test [
     assert_equal
         (test [
             assert_equal 3 2, assert (not True) "A"
-        ]) [{index=0, message=["unequal", 3, 2]}, {index=1, message="A"}],
+        ]) [{index=0, message={type=unequal, x=3, y=2}},
+            {index=1, message="A"}],
     assert_equal
         (test [
             assert (3*3 = 9) "Pass", assert False "Fail", assert True "Pass"

@@ -7,7 +7,9 @@ assert = \pred message:
     then {pass=True}
     else {pass=False, message=message},
 
-assert_equal = \x y: assert (x=y) ["unequal", x, y],
+enum unequal,
+
+assert_equal = \x y: assert (x=y) {type=unequal, x=x, y=y},
 
 fold_test = \t fails: let
     index = t@0, assertion = t@1 in
@@ -17,4 +19,4 @@ fold_test = \t fails: let
 
 test = fold fold_test [] >> enumerate
 
-in export assert assert_equal test
+in export assert assert_equal test unequal
