@@ -29,7 +29,10 @@ else_ = Suppress(Keyword('else'))
 import_ = Suppress(Keyword('import'))
 export = Suppress(Keyword('export'))
 strict = Suppress(Keyword('strict'))
-reserved = let | in_ | lambda_ | if_ | then | else_ | import_ | export | strict
+enum = Suppress(Keyword('enum'))
+reserved = (
+    let | in_ | lambda_ | if_ | then | else_ | import_ | export | strict | enum
+)
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
 infix_id = (Word('+-*/=<>?:@!') | Keyword('and') | Keyword('or')
@@ -51,8 +54,9 @@ list_inner = Forward()
 list_inner << Group(expr + ((comma + list_inner) | empty_list))('list')
 linked_list = llist - (list_inner | empty_list)
 
+enum = Group(enum + OneOrMore(ident))('enum')
 binding = Group(ident + equals + expr)('binding')
-bindings = Group(delimitedList(binding))('bindings')
+bindings = Group(delimitedList(enum | binding))('bindings')
 let_expr = Group(let + bindings + in_ - expr)('let*')
 
 lambda_inner = Forward()
@@ -200,6 +204,7 @@ token_classes = {
     'let': syntax_tree.Let,
     'bindings': syntax_tree.Bindings,
     'binding': syntax_tree.Binding,
+    'enum': syntax_tree.Enum,
     'lambda': syntax_tree.Lambda,
     'object': syntax_tree.Object,
     'object_binding': syntax_tree.ObjectBinding,

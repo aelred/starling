@@ -46,6 +46,17 @@ class Object(StarType):
                                for (k1, v1), (k2, v2) in zip(i1, i2)))
 
 
+class Enum(StarType):
+    def __init__(self, name):
+        self._name = name
+
+    def str(self):
+        return self._name
+
+    def eq(self, other):
+        return Boolean(id(self) == id(other))
+
+
 class Primitive(StarType):
     def __init__(self, value):
         self._value = value

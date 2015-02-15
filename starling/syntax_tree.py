@@ -291,6 +291,17 @@ class Binding(Token):
                                   self.body.gen_python(True))
 
 
+class Enum(Token):
+    @property
+    def identifiers(self):
+        return self._value
+
+    def _gen_python(self):
+        names = [i.python_name() for i in self.identifiers]
+        return '\n'.join('%s = star_type.Enum(\'%s\')' % (n, n)
+                         for n in names)
+
+
 class Lambda(Token):
 
     @property

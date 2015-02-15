@@ -108,6 +108,13 @@ test >> (map >> uncurry assert_equal) [
     [{x=3}.x, 3],
     [({a=1, b={c=2}}.b).c, 2],
     [{a=\x: x+1}.a 10, 11],
+
+    # enums
+    let enum a in [a, a],
+    let enum a, enum b in [a = b, False],
+    let enum a b in [a = b, False],
+    let enum a b, x=a, y=a, z=b in 
+    [all([a=a, a!=b, a=x, a!=z, x=y, x!=z]), True],
     
     # comments
     [
