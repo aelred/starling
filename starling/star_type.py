@@ -67,6 +67,7 @@ class Comp(Primitive):
             raise error.StarlingRuntimeError('Type error')
         return Boolean(self.value <= other.value)
 
+
 class Boolean(Primitive):
     pass
 
