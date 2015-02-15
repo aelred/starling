@@ -310,15 +310,30 @@ class Lambda(Token):
 class Object(Token):
     @property
     def bindings(self):
-        return self._value[0]
+        return self._value
 
     def _gen_python(self):
-        names = [b.identifier.python_name() for b in self.bindings.elements]
+        names = [b.identifier.python_name() for b in self.bindings]
         return (
             '%s\n'
             'return star_type.Object({%s})'
-        ) % (self.bindings._gen_python(),
-             ', '.join('\'%s\': Thunk(%s)' % (n, n) for n in names))
+        ) % ('\n'.join(b._gen_python() for b in self.bindings),
+             ', '.join('\'%s\': Thunk(_o%s)' % (n, n) for n in names))
+
+
+class ObjectBinding(Token):
+
+    @property
+    def identifier(self):
+        return self._value[0]
+
+    @property
+    def body(self):
+        return self._value[1]
+
+    def _gen_python(self):
+        return 'def _o%s():\n%s' % (self.identifier.python_name(),
+                                    self.body.gen_python(True))
 
 
 class Accessor(Token):

@@ -59,7 +59,9 @@ lambda_inner = Forward()
 lambda_inner << Group(ident + ((colon + expr) | lambda_inner))('lambda')
 lambda_expr = lambda_ + lambda_inner
 
-object_expr = Group(lobj + Optional(bindings) + robj)('object')
+object_binding = Group(ident + equals + expr)('object_binding')
+object_expr = Group(lobj + Optional(delimitedList(object_binding)) +
+                    robj)('object')
 object_accessor = Group(atom + dot + ident)('accessor')
 
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
@@ -173,13 +175,6 @@ def _string_token(value):
     return syntax_tree.String(value[1:-1])
 
 
-def _object_token(value):
-    # handle case of object with no bindings
-    if value == []:
-        value = [token_classes['bindings']([])]
-    return syntax_tree.Object(value)
-
-
 def _imports_token(value):
     # import immediately and add to syntax tree
     tokens = []
@@ -206,7 +201,8 @@ token_classes = {
     'bindings': syntax_tree.Bindings,
     'binding': syntax_tree.Binding,
     'lambda': syntax_tree.Lambda,
-    'object': _object_token,
+    'object': syntax_tree.Object,
+    'object_binding': syntax_tree.ObjectBinding,
     'accessor': syntax_tree.Accessor,
     'imports': _imports_token,
     'import': syntax_tree.Import,

@@ -104,6 +104,7 @@ test >> (map >> uncurry assert_equal) [
     [{n1=1} = {n2=1}, False],
     [{x='a'} = {x='b'}, False],
     [{a={t=[]}, b=[1]}, {a={t=[]}, b=[1]}],
+    [let x=0 in {x=x}, {x=0}],
     [{x=3}.x, 3],
     [({a=1, b={c=2}}.b).c, 2],
     [{a=\x: x+1}.a 10, 11],
