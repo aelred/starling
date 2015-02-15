@@ -5,6 +5,7 @@ from util import programs
 def test_modules():
     return {
         'test_lang': '[]',
+        'euler1': '233168',
         'euler2': '4613732',
         'test_regex': '[]',
         'test_test': '[]',
