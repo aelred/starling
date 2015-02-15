@@ -321,6 +321,24 @@ class Object(Token):
              ', '.join('\'%s\': Thunk(%s)' % (n, n) for n in names))
 
 
+class Accessor(Token):
+    @property
+    def body(self):
+        return self._value[0]
+
+    @property
+    def attribute(self):
+        return self._value[1]
+
+    def _gen_python(self):
+        i = _get_id()
+        return (
+            'def _f%s():\n'
+            '%s\n'
+            'return trampoline(_f%s).value[\'%s\']'
+        ) % (i, self.body.gen_python(True), i, self.attribute.python_name())
+
+
 class Imports(Token):
 
     @property

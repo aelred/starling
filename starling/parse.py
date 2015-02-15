@@ -18,6 +18,7 @@ comment = (Literal('#') + SkipTo(lineEnd))('comment*')
 number = Word(nums)('number*')
 colon = Suppress(':')
 sgl_quote = Suppress(Literal("'"))
+dot = Suppress(Literal('.'))
 
 let = Suppress(Keyword('let'))
 in_ = Suppress(Keyword('in'))
@@ -40,8 +41,8 @@ char = (sgl_quote +
 string = QuotedString(quoteChar='"', escChar='\\',
                       unquoteResults=False)('string*')
 
+expr = Forward()
 atom = Forward()
-expr = Group(OneOrMore(atom))('expression')
 
 parentheses = (lpar - Optional(expr) - rpar)
 
@@ -59,6 +60,7 @@ lambda_inner << Group(ident + ((colon + expr) | lambda_inner))('lambda')
 lambda_expr = lambda_ + lambda_inner
 
 object_expr = Group(lobj + Optional(bindings) + robj)('object')
+object_accessor = Group(atom + dot + ident)('accessor')
 
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
@@ -68,9 +70,15 @@ export_expr = Group(export + OneOrMore(ident))('export')
 
 strict_expr = Group(strict + expr)('strict')
 
-atom << (let_expr | lambda_expr | object_expr | if_expr | import_expr |
-         export_expr | strict_expr | number | char | string | ident |
-         parentheses | linked_list)
+atom << (
+    object_expr | number | char | string | ident | parentheses |
+    linked_list
+)
+
+expr << Group(OneOrMore(
+    let_expr | lambda_expr | if_expr | import_expr | export_expr |
+    strict_expr | object_accessor | atom
+))('expression')
 
 grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
 
@@ -199,6 +207,7 @@ token_classes = {
     'binding': syntax_tree.Binding,
     'lambda': syntax_tree.Lambda,
     'object': _object_token,
+    'accessor': syntax_tree.Accessor,
     'imports': _imports_token,
     'import': syntax_tree.Import,
     'export': syntax_tree.Export,
