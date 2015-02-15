@@ -2,7 +2,8 @@ import set test in let
 
 set1 = set [1],
 set2 = set [1, 5, 4, 10],
-set3 = set "hello world" in
+set3 = set "hello world",
+set4 = set (range 0 14) in
 
 test >> (map >> uncurry assert_equal) [
     [set_size set_empty, 0],
@@ -36,5 +37,9 @@ test >> (map >> uncurry assert_equal) [
     [set_items (set_rem 4 set2), [1, 5, 10]],
     [set_items (set_rem 8 set2), [1, 4, 5, 10]],
     [set_items (set_rem 'o' set3), " dehlrw"],
-    [any (map (\c: set_has c (set_rem c set3)) "hello world"), False]
+    [any (map (\c: set_has c (set_rem c set3)) "hello world"), False],
+
+    # make sure sets are balanced with reasonable heights
+    [set4.height >= 3, True],
+    [set4.height < 6, True]
 ]

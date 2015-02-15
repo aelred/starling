@@ -2,7 +2,7 @@ let
 # concise, slow defitions are commented out
 
 node = \val left right: 
-    {height = max (left.height) (right.height), val=val, left=left,
+    {height = (max (left.height) (right.height)) + 1, val=val, left=left,
      right=right},
 
 set_empty = {height = (0-1)},
