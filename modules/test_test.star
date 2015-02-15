@@ -1,10 +1,13 @@
 import test in 
 test [
-    assert_equal (assert True "Oh dear") [True, "Pass"],
-    assert_equal (assert False "That's right") [False, "That's right"],
+    assert_equal (assert True "Oh dear") {pass=True},
+    assert_equal 
+        (assert False "That's right") 
+        {message="That's right", pass=False},
 
-    assert_equal (assert_equal 3 3) [True, "Pass"],
-    assert_equal (assert_equal 3 (10 - 6)) [False, ["unequal", 3, 4]],
+    assert_equal (assert_equal 3 3) {pass=True},
+    assert_equal (assert_equal 3 (10 - 6)) 
+        {message=["unequal", 3, 4], pass=False},
 
     assert_equal (test []) [],
 
@@ -16,18 +19,20 @@ test [
             assert True "Bad constants"
         ]) [],
 
-    assert_equal (test [assert False "FAILURE"]) [[0, "FAILURE"]],
+    assert_equal 
+        (test [assert False "FAILURE"]) 
+        [{index=0, message="FAILURE"}],
 
     assert_equal
         (test [
             assert_equal 3 2, assert (not True) "A"
-        ]) [[0, ["unequal", 3, 2]], [1, "A"]],
+        ]) [{index=0, message=["unequal", 3, 2]}, {index=1, message="A"}],
     assert_equal
         (test [
             assert (3*3 = 9) "Pass", assert False "Fail", assert True "Pass"
-        ]) [[1, "Fail"]],
+        ]) [{index=1, message="Fail"}],
     assert_equal
         (test [
             assert True "Pass", assert True "Pass", assert False "Fail"
-        ]) [[2, "Fail"]]
+        ]) [{index=2, message="Fail"}]
 ]

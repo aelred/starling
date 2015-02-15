@@ -2,18 +2,18 @@ let
 
 enumerate = \xs: zip nats xs,
 
-index = @0, assertion = @1,
-
-assert = \pred message: [pred, if pred then "Pass" else message],
+assert = \pred message: 
+    if pred
+    then {pass=True}
+    else {pass=False, message=message},
 
 assert_equal = \x y: assert (x=y) ["unequal", x, y],
 
-ass_pass = @0, ass_message = @1,
-
-fold_test = \t fails: 
-    if ass_pass >> assertion t
+fold_test = \t fails: let
+    index = t@0, assertion = t@1 in
+    if assertion.pass
     then fails 
-    else [index t, ass_message >> assertion t] : fails,
+    else {index=index, message=assertion.message} : fails,
 
 test = fold fold_test [] >> enumerate
 
