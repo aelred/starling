@@ -51,6 +51,15 @@ char_classes = [
     ["[:cntrl:]", cntrl], ["[:graph:]", graph], ["[:print:]", print]
 ],
 
+char_short = [
+    ['u', {type=lit, val=upper}], ['l', {type=lit, val=lower}], 
+    ['a', {type=lit, val=alpha}], ['d', {type=lit, val=digit}],
+    ['D', {type=notlit, val=digit}], ['x', {type=lit, val=xdigit}],
+    ['w', {type=lit, val=word}], ['W', {type=notlit, val=word}],
+    ['s', {type=lit, val=space}], ['S', {type=notlit, val=space}],
+    ['p', {type=lit, val=print}]
+],
+
 # interpret bracket expressions such as [0-9a-f] and [^+-]
 interp_bracket_expr = \pat: let
     add_bexpr = \new_bexpr result: 
@@ -105,7 +114,12 @@ interp_pattern = \pat: let
     if pat = []
     then []
     else if sym = '\\'
-    then {type=type, val=[pat@1]} : (interp_pattern (tail >> tail pat))
+    then let
+        class_matches = filter (\cl: (cl@0) = (pat@1)) char_short,
+        class = head class_matches in
+        if class_matches != []
+        then (class@1) : (interp_pattern (drop 2 pat))
+        else {type=type, val=[pat@1]} : (interp_pattern (drop 2 pat))
     else if sym = '['
     then bracket_expr
     else if sym = '{'
