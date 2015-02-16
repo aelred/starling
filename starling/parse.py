@@ -67,6 +67,7 @@ object_binding = Group(ident + equals + expr)('object_binding')
 object_expr = Group(lobj + Optional(delimitedList(object_binding)) +
                     robj)('object')
 object_accessor = Group(atom + dot + ident)('accessor')
+partial_accessor = Group(dot + ident)('part_accessor')
 
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
@@ -83,7 +84,7 @@ atom << (
 
 expr << Group(OneOrMore(
     let_expr | lambda_expr | if_expr | import_expr | export_expr |
-    strict_expr | object_accessor | atom
+    strict_expr | object_accessor | partial_accessor | atom
 ))('expression')
 
 grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
@@ -179,6 +180,15 @@ def _string_token(value):
     return syntax_tree.String(value[1:-1])
 
 
+def _part_accessor_token(value):
+    # transform into a lambda function
+    temp_id = token_classes['prefix_id']('$temp_partial')
+    return token_classes['lambda']([
+        temp_id,
+        token_classes['accessor']([temp_id, value[0]])
+    ])
+
+
 def _imports_token(value):
     # import immediately and add to syntax tree
     tokens = []
@@ -209,6 +219,7 @@ token_classes = {
     'object': syntax_tree.Object,
     'object_binding': syntax_tree.ObjectBinding,
     'accessor': syntax_tree.Accessor,
+    'part_accessor': _part_accessor_token,
     'imports': _imports_token,
     'import': syntax_tree.Import,
     'export': syntax_tree.Export,
