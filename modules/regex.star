@@ -340,5 +340,5 @@ nfa = to_nfa >> to_tree >> lex_pattern,
 lex_pattern = to_postfix >> add_concat >> interp_pattern
 
 in 
-export match add_concat to_postfix to_nfa nfa interp_pattern interp_char_set
+export match add_concat to_postfix to_nfa nfa interp_pattern
 parse_int sym_match to_tree to_dfa lex_pattern interp_bracket_expr
