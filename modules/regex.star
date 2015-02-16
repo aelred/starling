@@ -29,17 +29,19 @@ char_to_digit = \c: (ord c) - 48,
 
 parse_int = foldl (\x c: (10 * x) + (char_to_digit c)) 0,
 
-upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-lower = "abcdefghijklmnopqrstuvwxyz",
+crange = \start end: map chr (range start (end+1)),
+
+upper = crange 65 90,
+lower = crange 97 122,
 alpha = cat upper lower,
-digit = "0123456789",
-xdigit = cat digit "ABCDEFabcdef",
+digit = crange 48 57,
+xdigit = join [digit, crange 65 70, crange 97 102],
 alnum = cat alpha digit,
-punct = "!#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
-space = " ",
-cntrl = "",
-graph = cat alnum punct,
-print = " " : graph,
+punct = join [crange 33 47, crange 58 64, crange 91 96, crange 123 126],
+space = ' ' : (crange 9 13),
+cntrl = '\x7F' : (crange 0 31),
+graph = crange 33 126,
+print = ' ' : graph,
 
 char_classes = [
     ["[:upper:]", upper], ["[:lower:]", lower], ["[:alpha:]", alpha], 
