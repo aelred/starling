@@ -37,6 +37,7 @@ alpha = cat upper lower,
 digit = crange 48 57,
 xdigit = join [digit, crange 65 70, crange 97 102],
 alnum = cat alpha digit,
+word = '_' : alnum,
 punct = join [crange 33 47, crange 58 64, crange 91 96, crange 123 126],
 space = ' ' : (crange 9 13),
 cntrl = '\x7F' : (crange 0 31),
@@ -46,8 +47,8 @@ print = ' ' : graph,
 char_classes = [
     ["[:upper:]", upper], ["[:lower:]", lower], ["[:alpha:]", alpha], 
     ["[:digit:]", digit], ["[:xdigit:]", xdigit], ["[:alnum:]", alnum], 
-    ["[:punct:]", punct], ["[:space:]", space], ["[:cntrl:]", cntrl], 
-    ["[:graph:]", graph], ["[:print:]", print]
+    ["[:word:]", word], ["[:punct:]", punct], ["[:space:]", space], 
+    ["[:cntrl:]", cntrl], ["[:graph:]", graph], ["[:print:]", print]
 ],
 
 # interpret bracket expressions such as [0-9a-f] and [^+-]
