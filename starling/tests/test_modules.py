@@ -10,5 +10,6 @@ def test_modules():
         'test_regex': '[]',
         'test_test': '[]',
         'test_lib': '[]',
-        'test_set': '[]'
+        'test_set': '[]',
+        'test_lexer': '[]'
     }
