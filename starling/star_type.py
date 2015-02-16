@@ -47,14 +47,15 @@ class Object(StarType):
 
 
 class Enum(StarType):
-    def __init__(self, name):
+    def __init__(self, name, id_):
         self._name = name
+        self._id = id_
 
     def str(self):
         return self._name
 
     def eq(self, other):
-        return Boolean(id(self) == id(other))
+        return Boolean(type(self) == type(other) and self._id == other._id)
 
 
 class Primitive(StarType):

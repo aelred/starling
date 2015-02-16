@@ -117,6 +117,7 @@ test >> (map >> uncurry assert_equal) [
     let enum a b in [a = b, False],
     let enum a b, x=a, y=a, z=b in 
     [all([a=a, a!=b, a=x, a!=z, x=y, x!=z]), True],
+    let f = (\x: let enum a in a) in [f 1, f 1],  # referential transparency
     
     # comments
     [

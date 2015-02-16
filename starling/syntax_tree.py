@@ -293,7 +293,7 @@ class Enum(Token):
 
     def _gen_python(self):
         names = [i.python_name() for i in self.identifiers]
-        return '\n'.join('%s = star_type.Enum(\'%s\')' % (n, n)
+        return '\n'.join('%s = star_type.Enum(\'%s\', %s)' % (n, n, _get_id())
                          for n in names)
 
 
