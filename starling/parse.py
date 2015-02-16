@@ -3,6 +3,7 @@ from pyparsing import Optional, OneOrMore, Group, Suppress, Forward, Regex
 from pyparsing import alphas, alphanums, nums, lineEnd, delimitedList
 from pyparsing import ParseException, ParseSyntaxException
 import os
+import imp
 
 from starling import error, syntax_tree, star_path
 
@@ -91,6 +92,62 @@ grammar = (Group(expr)('script') + StringEnd()).ignore(comment)
 
 # speeds up parsing by memoizing
 grammar.enablePackrat()
+
+
+def star_to_py(source, lib=True):
+    source = os.path.join(star_path.path, source) + '.star'
+    path = source + '.py'
+
+    if os.path.isfile(path) and (
+       os.path.getmtime(source) < os.path.getmtime(path)):
+        # no need to convert this file
+        return path
+
+    with open(source) as f:
+        expr = f.read()
+
+    return expr_to_py(expr, lib, path)
+
+
+def expr_to_py(expr, lib=True, path=None):
+    if path is None:
+        path = '.temp.py'
+
+    try:
+        os.remove(path)
+        os.remove(path + 'c')
+    except OSError:
+        pass
+
+    # generate code
+    tree = tokenize(expr)
+    if lib:
+        # convert standard library and include it
+        star_to_py('lib', False)
+        tree = tree.wrap_import('lib')
+    code = tree.gen_python()
+
+    # write code to path
+    with open(path, 'w') as f:
+        f.write(code)
+
+    return path
+
+
+def evaluate_star(source, lib=True, input_=None):
+    return _evaluate(star_to_py(source, lib), input_, source)
+
+
+def evaluate_expr(expr, lib=True, input_=None, name='expr'):
+    return _evaluate(expr_to_py(expr, lib), input_, name)
+
+
+def _evaluate(path, input_, name):
+    module = imp.load_source(name, path)
+    if input_ is not None:
+        inp_expr = evaluate_expr('"' + input_ + '"', name='input')
+        module.input__ = inp_expr
+    return module._result()
 
 
 def _parse(expr):
@@ -190,14 +247,10 @@ def _part_accessor_token(value):
 
 
 def _imports_token(value):
-    # import immediately and add to syntax tree
-    tokens = []
-    for imp in value:
-        path = os.path.join(star_path.path, imp.value + '.star')
-        with open(path, 'r') as f:
-            script = f.read()
-        tokens.append(tokenize(script).body)
-    return syntax_tree.Imports(tokens)
+    # make sure module is converted to python
+    for imp_ in value:
+        evaluate_star(imp_.value)
+    return syntax_tree.Imports(value)
 
 
 token_classes = {

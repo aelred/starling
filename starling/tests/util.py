@@ -17,18 +17,20 @@ def programs(libs, from_file=False, has_input=False):
                 else:
                     input_ = ""
                 if from_file:
-                    path = os.path.join(star_path.path, program + '.star')
-                    with open(path, 'r') as script:
-                        program = script.read()
-                yield check_program, program, input_, result, libs
+                    expr = None
+                    source = program
+                else:
+                    expr = program
+                    source = None
+                yield check_program, expr, source, input_, result, libs
         return programs_
     return programs_wrapper
 
 
-def check_program(program, input_, result, lib):
-    output = starling.run(program, input_=input_, lib=lib)
-    return eq_(output, result, '\n\t%s\nOutput:\n\t%r\nExpected:\n\t%r' % (
-        program, output, result))
+def check_program(expr, source, input_, result, lib):
+    output = starling.run(expr, source, input_=input_, lib=lib)
+    return eq_(output, result, '\n\t%s\n%s\nOutput:\n\t%r\nExpected:\n\t%r' % (
+        expr, source, output, result))
 
 
 def errors(err):

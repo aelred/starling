@@ -1,8 +1,6 @@
 import logging
-
-# these are imported for execing starling scripts
-from starling import star_type, linked_list, error  # NOQA
-from starling.glob_env import *  # NOQA
+import os
+from starling import star_path
 
 _id = 0
 
@@ -72,23 +70,20 @@ class Script(Token):
 
     def _gen_python(self):
         return (
+            'from starling import star_type, linked_list, error\n'
+            'from starling.glob_env import *\n'
+            'import imp\n'
             'def _main():\n'
             '%s\n'
-            'try:\n'
-            '    _result = trampoline(_main)\n'
-            'except NameError, e:\n'
-            '    raise error.StarlingRuntimeError(str(e))' % (
+            'def _result():\n'
+            '    try:\n'
+            '        return trampoline(_main)\n'
+            '    except NameError, e:\n'
+            '        raise error.StarlingRuntimeError(str(e))' % (
                 self.body.gen_python(True)))
 
     def wrap_import(self, imp):
-        return Script([Import([imp.body, self.body])])
-
-    def evaluate(self):
-        code = self.gen_python()
-        log.debug('\n'.join(
-            ['%d\t%s' % (i+1, c) for i, c in enumerate(code.split('\n'))]))
-        exec code in globals(), locals()
-        return _result
+        return Script([Import([Imports([Identifier(imp, False)]), self.body])])
 
 
 class Terminator(Token):
@@ -128,7 +123,7 @@ class Identifier(Terminator):
                           'print', 'class', 'exec', 'in', 'raise', 'continue',
                           'finally', 'is', 'return', 'def', 'for', 'lambda',
                           'try', 'False', 'True', 'chr', 'ord', 'trampoline',
-                          'Thunk']:
+                          'Thunk', 'input']:
             return self.value + '__'
         elif any(x in self.value for x in convert.keys()):
             return ''.join([convert.get(c, c) for c in self.value]) + '__'
@@ -372,7 +367,15 @@ class Imports(Token):
         return self._value
 
     def _gen_python(self):
-        return '\n'.join(['%s' % e.gen_python() for e in self.elements])
+        result = ''
+        for e in self.elements:
+            result += (
+                '_m = imp.load_source(\'%s\', \'%s\')\n'
+                'for k, v in _m.__dict__[\'_result\']().iteritems():\n'
+                '    globals()[k] = v\n'
+            ) % (e.value, os.path.join(star_path.path, e.value + '.star.py'))
+
+        return result
 
 
 class Import(Token):
@@ -396,7 +399,10 @@ class Export(Token):
         return self._value
 
     def _gen_python(self):
-        return ''
+        names = [i.python_name() for i in self.identifiers]
+        return (
+            'return {%s}'
+        ) % ', '.join(['\'%s\': %s' % (n, n) for n in names])
 
 
 class Strict(Token):

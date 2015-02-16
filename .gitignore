@@ -4,4 +4,5 @@
 
 .coverage
 .noseids
+.temp.py
 build

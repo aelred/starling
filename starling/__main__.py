@@ -5,9 +5,9 @@ import logging
 import sys
 
 
-def _print_run(script):
+def _print_run(expr=None, source=None):
     # print continuous output from script
-    for string in run(script, generator=True):
+    for string in run(expr=expr, source=source, generator=True):
         # avoid newlines or spaces between elements
         sys.stdout.write(string)
     # finally print a newline
@@ -20,7 +20,7 @@ def cli():
         inp = raw_input('>>> ')
         if inp == 'quit':
             break
-        _print_run(inp)
+        _print_run(expr=inp)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Starling interpreter.')
@@ -34,5 +34,4 @@ if __name__ == '__main__':
     if args.file is None:
         cli()
     else:
-        with open(args.file, 'r') as f:
-            _print_run(f.read())
+        _print_run(source=args.file)

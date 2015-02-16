@@ -12,10 +12,9 @@ def test_empty():
 
 def test_list():
     script = '["apple", "banana", "cabbage"]'
-    token = parse.tokenize(script)
-    li = token.evaluate()
+    li = parse.evaluate_expr(script)
     # test list equals itself
-    assert li.eq(parse.tokenize(script).evaluate()).value
+    assert li.eq(parse.evaluate_expr(script)).value
     eq_(li.str(), script)
     # make sure list is not 'consumed' after evaluation
     eq_(li.str(), script)

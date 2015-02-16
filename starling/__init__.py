@@ -13,21 +13,16 @@ _std_binds = None
 sys.setrecursionlimit(10000)
 
 
-def run(script, input_='', lib=True, generator=False):
-    result = run_raw(script, input_, lib)
+def run(expr=None, source=None, input_=None, lib=True, generator=False):
+    result = run_raw(expr, source, input_, lib)
     if generator:
         return result.str_generator()
     else:
         return result.str()
 
 
-def run_raw(script, input_='', lib=True):
-    tokens = parse.tokenize('let input="%s" in\n%s' % (input_, script))
-
-    # wrap script in standard library bindings
-    if lib:
-        with open(lib_path, 'r') as f:
-            std_lib = f.read()
-        tokens = tokens.wrap_import(parse.tokenize(std_lib))
-
-    return tokens.evaluate()
+def run_raw(expr, source, input_=None, lib=True):
+    if expr is not None:
+        return parse.evaluate_expr(expr, lib=lib, input_=input_)
+    else:
+        return parse.evaluate_star(source, lib=lib, input_=input_)
