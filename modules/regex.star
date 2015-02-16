@@ -1,7 +1,5 @@
 let 
 
-between = \x1 x2 xs: cat (take_until (=x2) >> (drop_until (=x1)) xs) [x2],
-
 nub = \l: let
     nub_ = \xs ls:
         if xs = []
@@ -26,10 +24,6 @@ starts_with = \xs sub:
     else if (head xs) = (head sub)
     then starts_with (tail xs) (tail sub)
     else False,
-
-ascii = cat 
-    " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
-    "abcdefghijklmnopqrstuvwxyz{|}~",
 
 char_to_digit = \c: (ord c) - 48,
 
@@ -62,9 +56,7 @@ interp_bracket_expr = \pat: let
         is_range = (at_least 4 pat) and (pat@1 = '-'),
         class_matches = filter (\cl: starts_with pat (cl@0)) char_classes,
         class = head class_matches,
-        range_start = pat@0,
-        range_stop = pat@2,
-        get_range = between range_start range_stop ascii in
+        get_range = map chr (range (ord (pat@0)) (ord (pat@2) + 1)) in
         if head pat = ']'
         then {bexpr="", remainder=tail pat}
         else if is_range
@@ -178,7 +170,7 @@ to_postfix = \pat: let
     cat (reverse pf_fold.out) pf_fold.stack,
 
 # tree constructor
-tree = \label children: {label=label, children=children},
+tree = \sym children: {sym=sym, children=children},
 
 # transform a postfix regex into a tree
 to_tree = \pfix: let
@@ -189,12 +181,11 @@ to_tree = \pfix: let
     head (foldl subtree [[]] pfix),
 
 # NFA/DFA operations
-automata = \s f t n: {start=s, final=f, transitions=t, nodes=n},
+automata = \s f t n: {start=s, final=f, trans=t, nodes=n},
 trans = \start end sym: {start=start, end=end, sym=sym},
 
-new_node = \fa: if fa.nodes = [] then 0 else (head fa.nodes) + 1,
-edges = \fa node: filter (\t: t.start = node) fa.transitions,
-all_syms = \fa: nub >> (filter (\sym: sym.type != eps)) >> (map (\t: t.sym)) fa.transitions,
+edges = \fa node: filter (\t: t.start = node) fa.trans,
+all_syms = \fa: nub >> (filter (!= {type=eps})) >> (map (\t: t.sym)) fa.trans,
 
 # return all potential transition nodes given a predicate on the transition
 get_trans = \p fa: map (\t: t.end) >> (filter (\t: p t.sym)) >> (edges fa),
@@ -212,11 +203,11 @@ closure = \fa sym ns: let
 
 # turn a tree into a nondeterministic finite automata (NFA)
 to_nfa = \t: let
-    # change the start/end nodes of an automata
-    set_start = \n nfa: automata n nfa.final nfa.transitions nfa.nodes,
-    set_final = \n nfa: automata nfa.start n nfa.transitions nfa.nodes,
+    # change the end node of an automata
+    set_final = \n nfa: automata nfa.start n nfa.trans nfa.nodes,
     # add new transitions to the automata
-    add_trans = \ts nfa: automata nfa.start nfa.final (cat ts nfa.transitions) nfa.nodes,
+    add_trans = \ts nfa: 
+        automata nfa.start nfa.final (cat ts nfa.trans) nfa.nodes,
     # an empty nfa
     empty = automata 0 0 [] [0],
 
@@ -226,65 +217,65 @@ to_nfa = \t: let
         relabel_trans = \t: trans (relabel t.start) (relabel t.end) t.sym,
         new_start = relabel nfa.start,
         new_final = relabel nfa.final,
-        new_transitions = map relabel_trans nfa.transitions,
+        new_trans = map relabel_trans nfa.trans,
         new_nodes = map relabel nfa.nodes in
-        automata new_start new_final new_transitions new_nodes,
+        automata new_start new_final new_trans new_nodes,
 
     join = \nfa1 nfa2: let
         rnfa2 = relabel_nfa nfa2 nfa1,
-        new_transitions = cat rnfa2.transitions nfa1.transitions,
+        new_trans = cat rnfa2.trans nfa1.trans,
         new_nodes = cat rnfa2.nodes nfa1.nodes,
-        new_nfa = automata nfa1.start nfa1.final new_transitions new_nodes in 
+        new_nfa = automata nfa1.start nfa1.final new_trans new_nodes in 
         {new=new_nfa, n1=nfa1, n2=rnfa2},
+
+    epstrans = \start end: trans start end {type=eps},
     
     parse_tree = \node: let
-        nfas = map parse_tree node.children,
-        sym = node.label in
-        if node.children = []
+        child = node.children,
+        nfas = map parse_tree child,
+        sym = node.sym in
+        if child = []
         # basic transition
-        then automata 0 1 [trans 0 1 node.label] [1, 0]
+        then automata 0 1 [trans 0 1 sym] [1, 0]
         # concatenate the two subautomata together
         else if sym.type = concat then let
         joined = join (nfas@0) (nfas@1), 
-        new_trans = [trans (joined.n1).final (joined.n2).start {type=eps}] in
-        set_final ((joined.n2).final) (add_trans new_trans joined.new)
+        new_trans = [epstrans (joined.n1).final (joined.n2).start] in
+        set_final (joined.n2).final (add_trans new_trans joined.new)
         # loop over the subautomata
         else if sym.type = star then let
         joined = join empty (nfas@0) in
-        add_trans [trans 0 (joined.n2).start {type=eps}, 
-                   trans (joined.n2).final 0 {type=eps}] joined.new
+        add_trans [epstrans 0 (joined.n2).start,
+                   epstrans (joined.n2).final 0] joined.new
         # alternate between subautomata
         else if sym.type = alt then let
         join1 = join (automata 0 1 [] [1, 0]) (nfas@0),
-        join2 = join (join1.new) (nfas@1),
+        join2 = join join1.new (nfas@1),
         new_trans = 
-            [trans 0 (join1.n2).start {type=eps}, trans 0 (join2.n2).start {type=eps},
-             trans (join1.n2).final 1 {type=eps}, trans (join2.n2).final 1 {type=eps}] in
-        add_trans new_trans (join2.new) 
+            [epstrans 0 (join1.n2).start, epstrans 0 (join2.n2).start,
+             epstrans (join1.n2).final 1, epstrans (join2.n2).final 1] in
+        add_trans new_trans join2.new
         # optionally accept the subautomata
         else if sym.type = opt then let
-        joined = join (automata 0 1 [trans 0 1 {type=eps}] [1, 0]) (nfas@0) in
-        add_trans [trans 0 (joined.n2).start {type=eps}, 
-                   trans (joined.n2).final 1 {type=eps}] joined.new
+        joined = join (automata 0 1 [epstrans 0 1] [1, 0]) (nfas@0) in
+        add_trans [epstrans 0 (joined.n2).start,
+                   epstrans (joined.n2).final 1] joined.new
         # one or more repetitions
-        else if sym.type = plus then let
-        child = node.children in
+        else if sym.type = plus then
         parse_tree (tree {type=concat} (tree {type=star} child : child))
         # handle counted repetitions like a{3,5}
         else if sym.type = crep then let
-        m = sym.m, n = sym.n, child = node.children,
-        next_rep = tree {type=crep, m=(m=0? 0 (m-1)), n=n-1} child,
-        recurse_tree = tree {type=concat} (next_rep:child) in
-        if n = 0 
+        next_rep = tree {type=crep, m=max 0 (sym.m-1), n=sym.n-1} child,
+        rec_tree = tree {type=concat} (next_rep:child) in
+        if sym.n = 0 
         then empty 
-        else parse_tree (m=0? (tree {type=opt} [recurse_tree]) recurse_tree)
+        else parse_tree (sym.m=0? (tree {type=opt} [rec_tree]) rec_tree)
         # handle unbounded repetitions like a{3,}
         else let
-        m = sym.m,
-        next_rep = tree {type=urep, m=m-1} node.children in
-        if m = 0
-        then parse_tree (tree {type=star} node.children)
-        else parse_tree (tree {type=concat} (next_rep:(node.children))) in
+        next_rep = tree {type=urep, m=sym.m-1} child in
+        if sym.m = 0
+        then parse_tree (tree {type=star} child)
+        else parse_tree (tree {type=concat} (next_rep:child)) in
 
     if t = [] then empty else parse_tree t,
 
@@ -301,10 +292,10 @@ to_dfa = \nfa: let
         new_trans = filter not_empty >> (map trans_closure) syms,
         new_nodes = map (\t: t.end) new_trans,
         filt_nodes = filter (not >> (dfa.nodes has)) new_nodes,
-        new_dfa = automata dfa.start dfa.final (cat new_trans dfa.transitions) (nodeset : dfa.nodes) in
+        new_dfa = automata dfa.start dfa.final (cat new_trans dfa.trans) (nodeset : dfa.nodes) in
         if stack = [] then dfa else convert (nub (cat filt_nodes (tail stack))) new_dfa,
     result = convert [new_start] (automata new_start new_start [] []) in
-    automata result.start (new_finals result) result.transitions result.nodes,
+    automata result.start (new_finals result) result.trans result.nodes,
 
 # match a string using a DFA
 match_dfa = \dfa str: let
