@@ -40,7 +40,7 @@ infix_id = (Word('+-*/=<>?:@!') | Keyword('and') | Keyword('or')
 ident = ~reserved + (infix_id | word_id)
 char = (sgl_quote +
         Regex(r"\\([bfnrtv\\\"']|x[0-9a-fA-F]{2}|[0-7]{1,3})|.")('char') +
-        sgl_quote)
+        sgl_quote).leaveWhitespace()
 string = QuotedString(quoteChar='"', escChar='\\',
                       unquoteResults=False)('string*')
 
