@@ -114,8 +114,8 @@ interp_pattern = \pat: let
 enum alt star concat opt plus crep urep,
 enum all lit notlit lpar rpar ass_start ass_end eps,
 
-is_op = \sym: [alt, star, concat, opt, plus, crep, urep] has (sym.type),
-is_unary = \sym: [star, opt, plus, crep, urep] has (sym.type),
+is_op = \sym: [alt, star, concat, opt, plus, crep, urep] has sym.type,
+is_unary = \sym: [star, opt, plus, crep, urep] has sym.type,
 
 # return true if a character matches the given symbol
 sym_match = \sym char: 
@@ -185,10 +185,10 @@ automata = \s f t n: {start=s, final=f, trans=t, nodes=n},
 trans = \start end sym: {start=start, end=end, sym=sym},
 
 edges = \fa node: filter (\t: t.start = node) fa.trans,
-all_syms = \fa: nub >> (filter (!= {type=eps})) >> (map (\t: t.sym)) fa.trans,
+all_syms = \fa: nub >> (filter (!= {type=eps})) >> (map (.sym)) fa.trans,
 
 # return all potential transition nodes given a predicate on the transition
-get_trans = \p fa: map (\t: t.end) >> (filter (\t: p t.sym)) >> (edges fa),
+get_trans = \p fa: map (.end) >> (filter (\t: p t.sym)) >> (edges fa),
 succ = \sym: get_trans (=sym),
 
 succ_all = \fa sym ns: join (map (succ sym fa) ns),
@@ -284,13 +284,13 @@ to_dfa = \nfa: let
     epsclosure = closure nfa {type=eps},
     syms = all_syms nfa,
     new_start = epsclosure [nfa.start],
-    new_finals = \dfa: filter (has (nfa.final)) dfa.nodes,
+    new_finals = \dfa: filter (has nfa.final) dfa.nodes,
     convert = \stack dfa: let 
         nodeset = head stack,
         not_empty = \t: t.end != [],
         trans_closure = \sym: trans nodeset (epsclosure (succ_all nfa sym nodeset)) sym,
         new_trans = filter not_empty >> (map trans_closure) syms,
-        new_nodes = map (\t: t.end) new_trans,
+        new_nodes = map (.end) new_trans,
         filt_nodes = filter (not >> (dfa.nodes has)) new_nodes,
         new_dfa = automata dfa.start dfa.final (cat new_trans dfa.trans) (nodeset : dfa.nodes) in
         if stack = [] then dfa else convert (nub (cat filt_nodes (tail stack))) new_dfa,
