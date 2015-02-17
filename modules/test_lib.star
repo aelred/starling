@@ -5,7 +5,7 @@ test >> (map >> uncurry assert_equal) [
     [max 15 15, 15],
     [min 4 9, 4],
     [min 2 2, 2],
-    [head nats, 0],
+    [nats.head, 0],
     [take 5 nats, [0, 1, 2, 3, 4]],
     [sum [], 0],
     [sum [145], 145],
@@ -48,7 +48,7 @@ test >> (map >> uncurry assert_equal) [
     [length (range 0 1000), 1000],
     [any (map (\x: x<0) (range 0 1000)), False],
     [all (map (\x: x>=0) (range 0 1000)), True],
-    [head (reverse (range 0 1000)), 999],
+    [(reverse (range 0 1000)).head, 999],
 
     # partial application
     [map (* 2) [1, 2, 3], [2, 4, 6]],

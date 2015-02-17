@@ -1,4 +1,8 @@
 let
+
+# list constructor
+: = \x xs: {head=x, tail=xs},
+
 # basic logic
 not = \x: if x then False else True,
 or = \x y: if x then True else if y then True else False,
@@ -23,7 +27,7 @@ curry = \f x y: f [x, y],
 uncurry = \f xs: f (xs@0) (xs@1),
 
 # access array elements
-@ = \xs n: if n = 0 then head xs else (tail xs) @ (n - 1),
+@ = \xs n: if n = 0 then xs.head else xs.tail@(n-1),
 
 # comparison operators
 != = \x y: not (x = y),
@@ -48,13 +52,13 @@ flip = \f x y: f y x,
 foldr = \f init xs: 
     if xs = []
     then init
-    else f >> head xs (foldr f init >> tail xs),
+    else f xs.head (foldr f init xs.tail),
 
 # return the function folded from the left over the given list
 foldl = \f init xs:
     if xs = []
     then init
-    else foldl f (strict (f init >> head xs)) >> tail xs,
+    else foldl f (strict (f init xs.head)) xs.tail,
 
 # fold is a synonoym for foldr
 fold = foldr,
@@ -69,13 +73,13 @@ filter = \f: fold (\x accum: if f x then x : accum else accum) [],
 take = \n xs:
     if n = 0
     then []
-    else head xs : (take (n - 1) >> tail xs),
+    else xs.head : (take (n - 1) xs.tail),
 
 # return elements while predicate is true
 take_while = \p xs: 
-    if xs = [] or (not >> p >> head xs)
+    if xs = [] or (not >> p xs.head)
     then []
-    else head xs : (take_while p (tail xs)),
+    else xs.head : (take_while p xs.tail),
 
 # return elements until predicate is true
 take_until = \p: take_while (not >> p),
@@ -84,12 +88,12 @@ take_until = \p: take_while (not >> p),
 drop = \n xs:
     if n = 0
     then xs
-    else drop (n-1) (tail xs),
+    else drop (n-1) xs.tail,
 
 # drop elements while predicate is true
 drop_while = \p xs: 
-    if (xs != []) and (p >> head xs)
-    then drop_while p (tail xs)
+    if (xs != []) and (p xs.head)
+    then drop_while p xs.tail
     else xs,
 
 # drop elements until the predicate is true
@@ -118,18 +122,18 @@ cat = \xs ys: fold (:) ys xs,
 
 # zip two lists together
 zip = \xs ys: 
-    if xs = [] or (ys = [])
+    if (xs = []) or (ys = [])
     then []
-    else [head xs, head ys] : (zip (tail xs) (tail ys)),
+    else [xs.head, ys.head] : (zip xs.tail ys.tail),
 
 # unzips a zipped list
 unzip = 
     let f = \xy accum: 
         let 
-            x = head xy,
-            y = head >> tail xy,
-            xs = head accum,
-            ys = head >> tail accum in 
+            x = xy.head,
+            y = (xy.tail).head,
+            xs = accum.head,
+            ys = (accum.tail).head in 
         [x:xs, y:ys] 
     in fold f [[], []],
 
@@ -138,12 +142,12 @@ sort = \xs:
     if xs = []
     then []
     else let 
-        pivot = head xs,
-        less = filter (< pivot) >> tail xs,
-        more = filter (>= pivot) >> tail xs in 
+        pivot = xs.head,
+        less = filter (< pivot) xs.tail,
+        more = filter (>= pivot) xs.tail in 
     cat (sort less) (pivot : (sort more))
 
 in export 
-    not or and any all ? id const >> curry uncurry @ != < >= > max min sum 
+    : not or and any all ? id const >> curry uncurry @ != < >= > max min sum 
     flip has foldr foldl fold map filter take take_while take_until drop 
     drop_while drop_until join range nats length reverse cat zip unzip sort

@@ -23,28 +23,81 @@ class StarType(object):
 class Object(StarType):
     def __init__(self, value):
         self._value = value
+        self._items = sorted(self.value.items())
 
     @property
     def value(self):
         return self._value
 
-    def _items(self):
-        return sorted(self.value.items())
+    def str_generator(self):
+        if 'head' in self.value and 'tail' in self.value:
+            # kind of a hack at the moment
+            # treat this like a list
+            obj = self
+            head = obj.value['head']()
+            if isinstance(head, Char):
+                # display as a string
+                lopen = '"'
+                ropen = '"'
+                show = lambda elem: [elem.str()[1:-1]]
+                delim = False
+            else:
+                # display as a list
+                lopen = '['
+                ropen = ']'
+                show = lambda elem: elem.str_generator()
+                delim = True
 
-    def str(self):
-        return '{%s}' % ', '.join(
-            '%s = %s' % (k, v().str()) for k, v in self._items())
+            yield lopen
+            for s in show(obj.value['head']()):
+                yield s
+            obj = obj.value['tail']()
+            while 'head' in obj.value and 'tail' in obj.value:
+                if delim:
+                    yield ', '
+                for s in show(obj.value['head']()):
+                    yield s
+                obj = obj.value['tail']()
+            yield ropen
+        else:
+            yield '{'
+            if len(self._items) > 0:
+                k, v = self._items[0]
+                yield k + '='
+                for s in v().str_generator():
+                    yield s
+                for k, v in self._items[1:]:
+                    yield ', ' + k + '='
+                    for s in v().str_generator():
+                        yield s
+            yield '}'
 
     def eq(self, other):
         if type(self) != type(other):
             return Boolean(False)
         else:
-            i1 = self._items()
-            i2 = other._items()
+            i1 = self._items
+            i2 = other._items
             return Boolean(len(i1) == len(i2) and
                            all(k1 == k2 and v1().eq(v2()).value
                                for (k1, v1), (k2, v2) in zip(i1, i2)))
 
+
+class _EmptyList(Object):
+    def __init__(self):
+        Object.__init__(self, {})
+
+    def str_generator(self):
+        yield '[]'
+
+    def eq(self, other):
+        return Boolean(self == other)
+
+    def le(self, other):
+        # empty list is the 'first' element when ordered
+        return Boolean(True)
+
+empty_list = _EmptyList()
 
 class Enum(StarType):
     def __init__(self, name, id_):

@@ -4,9 +4,9 @@ nub = \l: let
     nub_ = \xs ls:
         if xs = []
         then []
-        else if ls has (head xs)
-        then nub_ (tail xs) ls
-        else head xs : (nub_ (tail xs) ((head xs) : ls)) in
+        else if ls has xs.head
+        then nub_ xs.tail ls
+        else xs.head : (nub_ xs.tail (xs.head : ls)) in
     nub_ l [],
 
 at_least = \n xs:
@@ -14,15 +14,15 @@ at_least = \n xs:
     then True
     else if xs = []
     then False
-    else at_least (n-1) (tail xs),
+    else at_least (n-1) xs.tail,
 
 starts_with = \xs sub: 
     if sub = []
     then True
     else if xs = []
     then False
-    else if (head xs) = (head sub)
-    then starts_with (tail xs) (tail sub)
+    else if xs.head = sub.head
+    then starts_with xs.tail sub.tail
     else False,
 
 char_to_digit = \c: (ord c) - 48,
@@ -67,23 +67,23 @@ interp_bracket_expr = \pat: let
     interp = \pat: let
         is_range = (at_least 4 pat) and (pat@1 = '-'),
         class_matches = filter (\cl: starts_with pat (cl@0)) char_classes,
-        class = head class_matches,
+        class = class_matches.head,
         get_range = map chr (range (ord (pat@0)) (ord (pat@2) + 1)) in
-        if head pat = ']'
-        then {bexpr="", remainder=tail pat}
+        if pat.head = ']'
+        then {bexpr="", remainder=pat.tail}
         else if is_range
         then add_bexpr get_range >> interp (drop 3 pat)
         else if class_matches != []
         then add_bexpr (class@1) >> interp (drop (length (class@0)) pat)
-        else add_bexpr [head pat] >> interp (tail pat) in
+        else add_bexpr [pat.head] >> interp pat.tail in
     # first element is allowed to be a ']', e.g. "[]]" is valid
-    if head pat = ']' 
-    then add_bexpr [head pat] >> interp (tail pat)
+    if pat.head = ']' 
+    then add_bexpr [pat.head] >> interp pat.tail
     else interp pat,
 
 # interpret a regex pattern, identifying special characters
 interp_pattern = \pat: let
-    sym = head pat,
+    sym = pat.head,
     type = 
         if sym = '|' then alt else if sym = '*' then star else if sym = '?'
         then opt else if sym = '+' then plus 
@@ -99,12 +99,12 @@ interp_pattern = \pat: let
         {type=type, val=result.bexpr} : (interp_pattern result.remainder),
 
     counted_rep = let
-        m = parse_int >> (take_until ("}," has)) >> tail pat,
-        rem1 = drop_until ("}," has) >> tail pat,
-        n_str = take_until (= '}') >> tail rem1,
+        m = parse_int >> (take_until ("}," has)) pat.tail,
+        rem1 = drop_until ("}," has) pat.tail,
+        n_str = take_until (= '}') rem1.tail,
         n = if take 1 rem1 = "}" or (n_str = "") then m else parse_int n_str,
-        rem2 = tail (drop_until (= '}') rem1),
-        unbounded = (head rem1 = ',') and (n_str = "") in
+        rem2 = (drop_until (= '}') rem1).tail,
+        unbounded = (rem1.head = ',') and (n_str = "") in
         (
         if unbounded 
         then {type=urep, m=m}
@@ -116,7 +116,7 @@ interp_pattern = \pat: let
     else if sym = '\\'
     then let
         class_matches = filter (\cl: (cl@0) = (pat@1)) char_short,
-        class = head class_matches in
+        class = class_matches.head in
         if class_matches != []
         then (class@1) : (interp_pattern (drop 2 pat))
         else {type=type, val=[pat@1]} : (interp_pattern (drop 2 pat))
@@ -125,8 +125,8 @@ interp_pattern = \pat: let
     else if sym = '{'
     then counted_rep
     else if [lit, notlit] has type
-    then {type=type, val=[sym]} : (interp_pattern (tail pat))
-    else {type=type} : (interp_pattern (tail pat)),
+    then {type=type, val=[sym]} : (interp_pattern pat.tail)
+    else {type=type} : (interp_pattern pat.tail),
 
 enum alt star concat opt plus crep urep,
 enum all lit notlit lpar rpar ass_start ass_end eps,
@@ -153,7 +153,7 @@ add_concat = \pat:
         else {type=concat} : (r : accum) in
     if pat = []
     then []
-    else head pat : (fold concatenate [] (zip pat (tail pat))),
+    else pat.head : (fold concatenate [] (zip pat pat.tail)),
 
 # transform a regular expression to postfix form
 to_postfix = \pat: let 
@@ -165,7 +165,7 @@ to_postfix = \pat: let
     # output a symbol
     output = \sym state: {stack=state.stack, out=sym:state.out},
     # drop the top stack symbol
-    drop = \state: {stack=tail state.stack, out=state.out},
+    drop = \state: {stack=(state.stack).tail, out=state.out},
     # pop symbols off the stack onto output while they satisfy p
     pop = \p state: let
         stack_popped = take_while p state.stack,
@@ -195,7 +195,7 @@ to_tree = \pfix: let
         n_params = 
             if not (is_op sym) then 0 else if is_unary sym then 1 else 2 in
         tree sym (reverse (take n_params stack)) : (drop n_params stack) in
-    head (foldl subtree [[]] pfix),
+    (foldl subtree [[]] pfix).head,
 
 # NFA/DFA operations
 automata = \s f t n: {start=s, final=f, trans=t, nodes=n},
@@ -229,7 +229,7 @@ to_nfa = \t: let
     empty = automata 0 0 [] [0],
 
     relabel_nfa = \nfa nfa_other: let
-        offset = (head nfa_other.nodes) + 1,
+        offset = (nfa_other.nodes).head + 1,
         relabel = (+ offset),
         relabel_trans = \t: trans (relabel t.start) (relabel t.end) t.sym,
         new_start = relabel nfa.start,
@@ -303,14 +303,14 @@ to_dfa = \nfa: let
     new_start = epsclosure [nfa.start],
     new_finals = \dfa: filter (has nfa.final) dfa.nodes,
     convert = \stack dfa: let 
-        nodeset = head stack,
+        nodeset = stack.head,
         not_empty = \t: t.end != [],
         trans_closure = \sym: trans nodeset (epsclosure (succ_all nfa sym nodeset)) sym,
         new_trans = filter not_empty >> (map trans_closure) syms,
         new_nodes = map (.end) new_trans,
         filt_nodes = filter (not >> (dfa.nodes has)) new_nodes,
         new_dfa = automata dfa.start dfa.final (cat new_trans dfa.trans) (nodeset : dfa.nodes) in
-        if stack = [] then dfa else convert (nub (cat filt_nodes (tail stack))) new_dfa,
+        if stack = [] then dfa else convert (nub (cat filt_nodes stack.tail)) new_dfa,
     result = convert [new_start] (automata new_start new_start [] []) in
     automata result.start (new_finals result) result.trans result.nodes,
 
@@ -318,7 +318,7 @@ to_dfa = \nfa: let
 match_dfa = \dfa str: let
     mdfa = \state char: let
         new_nodes = get_trans (\sym: sym_match sym char) dfa state.node,
-        new_node = head new_nodes in
+        new_node = new_nodes.head in
         if state.is_match or state.is_fail
         then state 
         # if no next node in DFA, this is not a match
@@ -331,7 +331,7 @@ match_dfa = \dfa str: let
     fst_node = let
         start_trans = \node: let
             s = succ {type=ass_start} dfa node in
-            if s = [] then node else start_trans >> head s in
+            if s = [] then node else start_trans s.head in
         start_trans dfa.start,
     
     result = foldl mdfa {node=fst_node, is_match=False, is_fail=False} str,
@@ -340,7 +340,7 @@ match_dfa = \dfa str: let
     end_node = let
         end_trans = \node: let
             e = succ {type=ass_end} dfa node in
-            if e = [] then node else end_trans >> head e in
+            if e = [] then node else end_trans e.head in
         end_trans result.node in
 
     if dfa.final has fst_node

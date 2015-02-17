@@ -22,7 +22,7 @@ def test_lazy():
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
         'if False then let f=f in f else "good"': '"good"',
-        'head ["fine", (let f=f in f)]': '"fine"',
+        '["fine", (let f=f in f)].head': '"fine"',
         '[0, let f=f in f] = [10, let f=f in f]': 'False',
         'strict 4 : [2]': '[4, 2]',
         """
@@ -35,8 +35,8 @@ def test_lazy():
 @programs(False, has_input=True)
 def test_input():
     return {
-        ('head input', 'Boo'): "'B'",
-        ('tail input', 'Boo'): '"oo"'
+        ('input.head', 'Boo'): "'B'",
+        ('input.tail', 'Boo'): '"oo"'
     }
 
 

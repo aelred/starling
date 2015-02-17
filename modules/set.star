@@ -30,8 +30,8 @@ tree_walk = \fl fr base_case empty_case x: let
         else base_case n in
     tree_fold f empty_case,
 
-pred = \n: head >> set_reverse n.left,
-succ = \n: head >> set_items n.right,
+pred = \n: (set_reverse n.left).head,
+succ = \n: (set_items n.right).head,
 
 rotate_left = \n: ch_left (\l: ch_right (const l) n) n.right,
 rotate_right = \n: ch_right (\r: ch_left (const r) n) n.left,

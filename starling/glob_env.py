@@ -1,4 +1,4 @@
-from starling import star_type, linked_list
+from starling import star_type
 
 
 def trampoline(f):
@@ -65,18 +65,6 @@ def e__():
 
 def le__():
     return lambda a: lambda: lambda b: a().le(b())
-
-
-def head():
-    return lambda xs: xs().head()
-
-
-def tail():
-    return lambda xs: xs().tail()
-
-
-def c__():
-    return lambda x: lambda: lambda xs: linked_list.List(x, xs)
 
 
 def chr__():

@@ -70,7 +70,7 @@ class Script(Token):
 
     def _gen_python(self):
         return (
-            'from starling import star_type, linked_list, error\n'
+            'from starling import star_type, error\n'
             'from starling.glob_env import *\n'
             'import imp\n'
             'def _main():\n'
@@ -168,7 +168,7 @@ class Expression(Token):
 class EmptyList(EmptyToken):
 
     def _gen_python(self):
-        return 'return linked_list.empty'
+        return 'return star_type.empty_list'
 
 
 class List(Token):
@@ -206,7 +206,7 @@ class List(Token):
                 'def _f%s():\n%s\n'
                 '_t%s = Thunk(_f%s)\n'
                 'def _f%s():\n'
-                '    return lambda: c__()(_t%s)()(_t%s)\n'
+                '    return c__()(_t%s)(_t%s)\n'
                 '_t%s = Thunk(_f%s)\n' % (
                     i_head, li.head.gen_python(True), i_head, i_head, i_list,
                     i_head, i_last, i_list, i_list))
