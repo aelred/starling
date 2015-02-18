@@ -1,0 +1,2 @@
+nosetests
+time python -m starling test_suite
