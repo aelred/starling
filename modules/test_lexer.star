@@ -19,6 +19,6 @@ test >> (map >> uncurry assert_equal) [
     [t "(", [{value="(", type=lpar}]],
     [t ")", [{value=")", type=rpar}]],
     [t " ", [{value=" ", type=space}]],
-    [t "650", [{value="650", tye=num}]],
+    [t "650", [{value="650", type=num}]],
     [t " \t\n ", [{value=" \t\n ", type=space}]]
 ]
