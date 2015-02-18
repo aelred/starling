@@ -1,4 +1,5 @@
 from starling import star_type
+from itertools import imap, chain
 
 
 def trampoline(f):
@@ -27,11 +28,11 @@ class Thunk:
         return self._mem
 
 
-def True__():
+def True_():
     return star_type.Boolean(True)
 
 
-def False__():
+def False_():
     return star_type.Boolean(False)
 
 
@@ -51,11 +52,11 @@ def d__():
     return lambda a: lambda: lambda b: a().div(b())
 
 
-def mod():
+def mod_():
     return lambda a: lambda: lambda b: a().mod(b())
 
 
-def pow():
+def pow_():
     return lambda a: lambda: lambda b: a().pow(b())
 
 
@@ -67,9 +68,24 @@ def le__():
     return lambda a: lambda: lambda b: a().le(b())
 
 
-def chr__():
+def chr_():
     return lambda x: star_type.Char(chr(x().value))
 
 
-def ord__():
+def ord_():
     return lambda c: star_type.Number(ord(c().value))
+
+
+def _str_to_list(s):
+    try:
+        c = s.next()
+        return star_type.Object({
+            'head': Thunk(lambda: star_type.Char(c)),
+            'tail': Thunk(lambda: _str_to_list(s))
+        })
+    except StopIteration:
+        return star_type.empty_list
+
+
+def str_():
+    return lambda o: _str_to_list(chain(*o().str_generator()))

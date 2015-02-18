@@ -110,25 +110,21 @@ class Identifier(Terminator):
     def is_infix(self):
         return self._is_infix
 
-    def python_name(self):
+    def python_name(self, is_attr=False):
         convert = {
             '.': 'f', '+': 'p', '-': 's', '*': 'a', '/': 'd', '=': 'e',
             '<': 'l', '>': 'g', '?': 'q', ':': 'c', '@': 't', '!': 'x',
             '$': 'o'
         }
 
-        if self.value in ['and', 'del', 'from', 'not', 'while', 'as', 'elif',
-                          'global', 'or', 'with', 'assert', 'else', 'if',
-                          'pass', 'yield', 'break', 'except', 'import',
-                          'print', 'class', 'exec', 'in', 'raise', 'continue',
-                          'finally', 'is', 'return', 'def', 'for', 'lambda',
-                          'try', 'False', 'True', 'chr', 'ord', 'trampoline',
-                          'Thunk', 'input']:
-            return self.value + '__'
-        elif any(x in self.value for x in convert.keys()):
-            return ''.join([convert.get(c, c) for c in self.value]) + '__'
+        if any(x in self.value for x in convert.keys()):
+            name = ''.join([convert.get(c, c) for c in self.value]) + '_'
         else:
-            return self.value
+            name = self.value
+
+        if not is_attr:
+            name += '_'
+        return name
 
     def _gen_python(self):
         return 'return %s' % self.python_name()
@@ -319,7 +315,7 @@ class Object(Token):
         return self._value
 
     def _gen_python(self):
-        names = [b.identifier.python_name() for b in self.bindings]
+        names = [b.identifier.python_name(True) for b in self.bindings]
         return (
             '%s\n'
             'return star_type.Object({%s})'
@@ -338,7 +334,7 @@ class ObjectBinding(Token):
         return self._value[1]
 
     def _gen_python(self):
-        return 'def _o%s():\n%s' % (self.identifier.python_name(),
+        return 'def _o%s():\n%s' % (self.identifier.python_name(True),
                                     self.body.gen_python(True))
 
 
@@ -357,7 +353,8 @@ class Accessor(Token):
             'def _f%s():\n'
             '%s\n'
             'return trampoline(_f%s).value[\'%s\']'
-        ) % (i, self.body.gen_python(True), i, self.attribute.python_name())
+        ) % (i, self.body.gen_python(True),
+             i, self.attribute.python_name(True))
 
 
 class Imports(Token):

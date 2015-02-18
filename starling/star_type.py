@@ -99,13 +99,15 @@ class _EmptyList(Object):
 
 empty_list = _EmptyList()
 
+
 class Enum(StarType):
     def __init__(self, name, id_):
         self._name = name
         self._id = id_
 
     def str(self):
-        return self._name
+        # remove trailing underscore
+        return self._name[:-1]
 
     def eq(self, other):
         return Boolean(type(self) == type(other) and self._id == other._id)
@@ -159,7 +161,13 @@ class Number(Comp):
 
 class Char(Comp):
     def str(self):
-        return repr(self.value)
+        rep = repr(self.value)
+        # replace double quotes with single
+        if rep[0] == '"':
+            # escape all inner single quotes
+            rep = rep.replace('\'', '\\\'')
+            rep = '\'' + rep[1:-1] + '\''
+        return rep
 
 
 class Module(Primitive):

@@ -118,6 +118,34 @@ test >> (map >> uncurry assert_equal) [
     let enum a b, x=a, y=a, z=b in 
     [all([a=a, a!=b, a=x, a!=z, x=y, x!=z]), True],
     let f = (\x: let enum a in a) in [f 1, f 1],  # referential transparency
+
+    # str function
+    [str 4, "4"],
+    [str 145, "145"],
+    [str (0-56), "-56"],
+    [str 0, "0"],
+    [str 'a', "'a'"],
+    [str '\x10', "'\\x10'"],
+    [str '\32', "'\\x1a'"],
+    [str '\t', "'\\t'"],
+    [str '\x45', "'E'"],
+    [str '\x22', "'\"'"],
+    [str "hi", "\"hi\""],
+    [str "", "[]"],
+    [str "hello\nworld", "\"hello\\nworld\""],
+    [str True, "True"],
+    [str False, "False"],
+    [str (let enum a in a), "a"],
+    [str {}, "{}"],
+    [str {x= 3}, "{x=3}"],
+    [
+        str {foo={bar=(0-3), boo='b'}, far="hi"},
+        "{far=\"hi\", foo={bar=-3, boo='b'}}"
+    ],
+    [str [], "[]"],
+    [str [1], "[1]"],
+    [str ['a', 'b', 'c'], "\"abc\""],
+    [str [[1, 2], [3, 4]], "[[1, 2], [3, 4]]"],
     
     # comments
     [
