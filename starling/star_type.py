@@ -4,7 +4,7 @@ from starling import error
 class StarType(object):
     def str_generator(self):
         """
-        Return generator for string representation.
+        Return generator for string output.
 
         Useful for representing potentially infinite objects.
         Must implement one of str_generator or str.
@@ -13,11 +13,28 @@ class StarType(object):
 
     def str(self):
         """"
-        Return string representation.
+        Return string representation for output.
 
         Must implement one of str_generator or str.
         """
         return ''.join(self.str_generator())
+
+    def repr_generator(self):
+        """
+        Return string generator for debugging.
+
+        Useful for representing potentially infinite objects.
+        Must implement one of repr_generator or repr.
+        """
+        yield self.repr()
+
+    def repr(self):
+        """
+        Return string representation for debugging.
+
+        Must implement one of repr_generator or repr.
+        """
+        return ''.join(self.repr_generator())
 
 
 class Object(StarType):
@@ -29,7 +46,7 @@ class Object(StarType):
     def value(self):
         return self._value
 
-    def str_generator(self):
+    def repr_generator(self):
         if 'head' in self.value and 'tail' in self.value:
             # kind of a hack at the moment
             # treat this like a list
@@ -39,13 +56,13 @@ class Object(StarType):
                 # display as a string
                 lopen = '"'
                 ropen = '"'
-                show = lambda elem: [elem.str()[1:-1]]
+                show = lambda elem: [elem.str().encode('string_escape')]
                 delim = False
             else:
                 # display as a list
                 lopen = '['
                 ropen = ']'
-                show = lambda elem: elem.str_generator()
+                show = lambda elem: elem.repr_generator()
                 delim = True
 
             yield lopen
@@ -64,13 +81,29 @@ class Object(StarType):
             if len(self._items) > 0:
                 k, v = self._items[0]
                 yield k + '='
-                for s in v().str_generator():
+                for s in v().repr_generator():
                     yield s
                 for k, v in self._items[1:]:
                     yield ', ' + k + '='
-                    for s in v().str_generator():
+                    for s in v().repr_generator():
                         yield s
             yield '}'
+
+    def str_generator(self):
+        # check if this is a string
+        if 'head' in self.value and 'tail' in self.value:
+            head = self.value['head']()
+            if isinstance(head, Char):
+                # return string representation unescaped
+                for s in self.repr_generator():
+                    sd = s.decode('string_escape')
+                    if sd != '"':
+                        yield s.decode('string_escape')
+                return
+
+        # otherwise, treat as object
+        for s in self.repr_generator():
+            yield s
 
     def eq(self, other):
         if type(self) != type(other):
@@ -88,6 +121,9 @@ class _EmptyList(Object):
         Object.__init__(self, {})
 
     def str_generator(self):
+        yield '[]'
+
+    def repr_generator(self):
         yield '[]'
 
     def eq(self, other):
@@ -109,6 +145,9 @@ class Enum(StarType):
         # remove trailing underscore
         return self._name[:-1]
 
+    def repr(self):
+        return self.str()
+
     def eq(self, other):
         return Boolean(type(self) == type(other) and self._id == other._id)
 
@@ -123,6 +162,9 @@ class Primitive(StarType):
 
     def str(self):
         return str(self.value)
+
+    def repr(self):
+        return self.str()
 
     def eq(self, other):
         return Boolean(type(self) == type(other) and self.value == other.value)
@@ -161,6 +203,9 @@ class Number(Comp):
 
 class Char(Comp):
     def str(self):
+        return str(self.value)
+
+    def repr(self):
         rep = repr(self.value)
         # replace double quotes with single
         if rep[0] == '"':

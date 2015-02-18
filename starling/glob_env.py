@@ -87,5 +87,9 @@ def _str_to_list(s):
         return star_type.empty_list
 
 
+def repr_():
+    return lambda o: _str_to_list(chain(*o().repr_generator()))
+
+
 def str_():
     return lambda o: _str_to_list(chain(*o().str_generator()))
