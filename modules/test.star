@@ -7,7 +7,7 @@ assert = \pred message:
     then {pass=True}
     else {pass=False, message=message},
 
-assert_equal = \x y: assert (x=y) (join [str x, " != ", str y]),
+assert_equal = \x y: assert (x=y) (join [repr x, " != ", repr y]),
 
 test = map (\t: if t.pass then {pass=True} else t),
 
