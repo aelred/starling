@@ -9,12 +9,15 @@ assert = \pred message:
 
 assert_equal = \x y: assert (x=y) (join [str x, " != ", str y]),
 
-fold_test = \t fails: let
-    index = t@0, assertion = t@1 in
-    if assertion.pass
-    then fails 
-    else {index=index, message=assertion.message} : fails,
+test = map (\t: if t.pass then {pass=True} else t),
 
-test = fold fold_test [] >> enumerate
+report = \results: let
+    dot = \t: if t.pass then '.' else 'F',
+    dots = map dot results,
+    fails = filter (\t: not (t@1).pass) >> enumerate results,
+    fail_message = 
+        \t: join ["FAIL: Test ", str (t@0), "\n", (t@1).message, "\n"],
+    detail = join (map fail_message fails) in
+    join [dots, "\n", detail]
 
-in export assert assert_equal test
+in export assert assert_equal test report

@@ -17,23 +17,33 @@ test [
             assert_equal False False,
             assert_equal True True,
             assert True "Bad constants"
-        ]) [],
+        ]) [{pass=True}, {pass=True}, {pass=True}, {pass=True}],
 
     assert_equal 
         (test [assert False "FAILURE"]) 
-        [{index=0, message="FAILURE"}],
+        [{pass=False, message="FAILURE"}],
 
     assert_equal
         (test [
             assert_equal "ab" "bc", assert (not True) "A"
-        ]) [{index=0, message="\"ab\" != \"bc\""},
-            {index=1, message="A"}],
+        ]) [{pass=False, message="\"ab\" != \"bc\""},
+            {pass=False, message="A"}],
     assert_equal
         (test [
             assert (3*3 = 9) "Pass", assert False "Fail", assert True "Pass"
-        ]) [{index=1, message="Fail"}],
+        ]) [{pass=True}, {pass=False, message="Fail"}, {pass=True}],
     assert_equal
         (test [
             assert True "Pass", assert True "Pass", assert False "Fail"
-        ]) [{index=2, message="Fail"}]
+        ]) [{pass=True}, {pass=True}, {pass=False, message="Fail"}],
+
+    assert_equal
+        (report (test [
+            assert True "A", 
+            assert True "B", 
+            assert False "yup",
+            assert False "yes",
+            assert True "C"
+        ]))
+        "..FF.\nFAIL: Test 2\nyup\nFAIL: Test 3\nyes\n"
 ]
