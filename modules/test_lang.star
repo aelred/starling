@@ -193,5 +193,6 @@ test.test >> (map >> uncurry test.assert_equal) [
 
     # importing and exporting
     [let mod = import test_module in mod.test_message, "Import successful!"],
+    [import test_module.test_message, "Import successful!"],
     [let x=3, y=4 in export x y, {x=3, y=4}]
 ]

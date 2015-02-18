@@ -78,12 +78,12 @@ export_expr = Group(export + OneOrMore(ident))('export')
 strict_expr = Group(strict + expr)('strict')
 
 atom << (
-    object_expr | number | char | string | ident | parentheses |
+    import_expr | object_expr | number | char | string | ident | parentheses |
     linked_list
 )
 
 expr << Group(OneOrMore(
-    let_expr | lambda_expr | if_expr | import_expr | export_expr |
+    let_expr | lambda_expr | if_expr | export_expr |
     strict_expr | object_accessor | partial_accessor | atom
 ))('expression')
 
