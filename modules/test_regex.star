@@ -1,12 +1,15 @@
-import regex test in let 
+let
+regex = import regex,
+test = import test,
 
 re_test = \pat pos neg: let
-    assertions = \pred msg: map \x: assert (pred x) >> join [pat, msg, x],
-    pos_t = assertions (match pat) " doesn't match " pos,
-    neg_t = assertions (not >> (match pat)) " matches " neg in
+    assertions = \pred msg: map \x: 
+        test.assert (pred x) >> join [pat, msg, x],
+    pos_t = assertions (regex.match pat) " doesn't match " pos,
+    neg_t = assertions (not >> (regex.match pat)) " matches " neg in
     cat pos_t neg_t,
 
-test_all = test >> join >> (map (\t: re_test (t@0) (t@1) (t@2))) in
+test_all = test.test >> join >> (map (\t: re_test (t@0) (t@1) (t@2))) in
 
 test_all [
     ["", ["anything", "at", "all"], []],

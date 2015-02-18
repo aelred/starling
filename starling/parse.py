@@ -72,8 +72,7 @@ partial_accessor = Group(dot + ident)('part_accessor')
 
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
-imports = Group(OneOrMore(ident))('imports')
-import_expr = Group(import_ + imports + in_ - expr)('import')
+import_expr = Group(import_ + ident)('import')
 export_expr = Group(export + OneOrMore(ident))('export')
 
 strict_expr = Group(strict + expr)('strict')
@@ -246,11 +245,10 @@ def _part_accessor_token(value):
     ])
 
 
-def _imports_token(value):
+def _import_token(value):
     # make sure module is converted to python
-    for imp_ in value:
-        evaluate_star(imp_.value)
-    return syntax_tree.Imports(value)
+    evaluate_star(value[0].value)
+    return syntax_tree.Import(value)
 
 
 token_classes = {
@@ -273,8 +271,7 @@ token_classes = {
     'object_binding': syntax_tree.ObjectBinding,
     'accessor': syntax_tree.Accessor,
     'part_accessor': _part_accessor_token,
-    'imports': _imports_token,
-    'import': syntax_tree.Import,
+    'import': _import_token,
     'export': syntax_tree.Export,
     'strict': syntax_tree.Strict
 }

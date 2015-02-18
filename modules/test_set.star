@@ -1,11 +1,22 @@
-import set test in let
+let
+s = import set,
+test = import test,
+
+set_empty = s.set_empty,
+set = s.set,
+set_size = s.set_size,
+set_items = s.set_items,
+set_has = s.set_has,
+set_add = s.set_add,
+set_add_all = s.set_add_all,
+set_rem = s.set_rem,
 
 set1 = set [1],
 set2 = set [1, 5, 4, 10],
 set3 = set "hello world",
 set4 = set (range 0 14) in
 
-test >> (map >> uncurry assert_equal) [
+test.test >> (map >> uncurry test.assert_equal) [
     [set_size set_empty, 0],
     [set_size set1, 1],
     [set_size set2, 4],

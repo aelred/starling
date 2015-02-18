@@ -1,4 +1,9 @@
-import test in 
+let 
+t = import test,
+test = t.test,
+assert = t.assert,
+assert_equal = t.assert_equal,
+report = t.report in 
 test [
     assert_equal (assert True "Oh dear") {pass=True},
     assert_equal 

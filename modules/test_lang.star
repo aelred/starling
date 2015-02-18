@@ -1,5 +1,5 @@
-import test in
-test >> (map >> uncurry assert_equal) [
+let test = import test in
+test.test >> (map >> uncurry test.assert_equal) [
     # chars and strings
     ["", []],
     ['a', 'a'],
@@ -191,6 +191,7 @@ test >> (map >> uncurry assert_equal) [
     # partial application
     [(+ 3) 5, 8],
 
-    # importing
-    [import test_module in test_message, "Import successful!"]
+    # importing and exporting
+    [let mod = import test_module in mod.test_message, "Import successful!"],
+    [let x=3, y=4 in export x y, {x=3, y=4}]
 ]

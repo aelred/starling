@@ -1,5 +1,5 @@
-import test in 
-test >> (map >> uncurry assert_equal) [
+let test = import test in 
+test.test >> (map >> uncurry test.assert_equal) [
     # maths
     [max 4 9, 9],
     [max 15 15, 15],

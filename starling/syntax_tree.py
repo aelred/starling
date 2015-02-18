@@ -83,7 +83,27 @@ class Script(Token):
                 self.body.gen_python(True)))
 
     def wrap_import(self, imp):
-        return Script([Import([Imports([Identifier(imp, False)]), self.body])])
+        return Script([ModWrapper([Identifier(imp, False), self.body])])
+
+
+class ModWrapper(Token):
+
+    @property
+    def name(self):
+        return self._value[0]
+
+    @property
+    def body(self):
+        return self._value[1]
+
+    def _gen_python(self):
+        imports = (
+            '_m = imp.load_source(\'%s\', \'%s\')\n'
+            'for k, v in _m._result().value.iteritems():\n'
+            '    globals()[k + \'_\'] = v\n'
+        ) % (self.name.value,
+             os.path.join(star_path.path, self.name.value + '.star.py'))
+        return '%s\n%s' % (imports, self.body.gen_python())
 
 
 class Terminator(Token):
@@ -357,36 +377,16 @@ class Accessor(Token):
              i, self.attribute.python_name(True))
 
 
-class Imports(Token):
-
-    @property
-    def elements(self):
-        return self._value
-
-    def _gen_python(self):
-        result = ''
-        for e in self.elements:
-            result += (
-                '_m = imp.load_source(\'%s\', \'%s\')\n'
-                'for k, v in _m.__dict__[\'_result\']().iteritems():\n'
-                '    globals()[k] = v\n'
-            ) % (e.value, os.path.join(star_path.path, e.value + '.star.py'))
-
-        return result
-
-
 class Import(Token):
 
     @property
-    def imports(self):
+    def name(self):
         return self._value[0]
 
-    @property
-    def body(self):
-        return self._value[1]
-
     def _gen_python(self):
-        return '%s\n%s' % (self.imports.gen_python(), self.body.gen_python())
+        return 'return imp.load_source(\'%s\', \'%s\')._result()' % (
+            self.name.value,
+            os.path.join(star_path.path, self.name.value + '.star.py'))
 
 
 class Export(Token):
@@ -396,10 +396,11 @@ class Export(Token):
         return self._value
 
     def _gen_python(self):
-        names = [i.python_name() for i in self.identifiers]
+        names = [(i.python_name(True), i.python_name())
+                 for i in self.identifiers]
         return (
-            'return {%s}'
-        ) % ', '.join(['\'%s\': %s' % (n, n) for n in names])
+            'return star_type.Object({%s})'
+        ) % ', '.join(['\'%s\': %s' % (an, mn) for an, mn in names])
 
 
 class Strict(Token):

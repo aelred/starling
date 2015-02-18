@@ -1,4 +1,9 @@
-import test lexer in let
+let
+test = import test,
+lexer = import lexer,
+
+assert_equal = test.assert_equal,
+rule = lexer.rule,
 
 enum num op lpar rpar space,
 
@@ -10,9 +15,9 @@ syntax = [
     rule space "\\s+"
 ],
 
-t = tokenize syntax in
+t = lexer.tokenize syntax in
 
-test >> (map >> uncurry assert_equal) [
+test.test >> (map >> uncurry assert_equal) [
     [t "", []],
     [t "2", [{value="2", type=num}]],
     [t "-", [{value="-", type=op}]],
