@@ -17,7 +17,10 @@ report = \results: let
     fails = filter (\t: not (t@1).pass) >> enumerate results,
     fail_message = 
         \t: join ["FAIL: Test ", str (t@0), "\n", (t@1).message, "\n"],
-    detail = join (map fail_message fails) in
+    detail = 
+        if fails = []
+        then "OK"
+        else join (map fail_message fails) in
     join [dots, "\n", detail]
 
 in export assert assert_equal test report

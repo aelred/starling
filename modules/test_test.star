@@ -41,6 +41,14 @@ test [
         (report (test [
             assert True "A", 
             assert True "B", 
+            assert True "C"
+        ]))
+        "...\nOK",
+
+    assert_equal
+        (report (test [
+            assert True "A", 
+            assert True "B", 
             assert False "yup",
             assert False "yes",
             assert True "C"
