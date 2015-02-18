@@ -10,6 +10,7 @@ def _print_run(expr=None, source=None):
     for string in run(expr=expr, source=source, generator=True):
         # avoid newlines or spaces between elements
         sys.stdout.write(string)
+        sys.stdout.flush()
     # finally print a newline
     print
 
