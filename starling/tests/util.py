@@ -1,12 +1,11 @@
 import starling
-from starling import star_path
 
-from nose.tools import eq_, assert_raises
+import re
+from nose.tools import eq_, ok_, assert_raises
 from functools import wraps
-import os
 
 
-def programs(libs, from_file=False, has_input=False):
+def programs(libs, from_file=False, has_input=False, re_match=False):
     def programs_wrapper(f):
         @wraps(f)
         def programs_():
@@ -22,15 +21,21 @@ def programs(libs, from_file=False, has_input=False):
                 else:
                     expr = program
                     source = None
-                yield check_program, expr, source, input_, result, libs
+                yield (
+                    check_program, expr, source, input_, result, libs, re_match
+                )
         return programs_
     return programs_wrapper
 
 
-def check_program(expr, source, input_, result, lib):
+def check_program(expr, source, input_, result, lib, re_match):
     output = starling.run(expr, source, input_=input_, lib=lib)
-    return eq_(output, result, '\n\t%s\n%s\nOutput:\n\t%r\nExpected:\n\t%r' % (
-        expr, source, output, result))
+    msg = '\n\t%s\n%s\nOutput:\n\t%r\nExpected:\n\t%r' % (
+        expr, source, output, result)
+    if not re_match:
+        return eq_(output, result, msg)
+    else:
+        return ok_(re.match(result, output), msg)
 
 
 def errors(err):

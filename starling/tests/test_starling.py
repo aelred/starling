@@ -21,8 +21,8 @@ def test_lazy():
     # (let f=f in f) means 'define a function f that calls f, then call f.
     # recurses forever. If it ever evaluates, the script will not terminate
     return {
-        'if False then let f=f in f else "good"': '"good"',
-        '["fine", (let f=f in f)].head': '"fine"',
+        'if False then let f=f in f else "good"': 'good',
+        '["fine", (let f=f in f)].head': 'fine',
         '[0, let f=f in f] = [10, let f=f in f]': 'False',
         'strict 4 : [2]': '[4, 2]',
         """
@@ -35,8 +35,8 @@ def test_lazy():
 @programs(False, has_input=True)
 def test_input():
     return {
-        ('input.head', 'Boo'): "'B'",
-        ('input.tail', 'Boo'): '"oo"'
+        ('input.head', 'Boo'): 'B',
+        ('input.tail', 'Boo'): 'oo'
     }
 
 

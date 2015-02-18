@@ -146,7 +146,7 @@ def _evaluate(path, input_, name):
     module = imp.load_source(name, path)
     if input_ is not None:
         inp_expr = evaluate_expr('"' + input_ + '"', name='input')
-        module.input__ = inp_expr
+        module.input_ = inp_expr
     return module._result()
 
 

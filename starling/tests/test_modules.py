@@ -1,15 +1,17 @@
 from util import programs
 
+passes = r"\[({pass=True}(, )?)*\]$"
 
-@programs(True, True)
+
+@programs(True, True, re_match=True)
 def test_modules():
     return {
-        'test_lang': '[]',
+        'test_lang': passes,
+        'test_regex': passes,
+        'test_test': passes,
+        'test_lib': passes,
+        'test_set': passes,
+        'test_lexer': passes,
         'euler1': '233168',
-        'euler2': '4613732',
-        'test_regex': '[]',
-        'test_test': '[]',
-        'test_lib': '[]',
-        'test_set': '[]',
-        'test_lexer': '[]'
+        'euler2': '4613732'
     }
