@@ -19,7 +19,6 @@ class Thunk:
         # if this function is strict, eval immediately
         if getattr(self._f, '__doc__', None) == 'strict':
             self()
-            self.__doc__ = 'strict'
 
     def __call__(self):
         if self._mem is None:

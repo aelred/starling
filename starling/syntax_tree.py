@@ -173,12 +173,11 @@ class Expression(Token):
     def _gen_python(self):
         i1 = _get_id()
         i2 = _get_id()
-        it = _get_id()
         return (
             'def _f%s():\n%s\ndef _f%s():\n%s\n_t%s = Thunk(_f%s)\n'
-            'return lambda: trampoline(_f%s)(_t%s)' % (
+            'return trampoline(_f%s)(_t%s)' % (
                 i1, self.operand.gen_python(True),
-                i2, self.operator.gen_python(True), it, i1, i2, it))
+                i2, self.operator.gen_python(True), i1, i1, i2, i1))
 
 
 class EmptyList(EmptyToken):
@@ -298,8 +297,9 @@ class Binding(Token):
         return self._value[1]
 
     def _gen_python(self):
-        return 'def %s():\n%s' % (self.identifier.python_name(),
-                                  self.body.gen_python(True))
+        i = _get_id()
+        return 'def _f%s():\n%s\n%s = Thunk(_f%s)' % (
+            i, self.body.gen_python(True), self.identifier.python_name(), i)
 
 
 class Enum(Token):
