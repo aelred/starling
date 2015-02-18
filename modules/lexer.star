@@ -7,7 +7,7 @@ rule = \type re:
 tokenize = \syntax input:
     [{
         value=input, 
-        type=(map (.type) (filter (\r: regex.match r.re input) syntax))
+        type=(map (.type) (filter (\r: (regex.match r.re input).match) syntax))
     }]
 
 in export rule tokenize

@@ -316,16 +316,23 @@ to_dfa = \nfa: let
 
 # match a string using a DFA
 match_dfa = \dfa str: let
-    mdfa = \state char: let
-        new_nodes = get_trans (\sym: sym_match sym char) dfa state.node,
-        new_node = new_nodes.head in
-        if state.is_match or state.is_fail
-        then state 
-        # if no next node in DFA, this is not a match
+    mdfa = \node matched str: let
+        new_nodes = get_trans (\sym: sym_match sym str.head) dfa node,
+        new_node = new_nodes.head,
+        new_matched = str.head : matched in
+        if (str = "")
+            # if there is a '$' symbol, this is a valid end
+            then if dfa.final has (end_trans node)
+            then {str=matched, match=True}
+            else {match=False}
+        # if no next node then this is not a match
         else if new_nodes = []
-        then {node=state.node, is_match=False, is_fail=True}
-        # if final DFA node found, this is a match
-        else {node=new_node, is_match=dfa.final has new_node, is_fail=False},
+        then {match=False}
+        # if final DFA node found then this is a match
+        else if dfa.final has new_node
+        then {str=new_matched, match=True}
+        # move to next node
+        else mdfa new_node new_matched str.tail,
 
     # find first node, given '^' symbols
     fst_node = let
@@ -333,19 +340,19 @@ match_dfa = \dfa str: let
             s = succ {type=ass_start} dfa node in
             if s = [] then node else start_trans s.head in
         start_trans dfa.start,
-    
-    result = foldl mdfa {node=fst_node, is_match=False, is_fail=False} str,
 
     # find last node, given '$' symbols
-    end_node = let
-        end_trans = \node: let
-            e = succ {type=ass_end} dfa node in
-            if e = [] then node else end_trans e.head in
-        end_trans result.node in
+    end_trans = \node: let
+        e = succ {type=ass_end} dfa node in
+        if e = [] then node else end_trans e.head,
+
+    result = mdfa fst_node "" str in
 
     if dfa.final has fst_node
-    then True
-    else (not result.is_fail) and (dfa.final has end_node),
+    then {match=True, str=""}
+    else if result.match
+    then {match=result.match, str=reverse result.str}
+    else {match=False},
 
 # take a pattern and return a function that will match strings
 match = match_dfa >> to_dfa >> nfa,
