@@ -317,22 +317,16 @@ to_dfa = \nfa: let
 # match a string using a DFA
 match_dfa = \dfa str: let
     mdfa = \node matched str: let
-        new_nodes = get_trans (\sym: sym_match sym str.head) dfa node,
-        new_node = new_nodes.head,
-        new_matched = str.head : matched in
-        if (str = "")
-            # if there is a '$' symbol, this is a valid end
-            then if dfa.final has (end_trans node)
+        new_nodes = get_trans (\sym: sym_match sym str.head) dfa node in
+        if (str = "") or (new_nodes = [])
+            # if we can reach a final node, then this is a match
+            then let
+            end_str = (str = "") and (dfa.final has (end_trans node)) in
+            if (dfa.final has node) or end_str
             then {str=matched, match=True}
             else {match=False}
-        # if no next node then this is not a match
-        else if new_nodes = []
-        then {match=False}
-        # if final DFA node found then this is a match
-        else if dfa.final has new_node
-        then {str=new_matched, match=True}
         # move to next node
-        else mdfa new_node new_matched str.tail,
+        else mdfa new_nodes.head (str.head : matched) str.tail,
 
     # find first node, given '^' symbols
     fst_node = let
@@ -348,10 +342,10 @@ match_dfa = \dfa str: let
 
     result = mdfa fst_node "" str in
 
-    if dfa.final has fst_node
-    then {match=True, str=""}
-    else if result.match
+    if result.match
     then {match=result.match, str=reverse result.str}
+    else if dfa.final has fst_node
+    then {match=True, str=""}
     else {match=False},
 
 # take a pattern and return a function that will match strings

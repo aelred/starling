@@ -39,7 +39,7 @@ test.test >> join [
     re "h$i" [] ["", "hi", "high", "h", "h$i"],
     re "^$" [tm ""] ["^$", "a", "^", "$"],
     re "^^a$$" [tm "a"] ["", "aa", "b", "^^a$$"],
-    re "ba(na)*$" [tm "ba", tm "bana", tm "banana"] ["", "na", "banabana"],
+    re "ba(na)*" [tm "ba", tm "bana", tm "banana"] ["", "na", "nabana"],
     re "((a|d)c)*$" [tm "", tm "ac", tm "dc", tm "acdc"] ["adc", "c", "a"],
     re "a?$" [tm "a", tm ""] ["e", "aa", "a?"],
     re "a+$" [tm "a", tm "aa", tm "aaa"] ["", "ab", "ba", "a+"],
