@@ -25,5 +25,19 @@ test.test >> (map >> uncurry assert_equal) [
     [t ")", [{value=")", type=rpar}]],
     [t " ", [{value=" ", type=space}]],
     [t "650", [{value="650", type=num}]],
-    [t " \t\n ", [{value=" \t\n ", type=space}]]
+    [t " \t\n ", [{value=" \t\n ", type=space}]],
+    [
+        t "2+10", 
+        [{value="2", type=num}, {value="+", type=op}, {value="10", type=num}]
+    ],
+    [
+        t " 1\n*(3 - 10) /4",
+        [{value=" ", type=space}, {value="1", type=num}, 
+         {value="\n", type=space}, {value="*", type=op}, 
+         {value="(", type=lpar}, {value="3", type=num},
+         {value=" ", type=space}, {value="-", type=op}, 
+         {value=" ", type=space}, {value="10", type=num},
+         {value=")", type=rpar}, {value=" ", type=space},
+         {value="/", type=op}, {value="4", type=num}]
+    ]
 ]
