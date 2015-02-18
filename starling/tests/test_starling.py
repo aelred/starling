@@ -61,6 +61,7 @@ def test_lazy():
         '["fine", (let f=f in f)].head': 'fine',
         '[0, let f=f in f] = [10, let f=f in f]': 'False',
         'strict 4 : [2]': '[4, 2]',
+        'sum (range 0 1000)': '499500',
         """
         let r = \\n:
             strict if n = 0 then [] else r strict (n - 1) in r 1000
