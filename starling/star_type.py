@@ -213,8 +213,3 @@ class Char(Comp):
             rep = rep.replace('\'', '\\\'')
             rep = '\'' + rep[1:-1] + '\''
         return rep
-
-
-class Module(Primitive):
-    def str(self):
-        return 'module'
