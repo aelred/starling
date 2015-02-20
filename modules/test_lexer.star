@@ -39,5 +39,13 @@ test.test >> (map >> uncurry assert_equal) [
          {value=" ", type=space}, {value="10", type=num},
          {value=")", type=rpar}, {value=" ", type=space},
          {value="/", type=op}, {value="4", type=num}]
+    ],
+    [
+        lexer.ignore space >> t " 1\n*(3 - 10) /4",
+        [{value="1", type=num}, {value="*", type=op}, 
+         {value="(", type=lpar}, {value="3", type=num},
+         {value="-", type=op}, {value="10", type=num},
+         {value=")", type=rpar}, {value="/", type=op}, 
+         {value="4", type=num}]
     ]
 ]

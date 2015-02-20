@@ -15,6 +15,8 @@ tokenize = \syntax input:
     rem = drop (length match.str) input in
     if matches != []
     then {value=match.str, type=rule.type} : (tokenize syntax rem)
-    else []
+    else [],
 
-in export rule tokenize
+ignore = \type: filter (\t: t.type != type)
+
+in export rule tokenize ignore
