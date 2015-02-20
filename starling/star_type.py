@@ -76,6 +76,22 @@ class Object(StarType):
                     yield s
                 obj = obj.value['tail']()
             yield ropen
+        elif '_0' in self.value:
+            # treat this as a tuple
+            yield '('
+            for s in self.value['_0']().repr_generator():
+                yield s
+            i = 1
+            while '_%d' % i in self.value:
+                yield ', '
+                for s in self.value['_%d' % i]().repr_generator():
+                    yield s
+                i += 1
+
+            # add trailing comma for one-tuple
+            if i == 1:
+                yield ','
+            yield ')'
         else:
             yield '{'
             if len(self._items) > 0:

@@ -145,7 +145,7 @@ sym_match = \sym char:
 # add explicit concat symbol
 add_concat = \pat:
     let concatenate = \xs accum: let 
-        l = xs@0, r = xs@1,
+        l = xs._0, r = xs._1,
         lop = (l.type = alt) or (l.type = lpar),
         rop = (is_op r) or (r.type = rpar) in
         if lop or rop

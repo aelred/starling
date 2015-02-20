@@ -28,3 +28,4 @@ def _input(inputs, result):
 def test_input():
     _input(['2 + 1', 'quit'], ['3', ''])
     _input(['quit'], [''])
+    _input(['(1, 2)', 'quit'], ['(1, 2)', ''])

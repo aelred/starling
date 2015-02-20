@@ -20,11 +20,11 @@ const = \x y: x,
 # function composition
 >> = \f g x: f (g x),
 
-# transform a function that takes a two-element list into a curried function
-curry = \f x y: f [x, y],
+# transform a function that takes a pair into a curried function
+curry = \f x y: f (x, y),
 
-# transform a curried function into one that takes a two-element list
-uncurry = \f xs: f (xs@0) (xs@1),
+# transform a curried function into one that takes a pair
+uncurry = \f xs: f (xs._0) (xs._1),
 
 # access array elements
 @ = \xs n: if n = 0 then xs.head else xs.tail@(n-1),
@@ -133,18 +133,18 @@ cat = \xs ys: fold (:) ys xs,
 zip = \xs ys: 
     if (xs = []) or (ys = [])
     then []
-    else [xs.head, ys.head] : (zip xs.tail ys.tail),
+    else (xs.head, ys.head) : (zip xs.tail ys.tail),
 
 # unzips a zipped list
 unzip = 
     let f = \xy accum: 
         let 
-            x = xy.head,
-            y = (xy.tail).head,
-            xs = accum.head,
-            ys = (accum.tail).head in 
-        [x:xs, y:ys] 
-    in fold f [[], []],
+            x = xy._0,
+            y = xy._1,
+            xs = accum._0,
+            ys = accum._1 in 
+        (x:xs, y:ys)
+    in fold f ([], []),
 
 # return a sorted version of the list
 sort = \xs:

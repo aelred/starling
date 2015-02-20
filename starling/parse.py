@@ -70,6 +70,10 @@ object_expr = Group(lobj + Optional(delimitedList(object_binding)) +
 object_accessor = Group(atom + dot + ident)('accessor')
 partial_accessor = Group(dot + ident)('part_accessor')
 
+tuple_expr = Group(lpar +
+                   Optional(expr + comma + Optional(delimitedList(expr))) +
+                   rpar)('tuple')
+
 if_expr = Group(if_ + expr + then + expr + else_ + expr)('if')
 
 import_expr = Group(import_ + ident)('import')
@@ -78,8 +82,8 @@ export_expr = Group(export + OneOrMore(ident))('export')
 strict_expr = Group(strict + expr)('strict')
 
 atom << (
-    import_expr | object_expr | number | char | string | ident | parentheses |
-    linked_list
+    import_expr | object_expr | tuple_expr | number | char | string | ident |
+    parentheses | linked_list
 )
 
 expr << Group(OneOrMore(
@@ -251,6 +255,15 @@ def _import_token(value):
     return syntax_tree.Import(value)
 
 
+def _tuple_token(value):
+    bindings = []
+    for i, expr in enumerate(value):
+        ident = token_classes['prefix_id']('_%d' % i)
+        bindings.append(token_classes['object_binding']([ident, expr]))
+
+    return token_classes['object'](bindings)
+
+
 token_classes = {
     'script': syntax_tree.Script,
     'prefix_id': lambda v: syntax_tree.Identifier(v, False),
@@ -271,6 +284,7 @@ token_classes = {
     'object_binding': syntax_tree.ObjectBinding,
     'accessor': syntax_tree.Accessor,
     'part_accessor': _part_accessor_token,
+    'tuple': _tuple_token,
     'import': _import_token,
     'export': syntax_tree.Export,
     'strict': syntax_tree.Strict

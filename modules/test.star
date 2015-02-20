@@ -14,9 +14,9 @@ test = map (\t: if t.pass then {pass=True} else t),
 report = \results: let
     dot = \t: if t.pass then '.' else 'F',
     dots = map dot results,
-    fails = filter (\t: not (t@1).pass) >> enumerate results,
+    fails = filter (\t: not (t._1).pass) >> enumerate results,
     fail_message = 
-        \t: join ["FAIL: Test ", str (t@0), "\n", (t@1).message, "\n"],
+        \t: join ["FAIL: Test ", str t._0, "\n", (t._1).message, "\n"],
     detail = 
         if fails = []
         then "OK"
