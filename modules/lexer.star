@@ -1,8 +1,6 @@
 let
 regex = import regex,
 
-foldl1 = \f xs: foldl f xs.head xs.tail,
-
 max_by = \f: foldl1 (\x y: if (f y) > (f x) then y else x),
 
 rule = \type re:

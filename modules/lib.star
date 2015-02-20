@@ -63,6 +63,15 @@ foldl = \f init xs:
 # fold is a synonoym for foldr
 fold = foldr,
 
+# left fold where the first element is the initial value
+foldr1 = \f xs: foldr f xs.head xs.tail,
+
+# left fold where the first element is the initial value
+foldl1 = \f xs: foldl f xs.head xs.tail,
+
+# fold1 is a synonym for foldr1
+fold1 = foldr1,
+
 # return the result of applying a function to everything in the list
 map = \f: fold (\x accum: f x : accum) [],
 
@@ -148,6 +157,7 @@ sort = \xs:
     cat (sort less) (pivot : (sort more))
 
 in export 
-    : not or and any all ? id const >> curry uncurry @ != < >= > max min sum 
-    flip has foldr foldl fold map filter take take_while take_until drop 
-    drop_while drop_until join range nats length reverse cat zip unzip sort
+    : not or and any all ? id const >> curry uncurry @ != < >= > max min sum
+    flip has foldr foldl fold foldr1 foldl1 fold1 map filter take take_while
+    take_until drop drop_while drop_until join range nats length reverse cat
+    zip unzip sort
