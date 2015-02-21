@@ -9,6 +9,8 @@ assert = \pred message:
 
 assert_equal = \x y: assert (x=y) (join [repr x, " != ", repr y]),
 
+assert_unequal = \x y: assert (x!=y) (join [repr x, " = ", repr y]),
+
 test = map (\t: if t.pass then {pass=True} else t),
 
 report = \results: let
@@ -23,4 +25,4 @@ report = \results: let
         else join (map fail_message fails) in
     join [dots, "\n", detail]
 
-in export assert assert_equal test report
+in export assert assert_equal assert_unequal test report
