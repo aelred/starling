@@ -1,6 +1,6 @@
 let test = import test in
 test.report True >> join [
-    import test_lex_starling,
+    import test_starlex,
     import test_test,
     import test_lang,
     import test_lib,

@@ -20,6 +20,6 @@ tokenize = \syntax input:
     then {value=match_str, type=type} : (tokenize syntax rem)
     else [],
 
-ignore = \type: filter (\t: t.type != type)
+ignore = \types: filter (\t: not (types has t.type))
 
 in export rule tokenize ignore

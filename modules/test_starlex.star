@@ -1,5 +1,5 @@
 let
-ls = import lex_starling,
+ls = import starlex,
 test = import test,
 ?= = test.assert_equal,
 ?!= = test.assert_unequal,
@@ -73,5 +73,13 @@ test.test [
         tok ls.char "'\\x0e'", tok ls.comma ",", tok ls.char "'\\123'", 
         tok ls.comma ",", tok ls.char "'\\20'", tok ls.comma ",", 
         tok ls.char "'\\7'", tok ls.rlist "]"
+    ],
+
+    (ls.tokenize "if True or False # baz  \n then import foo else export bar")
+    ?= [
+        tok ls.if_ "if", tok ls.bool "True", tok ls.infix_id "or",
+        tok ls.bool "False", tok ls.then_ "then", tok ls.import_ "import",
+        tok ls.prefix_id "foo", tok ls.else_ "else", tok ls.export_ "export",
+        tok ls.prefix_id "bar"
     ]
 ]

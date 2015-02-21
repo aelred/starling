@@ -40,13 +40,13 @@ test.test [
      {value=" ", type=space}, {value="10", type=num},
      {value=")", type=rpar}, {value=" ", type=space},
      {value="/", type=op}, {value="z", type=ident}],
-    (lexer.ignore space >> t " 1\n*(3 - 10) /z") ?=
+    (lexer.ignore [space] >> t " 1\n*(3 - 10) /z") ?=
     [{value="1", type=num}, {value="*", type=op}, 
      {value="(", type=lpar}, {value="3", type=num},
      {value="-", type=op}, {value="10", type=num},
      {value=")", type=rpar}, {value="/", type=op}, 
      {value="z", type=ident}],
-    (lexer.ignore space >> t "prim print printer") ?=
+    (lexer.ignore [space] >> t "prim print printer") ?=
     [{value="prim", type=ident}, {value="print", type=print},
      {value="printer", type=ident}]
 ]
