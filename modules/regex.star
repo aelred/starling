@@ -99,11 +99,12 @@ interp_pattern = \pat: let
         {type=type, val=result.bexpr} : (interp_pattern result.remainder),
 
     counted_rep = let
-        m = parse_int >> (take_until ("}," has)) pat.tail,
-        rem1 = drop_until ("}," has) pat.tail,
-        n_str = take_until (= '}') rem1.tail,
+        m_split = break ("}," has) pat.tail,
+        m = parse_int m_split._0,
+        rem1 = m_split._1,
+        n_str = take_until (='}') rem1.tail,
         n = if take 1 rem1 = "}" or (n_str = "") then m else parse_int n_str,
-        rem2 = (drop_until (= '}') rem1).tail,
+        rem2 = (drop_until (='}') rem1).tail,
         unbounded = (rem1.head = ',') and (n_str = "") in
         (
         if unbounded 
@@ -168,9 +169,8 @@ to_postfix = \pat: let
     drop = \state: {stack=(state.stack).tail, out=state.out},
     # pop symbols off the stack onto output while they satisfy p
     pop = \p state: let
-        stack_popped = take_while p state.stack,
-        stack_remainder = drop_while p state.stack in
-        {stack=stack_remainder, out=cat (reverse stack_popped) state.out},
+        stack_split = span p state.stack in
+        {stack=stack_split._1, out=cat (reverse stack_split._0) state.out},
     # fold function
     pf = \sym: 
         # push '(' onto the stack

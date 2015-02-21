@@ -78,6 +78,16 @@ map = \f: fold (\x accum: f x : accum) [],
 # return all elements in the list that satisfy the function
 filter = \f: fold (\x accum: if f x then x : accum else accum) [],
 
+# returns elements while predicate is true and the remainder of the list
+span = \p xs: let
+    span_ = span p xs.tail in
+    if xs = [] or (not >> p xs.head)
+    then ([], xs)
+    else (xs.head : span_._0, span_._1),
+
+# returns elements while predicate is false and the remainder of the list
+break = \p: span (not >> p),    
+
 # return the first n elements from the list
 take = \n xs:
     if n = 0
@@ -85,10 +95,7 @@ take = \n xs:
     else xs.head : (take (n - 1) xs.tail),
 
 # return elements while predicate is true
-take_while = \p xs: 
-    if xs = [] or (not >> p xs.head)
-    then []
-    else xs.head : (take_while p xs.tail),
+take_while = \p xs: (span p xs)._0,
 
 # return elements until predicate is true
 take_until = \p: take_while (not >> p),
@@ -100,10 +107,7 @@ drop = \n xs:
     else drop (n-1) xs.tail,
 
 # drop elements while predicate is true
-drop_while = \p xs: 
-    if (xs != []) and (p xs.head)
-    then drop_while p xs.tail
-    else xs,
+drop_while = \p xs: (span p xs)._1,
 
 # drop elements until the predicate is true
 drop_until = \p: drop_while (not >> p),
@@ -158,6 +162,6 @@ sort = \xs:
 
 in export 
     : not or and any all ? id const >> curry uncurry @ != < >= > max min sum
-    flip has foldr foldl fold foldr1 foldl1 fold1 map filter take take_while
-    take_until drop drop_while drop_until join range nats length reverse cat
-    zip unzip sort
+    flip has foldr foldl fold foldr1 foldl1 fold1 map filter span break take
+    take_while take_until drop drop_while drop_until join range nats length
+    reverse cat zip unzip sort
