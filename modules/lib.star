@@ -90,7 +90,7 @@ break = \p: span (not >> p),
 
 # return the first n elements from the list
 take = \n xs:
-    if n = 0
+    if (n = 0) or (xs = [])
     then []
     else xs.head : (take (n - 1) xs.tail),
 
@@ -102,7 +102,7 @@ take_until = \p: take_while (not >> p),
 
 # drop the first n elements from the list
 drop = \n xs:
-    if n = 0
+    if (n = 0) or (xs = [])
     then xs
     else drop (n-1) xs.tail,
 
