@@ -30,16 +30,24 @@ test [
     (test [assert True "Pass", assert True "Pass", assert False "Fail"]) ?=
     [{pass=True}, {pass=True}, {pass=False, message="Fail"}],
 
+    (report False (test [assert True "A", assert True "B", assert True "C"]))
+    ?= "...\nOK",
 
-    (report (test [assert True "A", assert True "B", assert True "C"])) ?=
-    "...\nOK",
-
-    (report (test [
+    (report False (test [
         assert True "A", 
         assert True "B", 
         assert False "yup",
         assert False "yes",
         assert True "C"
     ])) ?=
-    "..FF.\nFAIL: Test 2\nyup\nFAIL: Test 3\nyes\n"
+    "..FF.\nFAIL: Test 2\nyup\nFAIL: Test 3\nyes\n",
+
+    (report True (test [
+        assert True "A", 
+        assert True "B", 
+        assert False "yup",
+        assert False "yes",
+        assert True "C"
+    ])) ?=
+    "..F\nFAIL: Test 2\nyup\n"
 ]

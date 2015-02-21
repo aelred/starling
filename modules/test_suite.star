@@ -1,5 +1,5 @@
 let test = import test in
-test.report >> join [
+test.report True >> join [
     import test_test,
     import test_lang,
     import test_lib,
