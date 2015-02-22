@@ -136,7 +136,7 @@ is_op = \sym: [alt, star, concat, opt, plus, crep, urep] has sym.type,
 is_unary = \sym: [star, opt, plus, crep, urep] has sym.type,
 
 # return true if a character matches the given symbol
-sym_match = \sym char: 
+sym_match = \char sym:
     any [
         sym.type = all, 
         (sym.type = lit) and (sym.val has char),
@@ -328,13 +328,13 @@ minify_dfa = \dfa: let
 # match a string using a DFA
 match_dfa = \dfa str: let
     mdfa = \node matched str: let
-        new_nodes = get_trans (\sym: sym_match sym str.head) dfa node in
+        new_nodes = get_trans (sym_match str.head) dfa node in
         if (str = "") or (new_nodes = [])
             # if we can reach a final node, then this is a match
             then let
             end_str = (str = "") and (dfa.final has (end_trans node)) in
             if (dfa.final has node) or end_str
-            then {str=matched, match=True}
+            then {str=matched, rem=str, match=True}
             else {match=False}
         # move to next node
         else mdfa new_nodes.head (str.head : matched) str.tail,
@@ -354,9 +354,9 @@ match_dfa = \dfa str: let
     result = mdfa fst_node "" str in
 
     if result.match
-    then {match=result.match, str=reverse result.str}
+    then {match=result.match, str=reverse result.str, rem=result.rem}
     else if dfa.final has fst_node
-    then {match=True, str=""}
+    then {match=True, str="", rem=str}
     else {match=False},
 
 # take a pattern and return a function that will match strings

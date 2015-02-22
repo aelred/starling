@@ -3,7 +3,8 @@ match = import regex.match,
 test = import test,
 
 # match function, giving input and which part of input should match
-m = \inp part: {inp=inp, res={str=part, match=True}},
+m = \inp part: 
+    {inp=inp, res={str=part, rem=drop (length part) inp, match=True}},
 
 # total match function where regex should completely match input
 tm = \inp: m inp inp,

@@ -15,7 +15,7 @@ tokenize = \syntax input:
     longest_match = max_by (\r: length (r.match).str) matches,
     match_str = (longest_match.match).str,
     type = longest_match.type,
-    rem = drop (length match_str) input in
+    rem = (longest_match.match).rem in
     if matches != []
     then {value=match_str, type=type} : (tokenize syntax rem)
     else [],
