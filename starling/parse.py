@@ -148,7 +148,8 @@ def evaluate_expr(expr, lib=True, input_=None, name='expr'):
 def _evaluate(path, input_, name):
     module = imp.load_source(name, path)
     if input_ is not None:
-        inp_expr = evaluate_expr('"' + input_ + '"', name='input')
+        encoded = input_.encode('string_escape').replace('"', r'\"')
+        inp_expr = evaluate_expr('"' + encoded + '"', name='input')
         module.input_ = inp_expr
     return module._result()
 
