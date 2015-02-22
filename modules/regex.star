@@ -306,13 +306,24 @@ to_dfa = \nfa: let
         nodeset = stack.head,
         not_empty = \t: t.end != [],
         trans_closure = \sym: trans nodeset (epsclosure (succ_all nfa sym nodeset)) sym,
-        new_trans = filter not_empty >> (map trans_closure) syms,
+        new_trans = filter not_empty (map trans_closure syms),
         new_nodes = map (.end) new_trans,
-        filt_nodes = filter (not >> (dfa.nodes has)) new_nodes,
+        filt_nodes = filter (not >> (new_dfa.nodes has)) new_nodes,
         new_dfa = automata dfa.start dfa.final (cat new_trans dfa.trans) (nodeset : dfa.nodes) in
         if stack = [] then dfa else convert (nub (cat filt_nodes stack.tail)) new_dfa,
     result = convert [new_start] (automata new_start new_start [] []) in
     automata result.start (new_finals result) result.trans result.nodes,
+
+# minify DFA by changing union node names into fresh names
+minify_dfa = \dfa: let
+    new_names = zip dfa.nodes nats,
+    rename = \node: ((filter (\n: n._0=node) new_names).head)._1,
+    new_start = rename dfa.start,
+    new_final = map rename dfa.final,
+    new_trans = 
+        map (\t: trans (rename t.start) (rename t.end) t.sym) dfa.trans,
+    new_nodes = (unzip new_names)._1 in
+    automata new_start new_final new_trans new_nodes,
 
 # match a string using a DFA
 match_dfa = \dfa str: let
@@ -349,7 +360,7 @@ match_dfa = \dfa str: let
     else {match=False},
 
 # take a pattern and return a function that will match strings
-match = match_dfa >> to_dfa >> nfa,
+match = match_dfa >> minify_dfa >> to_dfa >> nfa,
 
 nfa = to_nfa >> to_tree >> lex_pattern,
 
@@ -357,4 +368,4 @@ lex_pattern = to_postfix >> add_concat >> interp_pattern
 
 in 
 export match add_concat to_postfix to_nfa nfa interp_pattern
-parse_int sym_match to_tree to_dfa lex_pattern interp_bracket_expr
+parse_int sym_match to_tree to_dfa minify_dfa lex_pattern interp_bracket_expr
