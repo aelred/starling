@@ -70,6 +70,12 @@ set_rem = let
         then n.left
         else n.right
         else ch_val swap_val swap_rem in
-    tree_walk left_case right_case remove set_empty in 
+    tree_walk left_case right_case remove set_empty,
 
-export set_empty set set_size set_items set_has set_add set_add_all set_rem
+set_union = \s1 s2: set_add_all (set_items s2) s1,
+
+set_diff = \s1 s2: set (filter (\e: not (set_has e s2)) (set_items s1)) in
+
+export
+set_empty set set_size set_items set_has set_add set_add_all set_rem
+set_union set_diff

@@ -12,6 +12,8 @@ set_has = s.set_has,
 set_add = s.set_add,
 set_add_all = s.set_add_all,
 set_rem = s.set_rem,
+set_union = s.set_union,
+set_diff = s.set_diff,
 
 set1 = set [1],
 set2 = set [1, 5, 4, 10],
@@ -54,5 +56,15 @@ test.test [
 
     # make sure sets are balanced with reasonable heights
     (set4.height >= 3) ?= True,
-    (set4.height < 6) ?= True
+    (set4.height < 6) ?= True,
+
+    (set_items (set_union set_empty set_empty)) ?= [],
+    (set_items (set_union set1 set_empty)) ?= (set_items set1),
+    (set_items (set_union set2 set2)) ?= (set_items set2),
+    (set_items (set_union set3 (set "yaz"))) ?= " adehlorwyz",
+
+    (set_items (set_diff set_empty set_empty)) ?= [],
+    (set_items (set_diff set1 set_empty)) ?= (set_items set1),
+    (set_items (set_diff set_empty set2)) ?= [],
+    (set_items (set_diff set3 (set "haz"))) ?= " delorw"
 ]
