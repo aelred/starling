@@ -134,7 +134,7 @@ class Identifier(Terminator):
         convert = {
             '.': 'f', '+': 'p', '-': 's', '*': 'a', '/': 'd', '=': 'e',
             '<': 'l', '>': 'g', '?': 'q', ':': 'c', '@': 't', '!': 'x',
-            '$': 'o'
+            '$': 'o', '&': 'n', '|': 'r'
         }
 
         if any(x in self.value for x in convert.keys()):

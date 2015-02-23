@@ -33,7 +33,7 @@ syntax = [
     # Regex patterns
     rule space "\\s+",
     rule comment "#[^\n]*",
-    rule infix_id "[-+*/=<>?:@!]+|and|or|mod|pow|has",
+    rule infix_id "[-+*/=<>?:@!&|]+|and|or|mod|pow|has",
     rule prefix_id "[_[:alpha:]]\\w*",
     rule number "\\d+",
     # "(\.[^\"])*"

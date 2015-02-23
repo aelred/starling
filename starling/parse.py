@@ -36,7 +36,7 @@ reserved = (
 )
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
-infix_id = (Word('+-*/=<>?:@!') | Keyword('and') | Keyword('or')
+infix_id = (Word('+-*/=<>?:@!&|') | Keyword('and') | Keyword('or')
             | Keyword('mod') | Keyword('pow') | Keyword('has'))('infix_id')
 ident = ~reserved + (infix_id | word_id)
 char = (sgl_quote +

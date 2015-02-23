@@ -42,7 +42,8 @@ test.test [
         tok ls.prefix_id "_0"
     ],
 
-    (ls.tokenize "(\"hi\" has 'i')and((1 mod 2)=(1 pow 2) or (+-*/=<>?:@!))")
+    (ls.tokenize 
+        "(\"hi\" has 'i')and((1 mod 2)=(1 pow 2) or (+-*/=<>?:@!&|))")
     ?= [
         tok ls.lpar "(", tok ls.string "\"hi\"", tok ls.infix_id "has",
         tok ls.char "'i'", tok ls.rpar ")", tok ls.infix_id "and", 
@@ -50,8 +51,8 @@ test.test [
         tok ls.infix_id "mod", tok ls.number "2", tok ls.rpar ")", 
         tok ls.equals "=", tok ls.lpar "(", tok ls.number "1", 
         tok ls.infix_id "pow", tok ls.number "2", tok ls.rpar ")", 
-        tok ls.infix_id "or", tok ls.lpar "(", tok ls.infix_id "+-*/=<>?:@!", 
-        tok ls.rpar ")", tok ls.rpar ")"
+        tok ls.infix_id "or", tok ls.lpar "(", 
+        tok ls.infix_id "+-*/=<>?:@!&|", tok ls.rpar ")", tok ls.rpar ")"
     ],
 
     (ls.tokenize "\"\\\"\\\\'\\b\\f\\n\\r\\t\\v\\x45\\x0e\\123\\20\\7\"") ?=
