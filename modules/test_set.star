@@ -18,18 +18,22 @@ set_diff = s.set_diff,
 set1 = set [1],
 set2 = set [{x=1}, {x=5}, {x=4}, {x=10}],
 set3 = set "hello world",
-set4 = set (range 0 14) in
+set4 = set (range 0 14),
+enum a b c,
+set5 = set [a, b] in
 
 test.test [
     (set_size set_empty) ?= 0,
     (set_size set1) ?= 1,
     (set_size set2) ?= 4,
     (set_size set3) ?= 8,
+    (set_size set5) ?= 2,
 
     (set_items set_empty) ?= [],
     (set_items set1) ?= [1],
     (set_items set2) ?= [{x=1}, {x=4}, {x=5}, {x=10}],
     (set_items set3) ?= " dehlorw",
+    (set_items set5) ?= [a, b],
 
     (set_has 10 set_empty) ?= False,
     (set_has 1 set1) ?= True,
@@ -43,6 +47,7 @@ test.test [
     (set_items (set_add 10 set1)) ?= [1, 10],
     (set_items (set_add {x=4} set2)) ?= [{x=1}, {x=4}, {x=5}, {x=10}],
     (set_items (set_add 'a' set3)) ?= " adehlorw",
+    (set_items (set_add c set5)) ?= [a, b, c],
 
     (set_add_all [] set3) ?= set3,
     (set_items (set_add_all (map (\x: {x=x}) (range 0 5)) set2)) ?= 

@@ -185,6 +185,9 @@ class Enum(StarType):
     def eq(self, other):
         return Boolean(type(self) == type(other) and self._id == other._id)
 
+    def le(self, other):
+        return Boolean(self._id <= other._id)
+
 
 class Primitive(StarType):
     def __init__(self, value):
