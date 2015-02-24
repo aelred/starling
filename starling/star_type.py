@@ -131,6 +131,24 @@ class Object(StarType):
                            all(k1 == k2 and v1().eq(v2()).value
                                for (k1, v1), (k2, v2) in zip(i1, i2)))
 
+    def le(self, other):
+        # only objects with identical keys are comparable
+        if type(self) != type(other) or (
+             sorted(self.value.keys()) != sorted(other.value.keys())):
+            raise error.StarlingRuntimeError(
+                'Type error: Can\'t compare %s and %s' % (
+                    self.str(), other.str()))
+
+        for (k1, v1), (k2, v2) in zip(self._items, other._items):
+            if v1().eq(v2()).value:
+                continue
+            elif v1().le(v2()).value:
+                return Boolean(True)
+            else:
+                return Boolean(False)
+
+        return Boolean(True)
+
 
 class _EmptyList(Object):
     def __init__(self):
