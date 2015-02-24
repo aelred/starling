@@ -9,6 +9,8 @@ parser = import parser,
 ::= = parser.::=,
 | = parser.|,
 
+rule = lexer.rule,
+
 enum num op lpar rpar ident expr op_expr par_expr,
 
 syntax = [
@@ -20,7 +22,7 @@ syntax = [
 ],
 
 # left- and right- recursive grammar
-grammar = parser.grammar expr [
+grammar = parser.grammar expr [num, op, lpar, rpar, ident] [
     expr ::= [num] | [ident] | [op_expr] | [par_expr],
     par_expr ::= [lpar, expr, rpar],
     op_expr ::= [expr, op, expr]
@@ -28,36 +30,36 @@ grammar = parser.grammar expr [
 
 tree = \type children: {type=type, children=children},
 
-p = parser.parse grammar >> (lexer.lex syntax) in 
+p = parser.parse grammar >> (lexer.tokenize syntax) in 
 
 test.test [
-    (p "2") ?= (tree expr [tree (term num) "2"]),
-    (p "var") ?= (tree expr [tree (term ident) "var"]),
+    (p "2") ?= (tree expr [tree num "2"]),
+    (p "var") ?= (tree expr [tree ident "var"]),
 
     (p "num+10") ?= (
         tree expr [tree op_expr [
             tree expr [tree ident "num"],
-            tree (term op) "+",
+            tree op "+",
             tree expr [tree num "10"]
         ]]
     ),
 
     (p "2*(1-3-10)/z") ?= (
         tree expr [tree op_expr [
-            tree expr [tree (term num) "2"],
-            tree (term op) "*",
+            tree expr [tree num "2"],
+            tree op "*",
             tree expr [tree op_expr [
                 tree expr [tree op_expr [
                     tree expr [tree op_expr [
-                        tree expr [tree (term num) "1"],
-                        tree (term op) "-",
-                        tree expr [tree (term num) "3"]
+                        tree expr [tree num "1"],
+                        tree op "-",
+                        tree expr [tree num "3"]
                     ]],
-                    tree (term op) "-",
-                    tree expr [tree (term num) "10"]
+                    tree op "-",
+                    tree expr [tree num "10"]
                 ]],
-                tree (term op) "/",
-                tree expr [tree (term ident) "z"]
+                tree op "/",
+                tree expr [tree ident "z"]
             ]]
         ]]
     )
