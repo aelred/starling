@@ -132,6 +132,10 @@ class Object(StarType):
                                for (k1, v1), (k2, v2) in zip(i1, i2)))
 
     def le(self, other):
+        # everything is greater than the empty list
+        if other == empty_list:
+            return Boolean(False)
+
         # only objects with identical keys are comparable
         if type(self) != type(other) or (
              sorted(self.value.keys()) != sorted(other.value.keys())):
