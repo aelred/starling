@@ -63,7 +63,7 @@ def test_lazy():
         'strict 4 : [2]': '[4, 2]',
         'sum (range 0 1000)': '499500',
         """
-        let r = \\n:
+        let r = n ->
             strict if n = 0 then [] else r strict (n - 1) in r 1000
         """: '[]'
     }
@@ -90,7 +90,7 @@ def test_runtime_error():
         '(1 == 2)',
         'a',
         '((let y=10 in y) + y)',
-        '(let foo=(\ x: 2 * x) in (foo x))',
+        '(let foo=(x -> 2 * x) in (foo x))',
         'if 1 then 2 else 0',
         '3 <= "False"'
     ]

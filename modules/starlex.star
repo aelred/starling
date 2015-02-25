@@ -13,7 +13,7 @@ syntax = [
     rule t.then_ "then",
     rule t.else_ "else",
     rule t.enum_ "enum",
-    rule t.lambda "\\\\",
+    rule t.arrow "->",
     rule t.comma ",",
     rule t.dot "\\.",
     rule t.import_ "import",
@@ -24,7 +24,6 @@ syntax = [
     rule t.rlist "\\]",
     rule t.lobj "\\{",
     rule t.robj "\\}",
-    rule t.colon ":",
     rule t.equals "=",
     rule t.bool "True|False",
 

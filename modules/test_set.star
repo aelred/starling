@@ -50,7 +50,7 @@ test.test [
     (set_items (set_add c set5)) ?= [a, b, c],
 
     (set_add_all [] set3) ?= set3,
-    (set_items (set_add_all (map (\x: {x=x}) (range 0 5)) set2)) ?= 
+    (set_items (set_add_all (map (x -> {x=x}) (range 0 5)) set2)) ?= 
     [{x=0}, {x=1}, {x=2}, {x=3}, {x=4}, {x=5}, {x=10}],
 
     (set_items (set_rem 0 set_empty)) ?= [],
@@ -58,7 +58,7 @@ test.test [
     (set_items (set_rem {x=4} set2)) ?= [{x=1}, {x=5}, {x=10}],
     (set_items (set_rem {x=8} set2)) ?= [{x=1}, {x=4}, {x=5}, {x=10}],
     (set_items (set_rem 'o' set3)) ?= " dehlrw",
-    (any (map (\c: set_has c (set_rem c set3)) "hello world")) ?= False,
+    (any (map (c -> set_has c (set_rem c set3)) "hello world")) ?= False,
 
     # make sure sets are balanced with reasonable heights
     (set4.height >= 3) ?= True,

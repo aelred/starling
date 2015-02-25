@@ -1,7 +1,7 @@
 let 
 
-nub = \l: let
-    nub_ = \xs ls:
+nub = l -> let
+    nub_ = xs ls ->
         if xs = []
         then []
         else if ls has xs.head
@@ -9,14 +9,14 @@ nub = \l: let
         else xs.head : (nub_ xs.tail (xs.head : ls)) in
     nub_ l [],
 
-at_least = \n xs:
+at_least = n xs ->
     if n = 0 
     then True
     else if xs = []
     then False
     else at_least (n-1) xs.tail,
 
-starts_with = \xs sub: 
+starts_with = xs sub -> 
     if sub = []
     then True
     else if xs = []
@@ -25,11 +25,11 @@ starts_with = \xs sub:
     then starts_with xs.tail sub.tail
     else False,
 
-char_to_digit = \c: (ord c) - 48,
+char_to_digit = c -> (ord c) - 48,
 
-parse_int = foldl (\x c: (10 * x) + (char_to_digit c)) 0,
+parse_int = foldl (x c -> (10 * x) + (char_to_digit c)) 0,
 
-crange = \start end: map chr (range start (end+1)),
+crange = start end -> map chr (range start (end+1)),
 
 upper = crange 65 90,
 lower = crange 97 122,
@@ -61,12 +61,12 @@ char_short = [
 ],
 
 # interpret bracket expressions such as [0-9a-f] and [^+-]
-interp_bracket_expr = \pat: let
-    add_bexpr = \new_bexpr result: 
+interp_bracket_expr = pat -> let
+    add_bexpr = new_bexpr result -> 
         {bexpr=cat new_bexpr result.bexpr, remainder=result.remainder},
-    interp = \pat: let
+    interp = pat -> let
         is_range = (at_least 4 pat) and (pat@1 = '-'),
-        class_matches = filter (\cl: starts_with pat (cl@0)) char_classes,
+        class_matches = filter (cl -> starts_with pat (cl@0)) char_classes,
         class = class_matches.head,
         get_range = map chr (range (ord (pat@0)) (ord (pat@2) + 1)) in
         if pat.head = ']'
@@ -82,7 +82,7 @@ interp_bracket_expr = \pat: let
     else interp pat,
 
 # interpret a regex pattern, identifying special characters
-interp_pattern = \pat: let
+interp_pattern = pat -> let
     sym = pat.head,
     type = 
         if sym = '|' then alt else if sym = '*' then star else if sym = '?'
@@ -116,7 +116,7 @@ interp_pattern = \pat: let
     then []
     else if sym = '\\'
     then let
-        class_matches = filter (\cl: (cl@0) = (pat@1)) char_short,
+        class_matches = filter (cl -> (cl@0) = (pat@1)) char_short,
         class = class_matches.head in
         if class_matches != []
         then (class@1) : (interp_pattern (drop 2 pat))
@@ -132,11 +132,11 @@ interp_pattern = \pat: let
 enum alt star concat opt plus crep urep,
 enum all lit notlit lpar rpar ass_start ass_end eps,
 
-is_op = \sym: [alt, star, concat, opt, plus, crep, urep] has sym.type,
-is_unary = \sym: [star, opt, plus, crep, urep] has sym.type,
+is_op = sym -> [alt, star, concat, opt, plus, crep, urep] has sym.type,
+is_unary = sym -> [star, opt, plus, crep, urep] has sym.type,
 
 # return true if a character matches the given symbol
-sym_match = \char sym:
+sym_match = char sym ->
     any [
         sym.type = all, 
         (sym.type = lit) and (sym.val has char),
@@ -144,8 +144,8 @@ sym_match = \char sym:
     ],
 
 # add explicit concat symbol
-add_concat = \pat:
-    let concatenate = \xs accum: let 
+add_concat = pat ->
+    let concatenate = xs accum -> let 
         l = xs._0, r = xs._1,
         lop = (l.type = alt) or (l.type = lpar),
         rop = (is_op r) or (r.type = rpar) in
@@ -157,29 +157,29 @@ add_concat = \pat:
     else pat.head : (fold concatenate [] (zip pat pat.tail)),
 
 # transform a regular expression to postfix form
-to_postfix = \pat: let 
+to_postfix = pat -> let 
     # operator precedence
-    prec = \sym: 
+    prec = sym -> 
         if is_unary sym then 3 else if sym.type = concat then 2 else 1,
     # push a symbol onto the stack
-    push = \sym state: {stack=sym:state.stack, out=state.out},
+    push = sym state -> {stack=sym:state.stack, out=state.out},
     # output a symbol
-    output = \sym state: {stack=state.stack, out=sym:state.out},
+    output = sym state -> {stack=state.stack, out=sym:state.out},
     # drop the top stack symbol
-    drop = \state: {stack=(state.stack).tail, out=state.out},
+    drop = state -> {stack=(state.stack).tail, out=state.out},
     # pop symbols off the stack onto output while they satisfy p
-    pop = \p state: let
+    pop = p state -> let
         stack_split = span p state.stack in
         {stack=stack_split._1, out=cat (reverse stack_split._0) state.out},
     # fold function
-    pf = \sym: 
+    pf = sym -> 
         # push '(' onto the stack
         if sym.type = lpar then push sym 
         # pop symbols to output until a '(', then remove the '('
-        else if sym.type = rpar then drop >> (pop (\s: s.type != lpar))
+        else if sym.type = rpar then drop >> (pop (s -> s.type != lpar))
         # pop higher-precedence operators to output, then push operator
         else if is_op sym
-        then push sym >> (pop \op: is_op op and ((prec sym) < (prec op)))
+        then push sym >> (pop (op -> is_op op and ((prec sym) < (prec op))))
         # otherwise, push identifier to output
         else output sym,
     pf_fold = fold pf {stack=[], out=[]} (reverse pat) in
@@ -187,30 +187,30 @@ to_postfix = \pat: let
     cat (reverse pf_fold.out) pf_fold.stack,
 
 # tree constructor
-tree = \sym children: {sym=sym, children=children},
+tree = sym children -> {sym=sym, children=children},
 
 # transform a postfix regex into a tree
-to_tree = \pfix: let
-    subtree = \stack sym: let
+to_tree = pfix -> let
+    subtree = stack sym -> let
         n_params = 
             if not (is_op sym) then 0 else if is_unary sym then 1 else 2 in
         tree sym (reverse (take n_params stack)) : (drop n_params stack) in
     (foldl subtree [[]] pfix).head,
 
 # NFA/DFA operations
-automata = \s f t n: {start=s, final=f, trans=t, nodes=n},
-trans = \start end sym: {start=start, end=end, sym=sym},
+automata = s f t n -> {start=s, final=f, trans=t, nodes=n},
+trans = start end sym -> {start=start, end=end, sym=sym},
 
-edges = \fa node: filter (\t: t.start = node) fa.trans,
-all_syms = \fa: nub >> (filter (!= {type=eps})) >> (map (.sym)) fa.trans,
+edges = fa node -> filter (t -> t.start = node) fa.trans,
+all_syms = fa -> nub >> (filter (!= {type=eps})) >> (map (.sym)) fa.trans,
 
 # return all potential transition nodes given a predicate on the transition
-get_trans = \p fa: map (.end) >> (filter (\t: p t.sym)) >> (edges fa),
-succ = \sym: get_trans (=sym),
+get_trans = p fa -> map (.end) >> (filter (t -> p t.sym)) >> (edges fa),
+succ = sym -> get_trans (=sym),
 
-succ_all = \fa sym ns: join (map (succ sym fa) ns),
-closure = \fa sym ns: let
-    closure_ = \ns visited: let
+succ_all = fa sym ns -> join (map (succ sym fa) ns),
+closure = fa sym ns -> let
+    closure_ = ns visited -> let
         filt_ns = filter (not >> (visited has)) ns,
         new_visited = cat filt_ns visited in
         if filt_ns = []
@@ -219,35 +219,35 @@ closure = \fa sym ns: let
     closure_ ns [],
 
 # turn a tree into a nondeterministic finite automata (NFA)
-to_nfa = \t: let
+to_nfa = t -> let
     # change the end node of an automata
-    set_final = \n nfa: automata nfa.start n nfa.trans nfa.nodes,
+    set_final = n nfa -> automata nfa.start n nfa.trans nfa.nodes,
     # add new transitions to the automata
-    add_trans = \ts nfa: 
+    add_trans = ts nfa -> 
         automata nfa.start nfa.final (cat ts nfa.trans) nfa.nodes,
     # an empty nfa
     empty = automata 0 0 [] [0],
 
-    relabel_nfa = \nfa nfa_other: let
+    relabel_nfa = nfa nfa_other -> let
         offset = (nfa_other.nodes).head + 1,
         relabel = (+ offset),
-        relabel_trans = \t: trans (relabel t.start) (relabel t.end) t.sym,
+        relabel_trans = t -> trans (relabel t.start) (relabel t.end) t.sym,
         new_start = relabel nfa.start,
         new_final = relabel nfa.final,
         new_trans = map relabel_trans nfa.trans,
         new_nodes = map relabel nfa.nodes in
         automata new_start new_final new_trans new_nodes,
 
-    join = \nfa1 nfa2: let
+    join = nfa1 nfa2 -> let
         rnfa2 = relabel_nfa nfa2 nfa1,
         new_trans = cat rnfa2.trans nfa1.trans,
         new_nodes = cat rnfa2.nodes nfa1.nodes,
         new_nfa = automata nfa1.start nfa1.final new_trans new_nodes in 
         {new=new_nfa, n1=nfa1, n2=rnfa2},
 
-    epstrans = \start end: trans start end {type=eps},
+    epstrans = start end -> trans start end {type=eps},
     
-    parse_tree = \node: let
+    parse_tree = node -> let
         child = node.children,
         nfas = map parse_tree child,
         sym = node.sym in
@@ -297,15 +297,15 @@ to_nfa = \t: let
     if t = [] then empty else parse_tree t,
 
 # turn an NFA into a deterministic finite automata (DFA)
-to_dfa = \nfa: let
+to_dfa = nfa -> let
     epsclosure = closure nfa {type=eps},
     syms = all_syms nfa,
     new_start = epsclosure [nfa.start],
-    new_finals = \dfa: filter (has nfa.final) dfa.nodes,
-    convert = \stack dfa: let 
+    new_finals = dfa -> filter (has nfa.final) dfa.nodes,
+    convert = stack dfa -> let 
         nodeset = stack.head,
-        not_empty = \t: t.end != [],
-        trans_closure = \sym: trans nodeset (epsclosure (succ_all nfa sym nodeset)) sym,
+        not_empty = t -> t.end != [],
+        trans_closure = sym -> trans nodeset (epsclosure (succ_all nfa sym nodeset)) sym,
         new_trans = filter not_empty (map trans_closure syms),
         new_nodes = map (.end) new_trans,
         filt_nodes = filter (not >> (new_dfa.nodes has)) new_nodes,
@@ -315,19 +315,19 @@ to_dfa = \nfa: let
     automata result.start (new_finals result) result.trans result.nodes,
 
 # minify DFA by changing union node names into fresh names
-minify_dfa = \dfa: let
+minify_dfa = dfa -> let
     new_names = zip dfa.nodes nats,
-    rename = \node: ((filter (\n: n._0=node) new_names).head)._1,
+    rename = node -> ((filter (n -> n._0=node) new_names).head)._1,
     new_start = rename dfa.start,
     new_final = map rename dfa.final,
     new_trans = 
-        map (\t: trans (rename t.start) (rename t.end) t.sym) dfa.trans,
+        map (t -> trans (rename t.start) (rename t.end) t.sym) dfa.trans,
     new_nodes = (unzip new_names)._1 in
     automata new_start new_final new_trans new_nodes,
 
 # match a string using a DFA
-match_dfa = \dfa str: let
-    mdfa = \node matched str: let
+match_dfa = dfa str -> let
+    mdfa = node matched str -> let
         new_nodes = get_trans (sym_match str.head) dfa node in
         if (str = "") or (new_nodes = [])
             # if we can reach a final node, then this is a match
@@ -341,13 +341,13 @@ match_dfa = \dfa str: let
 
     # find first node, given '^' symbols
     fst_node = let
-        start_trans = \node: let
+        start_trans = node -> let
             s = succ {type=ass_start} dfa node in
             if s = [] then node else start_trans s.head in
         start_trans dfa.start,
 
     # find last node, given '$' symbols
-    end_trans = \node: let
+    end_trans = node -> let
         e = succ {type=ass_end} dfa node in
         if e = [] then node else end_trans e.head,
 

@@ -70,8 +70,8 @@ test.test [
     (let x=2 in ((let x=10 in x) / x)) ?= 5,
 
     # functions
-    (let square=\x: x * x in (square 5)) ?= 25,
-    (let avg = (\ x y: ((x + y) / 2)) in (let a= 6 in (avg a 8))) ?= 7,
+    (let square=x -> x * x in (square 5)) ?= 25,
+    (let avg = ( x y -> ((x + y) / 2)) in (let a= 6 in (avg a 8))) ?= 7,
 
     # lists
     [] ?= [],
@@ -84,9 +84,9 @@ test.test [
     (3 : (2 : (1 : []))) ?= [3, 2, 1],
 
     # recursion
-    (let tri = \ x: (if x = 0 then 0 else (tri (x - 1)) + x) in (tri 4)) ?= 
+    (let tri =  x -> (if x = 0 then 0 else (tri (x - 1)) + x) in (tri 4)) ?= 
     10,
-    (let fib = \ x:
+    (let fib =  x ->
         if x = 0
         then 0
         else if x = 1
@@ -104,7 +104,7 @@ test.test [
     (let x=0 in {x=x}) ?= {x=0},
     {x=3}.x ?= 3,
     ({a=1, b={c=2}}.b).c ?= 2,
-    ({a=\x: x+1}.a 10) ?= 11,
+    ({a=x -> x+1}.a 10) ?= 11,
     ((.a) {a=10}) ?= 10,
 
     # enums
@@ -114,7 +114,7 @@ test.test [
     let enum a b, x=a, y=a, z=b in 
     assert (all [a=a, a!=b, a=x, a!=z, x=y, x!=z]) "Bad enum inequalities",
     # referential transparency
-    let f = (\x: let enum a in a) in (f 1) ?= (f 1),
+    let f = (x -> let enum a in a) in (f 1) ?= (f 1),
 
     # tuples
     () ?= (),
@@ -176,7 +176,7 @@ test.test [
     # inverts a number
     (let inv =
         (
-            \ x:  # accepts one argument, x
+            x ->  # accepts one argument, x
             (    # and then... (this is my favourite bit)
                 0 - x  # return 0 - x = -x
             )

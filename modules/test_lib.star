@@ -50,8 +50,8 @@ t.test [
     # tail call elimination test
     (sum (range 0 1000)) ?= 499500,
     (length (range 0 1000)) ?= 1000,
-    (any (map (\x: x<0) (range 0 1000))) ?= False,
-    (all (map (\x: x>=0) (range 0 1000))) ?= True,
+    (any (map (x -> x<0) (range 0 1000))) ?= False,
+    (all (map (x -> x>=0) (range 0 1000))) ?= True,
     ((reverse (range 0 1000)).head) ?= 999,
 
     # partial application
@@ -66,7 +66,7 @@ t.test [
     ((const []) []) ?= [],
     ((+ 1) >> (* 2) 3) ?= 7,
     ((flip take) nats 3) ?= [0, 1, 2],
-    (curry (\p: p._0 + p._1) 3 8) ?= 11,
+    (curry (p -> p._0 + p._1) 3 8) ?= 11,
     (uncurry (+) (3, 8)) ?= 11,
 
     # list operations

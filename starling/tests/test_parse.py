@@ -28,7 +28,7 @@ def test_grammar():
     _check_parse('(not True)', [[[['not', 'True']]]])
     _check_parse('6 # still commenting!', [[['6']]])
     _check_parse('foo "My string"', [[['foo', '"My string"']]])
-    _check_parse('let f = \ x: (x * x) in f 10',
+    _check_parse('let f = x -> (x * x) in f 10',
                  [[[[[['f', [['x', [['x', '*', 'x']]]]]], ['f', '10']]]]])
 
     # obnoxious code
@@ -36,8 +36,8 @@ def test_grammar():
         """
         # do the thing!
         (let foo # yeah!
-        =      \\    \t   xs
-        :foo
+        =          \t   xs
+        ->foo
         xs
      in
         (foo [ 1,   # crazy!
@@ -75,7 +75,7 @@ def test_tokenize():
               '      Number: 1\n'
               '    Number: 2')
 
-    _tokenize('let f = \ x y: x + y in f 2 10',
+    _tokenize('let f = x y -> x + y in f 2 10',
               'Script:\n'
               '  Let:\n'
               '    Bindings:\n'

@@ -28,8 +28,8 @@ grammar = parser.grammar expr [num, op, lpar, rpar, ident] [
     op_expr ::= [expr, op, expr]
 ],
 
-tree = \sym children: {is_leaf=False, sym=sym, children=children},
-leaf = \sym value: {is_leaf=True, sym=sym, value=value},
+tree = sym children -> {is_leaf=False, sym=sym, children=children},
+leaf = sym value -> {is_leaf=True, sym=sym, value=value},
 
 p = 
     parser.suppress [expr, par_expr, lpar, rpar] >> 

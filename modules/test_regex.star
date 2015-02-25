@@ -3,17 +3,17 @@ match = import regex.match,
 test = import test,
 
 # match function, giving input and which part of input should match
-m = \inp part: 
+m = inp part -> 
     {inp=inp, res={str=part, rem=drop (length part) inp, match=True}},
 
 # total match function where regex should completely match input
-tm = \inp: m inp inp,
+tm = inp -> m inp inp,
 
-re = \pat pos neg: let
-    assertions = \pred msg: 
-        map (\s: test.assert (pred s) (join [pat, msg, str s])),
-    pos_t = assertions (\s: (match pat s.inp) = s.res) " doesn't match " pos,
-    neg_t = assertions (\s: not (match pat s).match) " matches " neg in
+re = pat pos neg -> let
+    assertions = pred msg -> 
+        map (s -> test.assert (pred s) (join [pat, msg, str s])),
+    pos_t = assertions (s -> (match pat s.inp) = s.res) " doesn't match " pos,
+    neg_t = assertions (s -> not (match pat s).match) " matches " neg in
     cat pos_t neg_t in
 
 test.test >> join [

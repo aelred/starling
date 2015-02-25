@@ -5,20 +5,19 @@ test = import test,
 ?= = test.assert_equal,
 ?!= = test.assert_unequal,
 
-tok = \type value: {type=type, value=value} in
+tok = type value -> {type=type, value=value} in
 
 test.test [
     (ls.tokenize "") ?= [],
 
-    (ls.tokenize "let map = \\f:\n\tfold (\\x accum: f x : accum) []") ?=
+    (ls.tokenize "let map = f ->\n\tfold (x accum -> f x : accum) []") ?=
     [
         tok t.let_ "let", tok t.prefix_id "map", tok t.equals "=",
-        tok t.lambda "\\", tok t.prefix_id "f", tok t.colon ":",
-        tok t.prefix_id "fold", tok t.lpar "(", tok t.lambda "\\",
-        tok t.prefix_id "x", tok t.prefix_id "accum", tok t.colon ":",
-        tok t.prefix_id "f", tok t.prefix_id "x", tok t.colon ":",
-        tok t.prefix_id "accum", tok t.rpar ")", tok t.llist "[",
-        tok t.rlist "]"
+        tok t.prefix_id "f", tok t.arrow "->", tok t.prefix_id "fold", 
+        tok t.lpar "(", tok t.prefix_id "x", tok t.prefix_id "accum", 
+        tok t.arrow "->", tok t.prefix_id "f", tok t.prefix_id "x", 
+        tok t.infix_id ":", tok t.prefix_id "accum", tok t.rpar ")", 
+        tok t.llist "[", tok t.rlist "]"
     ],
 
     (ls.tokenize "let letter=1, lettuce=(10=letter) in [lettuce, letter]") ?=

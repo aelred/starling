@@ -23,7 +23,7 @@ dot = Suppress(Literal('.'))
 
 let = Suppress(Keyword('let'))
 in_ = Suppress(Keyword('in'))
-lambda_ = Suppress(Literal('\\'))
+arrow = Suppress(Literal('->'))
 if_ = Suppress(Keyword('if'))
 then = Suppress(Keyword('then'))
 else_ = Suppress(Keyword('else'))
@@ -32,7 +32,7 @@ export = Suppress(Keyword('export'))
 strict = Suppress(Keyword('strict'))
 enum = Suppress(Keyword('enum'))
 reserved = (
-    let | in_ | lambda_ | if_ | then | else_ | import_ | export | strict | enum
+    let | in_ | arrow | if_ | then | else_ | import_ | export | strict | enum
 )
 
 word_id = Word(alphas + '_', alphanums + '_')('prefix_id')
@@ -61,8 +61,8 @@ bindings = Group(delimitedList(enum | binding))('bindings')
 let_expr = Group(let + bindings + in_ - expr)('let*')
 
 lambda_inner = Forward()
-lambda_inner << Group(ident + ((colon + expr) | lambda_inner))('lambda')
-lambda_expr = lambda_ + lambda_inner
+lambda_inner << Group(ident + ((arrow + expr) | lambda_inner))('lambda')
+lambda_expr = lambda_inner
 
 object_binding = Group(ident + equals + expr)('object_binding')
 object_expr = Group(lobj + Optional(delimitedList(object_binding)) +
