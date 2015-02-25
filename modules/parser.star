@@ -15,9 +15,14 @@ set_diff = s.set_diff,
 # this completely abuses left-associativity!
 | = \production expr: {sym=(production.head).sym, expr=expr} : production,
 
+# create a new grammar
+# start: the top-level symbol to start the pars
+# terminals: a list of terminal symbols with no productions
+# productions: a list of productions, made with the ::= operator
 grammar = \start terminals productions: 
     {start=start, terminals=terminals, productions=join productions},
 
+# parse some tokens using a grammar, generating a parse tree
 parse = \grammar tokens: let
     edge_trees = build_trees grammar tokens passive_chart,
     passive_chart = passive_edges final_chart,
@@ -25,6 +30,21 @@ parse = \grammar tokens: let
     start_edge = passive_edge 0 (length tokens) grammar.start,
     results = filter (uncurry \e trees: e = start_edge) edge_trees in
     ((results.head)._1).head,
+
+# remove the given symbols from the parse tree
+# when used to remove top-level symbol, it will only return the first
+# child of the top level symbol.
+suppress = \syms parse_tree: let
+    suppress_ = \parse_tree: let
+        suppress_children = join (map suppress_ parse_tree.children) in
+        if syms has parse_tree.sym
+        # remove this node and return its children
+        then if parse_tree.is_leaf then [] else suppress_children
+        # keep this node
+        else if parse_tree.is_leaf 
+        then [parse_tree]
+        else [tree parse_tree.sym suppress_children] in
+    (suppress_ parse_tree).head,
     
 # build a new set by repeatedly mapping over a set until no new elements
 limit = \more start: let
@@ -76,7 +96,8 @@ passive_edges = \chart: let
         map (\e: passive_edge e.node j e.sym) (filter is_passive state) in
     join (map (uncurry state_passives) (zip nats (map set_items chart))),
 
-tree = \sym children: {sym=sym, children=children},
+tree = \sym children: {is_leaf=False, sym=sym, children=children},
+leaf = \sym value: {is_leaf=True, sym=sym, value=value},
 
 build_trees = \grammar tokens passive_chart: let
     edge_trees = map (\e: (e, trees_for e)) passive_chart,
@@ -87,7 +108,7 @@ build_trees = \grammar tokens passive_chart: let
             (filter (\p: p.sym = e.sym) grammar.productions),
         scan_trees = 
             if (e.i = (e.j - 1)) and (grammar.terminals has e.sym)
-            then [tree e.sym ((tokens@(e.i)).value)]
+            then [leaf e.sym ((tokens@(e.i)).value)]
             else [] in
         cat prod_trees scan_trees,
 
@@ -105,4 +126,4 @@ build_trees = \grammar tokens passive_chart: let
 
     edge_trees
 
-in export ::= | grammar parse
+in export ::= | grammar parse suppress

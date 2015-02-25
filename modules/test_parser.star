@@ -28,39 +28,43 @@ grammar = parser.grammar expr [num, op, lpar, rpar, ident] [
     op_expr ::= [expr, op, expr]
 ],
 
-tree = \sym children: {sym=sym, children=children},
+tree = \sym children: {is_leaf=False, sym=sym, children=children},
+leaf = \sym value: {is_leaf=True, sym=sym, value=value},
 
-p = parser.parse grammar >> (lexer.tokenize syntax) in 
+p = 
+    parser.suppress [expr, par_expr, lpar, rpar] >> 
+    (parser.parse grammar) >> 
+    (lexer.tokenize syntax) in 
 
 test.test [
-    (p "2") ?= (tree expr [tree num "2"]),
-    (p "var") ?= (tree expr [tree ident "var"]),
+    (p "2") ?= (leaf num "2"),
+    (p "var") ?= (leaf ident "var"),
 
     (p "num+10") ?= (
-        tree expr [tree op_expr [
-            tree expr [tree ident "num"],
-            tree op "+",
-            tree expr [tree num "10"]
-        ]]
+        tree op_expr [
+            leaf ident "num",
+            leaf op "+",
+            leaf num "10"
+        ]
     ),
 
     (p "2*(1-3-10)/z") ?= (
-        tree expr [tree op_expr [
-            tree expr [tree num "2"],
-            tree op "*",
-            tree expr [tree op_expr [
-                tree expr [tree op_expr [
-                    tree expr [tree op_expr [
-                        tree expr [tree num "1"],
-                        tree op "-",
-                        tree expr [tree num "3"]
-                    ]],
-                    tree op "-",
-                    tree expr [tree num "10"]
-                ]],
-                tree op "/",
-                tree expr [tree ident "z"]
-            ]]
-        ]]
+        tree op_expr [
+            leaf num "2",
+            leaf op "*",
+            tree op_expr [
+                tree op_expr [
+                    leaf num "1",
+                    leaf op "-",
+                    tree op_expr [
+                        leaf num "3",
+                        leaf op "-",
+                        leaf num "10"
+                    ]
+                ],
+                leaf op "/",
+                leaf ident "z"
+            ]
+        ]
     )
 ]
