@@ -7,9 +7,9 @@ assert = pred message ->
     then {pass=True}
     else {pass=False, message=message},
 
-assert_equal = x y -> assert (x=y) (join [repr x, " != ", repr y]),
+assert_equal = x y -> assert (x==y) (join [repr x, " != ", repr y]),
 
-assert_unequal = x y -> assert (x!=y) (join [repr x, " = ", repr y]),
+assert_unequal = x y -> assert (x!=y) (join [repr x, " == ", repr y]),
 
 test = map (t -> if t.pass then {pass=True} else t),
 
@@ -33,7 +33,7 @@ report = fail_fast results -> let
 
     # string details of each failing test    
     detail = 
-        if fails = []
+        if fails == []
         then "OK"
         else join (map fail_message fails) in
 

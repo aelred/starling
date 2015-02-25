@@ -29,12 +29,12 @@ t.test [
     (0 > 0) ?= False,
     (not False) ?= True,
     (not True) ?= False,
-    ((1 = 1) and (2 = 2)) ?= True,
-    ((1 = 1) and (2 = 1)) ?= False,
+    ((1 == 1) and (2 == 2)) ?= True,
+    ((1 == 1) and (2 == 1)) ?= False,
     (False and False) ?= False,
     (True or True) ?= True,
     (True or False) ?= True,
-    ((False = True) or False) ?= False,
+    ((False == True) or False) ?= False,
     (any [True, True, True]) ?= True,
     (any [True, False, False]) ?= True,
     (any [False, False, False]) ?= False,
@@ -56,7 +56,7 @@ t.test [
 
     # partial application
     (map (* 2) [1, 2, 3]) ?= [2, 4, 6],
-    (filter (= "a") ["a", "b", "a", "a"]) ?= ["a", "a", "a"],
+    (filter (== "a") ["a", "b", "a", "a"]) ?= ["a", "a", "a"],
 
     # miscellaneous functions
     (id 50) ?= 50,
@@ -135,17 +135,17 @@ t.test [
     (take_while (< 2) []) ?= [],
     (take_while (const True) [1, 2, 3]) ?= [1, 2, 3],
     (take_while (< 3) nats) ?= [0, 1, 2],
-    (take_until (= 5) [0, 6, 4, 5]) ?= [0, 6, 4],
+    (take_until (== 5) [0, 6, 4, 5]) ?= [0, 6, 4],
     (take_until (const True) nats) ?= [],
     (take_until (const False) [1, 2]) ?= [1, 2],
     (drop 0 [1, 2, 3]) ?= [1, 2, 3],
     (drop 1 [1, 2, 3]) ?= [2, 3],
     (drop 3 [1, 2, 3]) ?= [],
     (drop 10 [1]) ?= [],
-    (drop_while (= 2) [2, 2, 2, 3, 1]) ?= [3, 1],
+    (drop_while (== 2) [2, 2, 2, 3, 1]) ?= [3, 1],
     (drop_while (const True) [1]) ?= [],
     (drop_while (const False) [2, 2, 3]) ?= [2, 2, 3],
-    (drop_until (='=') "x=2+3") ?= "=2+3",
+    (drop_until (=='=') "x=2+3") ?= "=2+3",
     (drop_until (const False) "hello") ?= [],
     (drop_until (const True) [2, 2, 3]) ?= [2, 2, 3]
 ]

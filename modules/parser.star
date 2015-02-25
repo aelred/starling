@@ -28,7 +28,7 @@ parse = grammar tokens -> let
     passive_chart = passive_edges final_chart,
     final_chart = build_chart grammar tokens,
     start_edge = passive_edge 0 (length tokens) grammar.start,
-    results = filter (uncurry (e trees -> e = start_edge)) edge_trees in
+    results = filter (uncurry (e trees -> e == start_edge)) edge_trees in
     ((results.head)._1).head,
 
 # remove the given symbols from the parse tree
@@ -50,13 +50,13 @@ suppress = syms parse_tree -> let
 limit = more start -> let
     limit_ = old new -> let
         new_ = fold set_union set_empty (map more (set_items new)) in
-        if new_ = set_empty
+        if new_ == set_empty
         then old
         else limit_ (set_union new_ old) (set_diff new_ old) in
     limit_ start start,
 
-is_passive = e -> e.expr = [],
-is_sym = sym p -> (not (is_passive p)) and ((p.expr).head = sym),
+is_passive = e -> e.expr == [],
+is_sym = sym p -> (not (is_passive p)) and ((p.expr).head == sym),
 
 # Kilbury Parsing, from http://www.cs.rit.edu/~swm/cs561/Ljunglof-2002a.pdf
 build_chart = grammar tokens -> let
@@ -105,20 +105,20 @@ build_trees = grammar tokens passive_chart -> let
     trees_for = e -> let
         prod_trees = 
             join >> (map (p -> map (tree e.sym) (children p.expr e.i e.j)))
-            (filter (p -> p.sym = e.sym) grammar.productions),
+            (filter (p -> p.sym == e.sym) grammar.productions),
         scan_trees = 
-            if (e.i = (e.j - 1)) and (grammar.terminals has e.sym)
+            if (e.i == (e.j - 1)) and (grammar.terminals has e.sym)
             then [leaf e.sym ((tokens@(e.i)).value)]
             else [] in
         cat prod_trees scan_trees,
 
     children = expr i k ->
-        if expr = []
-        then if i = k then [[]] else []
+        if expr == []
+        then if i == k then [[]] else []
         else if i > k
         then []
         else let
-            filter_trees = uncurry (e trees -> (e.i=i) and (e.sym=expr.head)),
+            filter_trees = uncurry (e trees -> (e.i==i) and (e.sym==expr.head)),
             child_trees = uncurry (e trees ->
                 map (rest -> map (: rest) trees) (children expr.tail e.j k)) in
             join >> join >> (map child_trees)

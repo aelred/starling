@@ -20,12 +20,12 @@ test.test [
         tok t.llist "[", tok t.rlist "]"
     ],
 
-    (ls.tokenize "let letter=1, lettuce=(10=letter) in [lettuce, letter]") ?=
+    (ls.tokenize "let letter=1, lettuce=(10==letter) in [lettuce, letter]") ?=
     [
         tok t.let_ "let", tok t.prefix_id "letter", tok t.equals "=",
         tok t.number "1", tok t.comma ",", tok t.prefix_id "lettuce",
         tok t.equals "=", tok t.lpar "(", tok t.number "10",
-        tok t.equals "=", tok t.prefix_id "letter", tok t.rpar ")",
+        tok t.infix_id "==", tok t.prefix_id "letter", tok t.rpar ")",
         tok t.in_ "in", tok t.llist "[", tok t.prefix_id "lettuce",
         tok t.comma ",", tok t.prefix_id "letter", tok t.rlist "]"
     ],
@@ -43,13 +43,13 @@ test.test [
     ],
 
     (ls.tokenize 
-        "(\"hi\" has 'i')and((1 mod 2)=(1 pow 2) or (+-*/=<>?:@!&|))")
+        "(\"hi\" has 'i')and((1 mod 2)==(1 pow 2) or (+-*/=<>?:@!&|))")
     ?= [
         tok t.lpar "(", tok t.string "\"hi\"", tok t.infix_id "has",
         tok t.char "'i'", tok t.rpar ")", tok t.infix_id "and", 
         tok t.lpar "(", tok t.lpar "(", tok t.number "1", 
         tok t.infix_id "mod", tok t.number "2", tok t.rpar ")", 
-        tok t.equals "=", tok t.lpar "(", tok t.number "1", 
+        tok t.infix_id "==", tok t.lpar "(", tok t.number "1", 
         tok t.infix_id "pow", tok t.number "2", tok t.rpar ")", 
         tok t.infix_id "or", tok t.lpar "(", 
         tok t.infix_id "+-*/=<>?:@!&|", tok t.rpar ")", tok t.rpar ")"

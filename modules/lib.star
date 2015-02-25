@@ -27,10 +27,10 @@ curry = f x y -> f (x, y),
 uncurry = f xs -> f (xs._0) (xs._1),
 
 # access array elements
-@ = xs n -> if n = 0 then xs.head else xs.tail@(n-1),
+@ = xs n -> if n == 0 then xs.head else xs.tail@(n-1),
 
 # comparison operators
-!= = x y -> not (x = y),
+!= = x y -> not (x == y),
 < = x -> not >> (<= x),
 > = x y -> not (x <= y),
 >= = x -> not >> (> x),
@@ -43,20 +43,20 @@ min = x y -> x < y? x y,
 sum = foldl (+) 0,
 
 # list contains given element
-has = xs x -> any (map (= x) xs),
+has = xs x -> any (map (== x) xs),
 
 # swap function arguments
 flip = f x y -> f y x,
 
 # return the function folded from the right over the given list
 foldr = f init xs -> 
-    if xs = []
+    if xs == []
     then init
     else f xs.head (foldr f init xs.tail),
 
 # return the function folded from the left over the given list
 foldl = f init xs ->
-    if xs = []
+    if xs == []
     then init
     else foldl f (strict (f init xs.head)) xs.tail,
 
@@ -81,7 +81,7 @@ filter = f -> fold (x accum -> if f x then x : accum else accum) [],
 # returns elements while predicate is true and the remainder of the list
 span = p xs -> let
     span_ = span p xs.tail in
-    if xs = [] or (not >> p xs.head)
+    if xs == [] or (not >> p xs.head)
     then ([], xs)
     else (xs.head : span_._0, span_._1),
 
@@ -90,7 +90,7 @@ break = p -> span (not >> p),
 
 # return the first n elements from the list
 take = n xs ->
-    if (n = 0) or (xs = [])
+    if (n == 0) or (xs == [])
     then []
     else xs.head : (take (n - 1) xs.tail),
 
@@ -102,7 +102,7 @@ take_until = p -> take_while (not >> p),
 
 # drop the first n elements from the list
 drop = n xs ->
-    if (n = 0) or (xs = [])
+    if (n == 0) or (xs == [])
     then xs
     else drop (n-1) xs.tail,
 
@@ -117,7 +117,7 @@ join = fold cat [],
 
 # return all numbers between start (inclusive) and end (exclusive)
 range = start end -> 
-    if start = end
+    if start == end
     then []
     else start : (range (start + 1) end),
 
@@ -135,7 +135,7 @@ cat = xs ys -> fold (:) ys xs,
 
 # zip two lists together
 zip = xs ys -> 
-    if (xs = []) or (ys = [])
+    if (xs == []) or (ys == [])
     then []
     else (xs.head, ys.head) : (zip xs.tail ys.tail),
 
@@ -152,7 +152,7 @@ unzip =
 
 # return a sorted version of the list
 sort = xs ->
-    if xs = []
+    if xs == []
     then []
     else let 
         pivot = xs.head,

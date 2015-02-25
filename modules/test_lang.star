@@ -54,8 +54,8 @@ test.test [
     (let +-*/=<>?:@!&| = 1 in +-*/=<>?:@!&|) ?= 1,
 
     # logic
-    (3 = 0) ?= False,
-    (0 = 0) ?= True,
+    (3 == 0) ?= False,
+    (0 == 0) ?= True,
     (4 <= 6) ?= True,
     (6 <= 6) ?= True,
     (6 <= 4) ?= False,
@@ -84,12 +84,12 @@ test.test [
     (3 : (2 : (1 : []))) ?= [3, 2, 1],
 
     # recursion
-    (let tri =  x -> (if x = 0 then 0 else (tri (x - 1)) + x) in (tri 4)) ?= 
+    (let tri =  x -> (if x == 0 then 0 else (tri (x - 1)) + x) in (tri 4)) ?= 
     10,
     (let fib =  x ->
-        if x = 0
+        if x == 0
         then 0
-        else if x = 1
+        else if x == 1
         then 1
         else fib (x - 1) + (fib (x - 2))
     in fib 6) ?= 8,
@@ -112,7 +112,7 @@ test.test [
     let enum a, enum b in a ?!= b,
     let enum a b in a ?!= b,
     let enum a b, x=a, y=a, z=b in 
-    assert (all [a=a, a!=b, a=x, a!=z, x=y, x!=z]) "Bad enum inequalities",
+    assert (all [a==a, a!=b, a==x, a!=z, x==y, x!=z]) "Bad enum inequalities",
     # referential transparency
     let f = (x -> let enum a in a) in (f 1) ?= (f 1),
 

@@ -59,12 +59,12 @@ def test_lazy():
     return {
         'if False then let f=f in f else "good"': 'good',
         '["fine", (let f=f in f)].head': 'fine',
-        '[0, let f=f in f] = [10, let f=f in f]': 'False',
+        '[0, let f=f in f] == [10, let f=f in f]': 'False',
         'strict 4 : [2]': '[4, 2]',
         'sum (range 0 1000)': '499500',
         """
         let r = n ->
-            strict if n = 0 then [] else r strict (n - 1) in r 1000
+            strict if n == 0 then [] else r strict (n - 1) in r 1000
         """: '[]'
     }
 
@@ -87,7 +87,7 @@ def test_syntax_error():
 @errors(error.StarlingRuntimeError)
 def test_runtime_error():
     return [
-        '(1 == 2)',
+        '(1 = 2)',
         'a',
         '((let y=10 in y) + y)',
         '(let foo=(x -> 2 * x) in (foo x))',

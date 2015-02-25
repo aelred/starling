@@ -15,11 +15,11 @@ ch_right = right n -> node n.val n.left (right n.right),
 
 tree_fold = f init n -> let
     tf = tree_fold f init in
-    if n = set_empty
+    if n == set_empty
     then init
     else f n (tf n.left) (tf n.right),
 
-if_not_empty = n f -> if n = set_empty then id else f,
+if_not_empty = n f -> if n == set_empty then id else f,
 
 tree_walk = fl fr base_case empty_case x -> let
     f = n l r ->
@@ -65,7 +65,7 @@ set_rem = let
     remove = n -> let
         swap_val = if n.left != set_empty then pred n else succ n,
         swap_rem = set_rem swap_val n in
-        if (n.left = set_empty) or (n.right = set_empty)
+        if (n.left == set_empty) or (n.right == set_empty)
         then if n.left != set_empty
         then n.left
         else n.right

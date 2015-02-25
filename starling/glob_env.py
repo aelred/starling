@@ -59,7 +59,7 @@ def pow_():
     return lambda a: lambda: lambda b: a().pow(b())
 
 
-def e__():
+def ee__():
     return lambda a: lambda: lambda b: a().eq(b())
 
 

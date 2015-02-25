@@ -11,7 +11,7 @@ test [
 
     (3 ?= 3) ?= {pass=True},
     (3 ?= (10 - 6)) ?= {message="3 != 4", pass=False},
-    (3 ?!= 3) ?= {message="3 = 3", pass=False},
+    (3 ?!= 3) ?= {message="3 == 3", pass=False},
     (3 ?!= 4) ?= {pass=True},
 
     (test []) ?= [],
@@ -24,7 +24,7 @@ test [
     (test ["ab" ?= "bc", assert (not True) "A" ]) ?= 
     [{pass=False, message="\"ab\" != \"bc\""}, {pass=False, message="A"}],
     
-    (test [assert (3*3 = 9) "Pass", assert False "Fail", assert True "Pass"]) 
+    (test [assert (3*3 == 9) "Pass", assert False "Fail", assert True "Pass"]) 
     ?= [{pass=True}, {pass=False, message="Fail"}, {pass=True}],
 
     (test [assert True "Pass", assert True "Pass", assert False "Fail"]) ?=

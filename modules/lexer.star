@@ -7,7 +7,7 @@ rule = type re ->
     {type=type, re=regex.match re},
 
 tokenize = syntax input ->
-    if input = ""
+    if input == ""
     then []
     else let
     match_types = map (r -> {match=r.re input, type=r.type}) syntax,
