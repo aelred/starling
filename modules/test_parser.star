@@ -8,6 +8,8 @@ parser = import parser,
 
 ::= = parser.::=,
 | = parser.|,
+tree = parser.tree,
+leaf = parser.leaf,
 
 rule = lexer.rule,
 
@@ -27,9 +29,6 @@ grammar = parser.grammar expr [num, op, lpar, rpar, ident] [
     par_expr ::= [lpar, expr, rpar],
     op_expr ::= [expr, op, expr]
 ],
-
-tree = sym children -> {is_leaf=False, sym=sym, children=children},
-leaf = sym value -> {is_leaf=True, sym=sym, value=value},
 
 p = 
     parser.suppress [expr, par_expr, lpar, rpar] >> 

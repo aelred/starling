@@ -1,5 +1,6 @@
 let test = import test in
 test.report True >> join [
+    import test_starparse,
     import test_parser,
     import test_starlex,
     import test_test,

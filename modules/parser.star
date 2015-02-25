@@ -126,4 +126,4 @@ build_trees = grammar tokens passive_chart -> let
 
     edge_trees
 
-in export ::= | grammar parse suppress
+in export ::= | grammar parse suppress tree leaf
