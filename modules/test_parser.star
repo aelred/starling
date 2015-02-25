@@ -28,7 +28,7 @@ grammar = parser.grammar expr [num, op, lpar, rpar, ident] [
     op_expr ::= [expr, op, expr]
 ],
 
-tree = \type children: {type=type, children=children},
+tree = \sym children: {sym=sym, children=children},
 
 p = parser.parse grammar >> (lexer.tokenize syntax) in 
 

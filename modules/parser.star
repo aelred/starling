@@ -15,11 +15,17 @@ set_diff = s.set_diff,
 # this completely abuses left-associativity!
 | = \production expr: {sym=(production.head).sym, expr=expr} : production,
 
-grammar = \top terminals productions: 
-    {top=top, terminals=terminals, productions=join productions},
+grammar = \start terminals productions: 
+    {start=start, terminals=terminals, productions=join productions},
 
-parse = \grammar tokens: build_chart grammar tokens,
-
+parse = \grammar tokens: let
+    edge_trees = build_trees grammar tokens passive_chart,
+    passive_chart = passive_edges final_chart,
+    final_chart = build_chart grammar tokens,
+    start_edge = passive_edge 0 (length tokens) grammar.start,
+    results = filter (uncurry \e trees: e = start_edge) edge_trees in
+    ((results.head)._1).head,
+    
 # build a new set by repeatedly mapping over a set until no new elements
 limit = \more start: let
     limit_ = \old new: let
@@ -28,6 +34,9 @@ limit = \more start: let
         then old
         else limit_ (set_union new_ old) (set_diff new_ old) in
     limit_ start start,
+
+is_passive = \e: e.expr = [],
+is_sym = \sym p: (not (is_passive p)) and ((p.expr).head = sym),
 
 # Kilbury Parsing, from http://www.cs.rit.edu/~swm/cs561/Ljunglof-2002a.pdf
 build_chart = \grammar tokens: let
@@ -42,23 +51,58 @@ build_chart = \grammar tokens: let
 
     build_state = let
         more = \e:
-            if e.expr = []
+            if is_passive e
             then let
             predict =
-                set (
-                (map (\p: edge e.node p.sym (p.expr).tail)) (
-                (filter (\p: p.expr != [] and ((p.expr).head = e.sym))
-                grammar.productions))),
+                set >>
+                (map (\p: edge e.node p.sym (p.expr).tail))
+                (filter (is_sym e.sym) grammar.productions),
             combine = 
                 set >>
                 (map (\e2: edge e2.node e2.sym (e2.expr).tail)) >>
-                (filter (\e2: e2.expr != [] and ((e2.expr).head = e.sym))) >>
+                (filter (is_sym e.sym)) >>
                 set_items (final_chart@(e.node)) in
             set_union predict combine
             else set_empty in
         limit more,
 
     final_chart = map build_state initial_chart in
-    final_chart
+    final_chart,
+
+passive_edge = \i j sym: {i=i, j=j, sym=sym},
+
+passive_edges = \chart: let
+    state_passives = \j state: 
+        map (\e: passive_edge e.node j e.sym) (filter is_passive state) in
+    join (map (uncurry state_passives) (zip nats (map set_items chart))),
+
+tree = \sym children: {sym=sym, children=children},
+
+build_trees = \grammar tokens passive_chart: let
+    edge_trees = map (\e: (e, trees_for e)) passive_chart,
+
+    trees_for = \e: let
+        prod_trees = 
+            join >> (map (\p: map (tree e.sym) (children p.expr e.i e.j)))
+            (filter (\p: p.sym = e.sym) grammar.productions),
+        scan_trees = 
+            if (e.i = (e.j - 1)) and (grammar.terminals has e.sym)
+            then [tree e.sym ((tokens@(e.i)).value)]
+            else [] in
+        cat prod_trees scan_trees,
+
+    children = \expr i k:
+        if expr = []
+        then if i = k then [[]] else []
+        else if i > k
+        then []
+        else let
+            filter_trees = uncurry \e trees: (e.i=i) and (e.sym=expr.head),
+            child_trees = uncurry \e trees:
+                map (\rest: map (: rest) trees) (children expr.tail e.j k) in
+            join >> join >> (map child_trees)
+            (filter filter_trees edge_trees) in
+
+    edge_trees
 
 in export ::= | grammar parse
