@@ -31,23 +31,37 @@ grammar = parser.grammar expr [num, op, lpar, rpar, ident] [
 ],
 
 p = 
-    parser.suppress [expr, par_expr, lpar, rpar] >> 
+    map (parser.suppress [expr, par_expr, lpar, rpar]) >>
     (parser.parse grammar) >> 
     (lexer.tokenize syntax) in 
 
 test.test [
-    (p "2") ?= (leaf num "2"),
-    (p "var") ?= (leaf ident "var"),
+    (p "2") ?= [leaf num "2"],
+    (p "var") ?= [leaf ident "var"],
 
-    (p "num+10") ?= (
+    (p "num+10") ?= [
         tree op_expr [
             leaf ident "num",
             leaf op "+",
             leaf num "10"
         ]
-    ),
+    ],
 
-    (p "2*(1-3-10)/z") ?= (
+    # test that all ambiguous parses are found
+    (p "2*(1-3/10)") ?= [
+        tree op_expr [
+            leaf num "2",
+            leaf op "*",
+            tree op_expr [
+                leaf num "1",
+                leaf op "-",
+                tree op_expr [
+                    leaf num "3",
+                    leaf op "/",
+                    leaf num "10"
+                ]
+            ]
+        ],
         tree op_expr [
             leaf num "2",
             leaf op "*",
@@ -55,15 +69,11 @@ test.test [
                 tree op_expr [
                     leaf num "1",
                     leaf op "-",
-                    tree op_expr [
-                        leaf num "3",
-                        leaf op "-",
-                        leaf num "10"
-                    ]
+                    leaf num "3"
                 ],
                 leaf op "/",
-                leaf ident "z"
+                leaf num "10"
             ]
         ]
-    )
+    ]
 ]

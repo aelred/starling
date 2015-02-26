@@ -22,7 +22,7 @@ set_diff = s.set_diff,
 grammar = start terminals productions -> 
     {start=start, terminals=terminals, productions=join productions},
 
-# parse some tokens using a grammar, generating a parse tree
+# get all parse trees for a given list of tokens
 parse = grammar tokens -> let
     edge_trees = build_trees grammar tokens passive_chart,
     passive_chart = passive_edges final_chart,

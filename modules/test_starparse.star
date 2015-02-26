@@ -13,9 +13,9 @@ leaf = parser.leaf,
 parse = sp.parse >> starlex.tokenize in
 
 test.test [
-    (parse "1") ?= (leaf t.number "1"),
-    (parse "x") ?= (leaf t.prefix_id "x"),
-    (parse "(foo x y) + 932") ?= (
+    (parse "1") ?= [leaf t.number "1"],
+    (parse "x") ?= [leaf t.prefix_id "x"],
+    (parse "(foo x y) + 932") ?= [
         tree t.apply [
             tree t.apply [
                 leaf t.prefix_id "foo",
@@ -25,8 +25,8 @@ test.test [
             leaf t.infix_id "+",
             leaf t.number "932"
         ]
-    ),
-    (parse "let x = foo 3, y = 2 in x + y") ?= (
+    ],
+    (parse "let x = foo 3, y = 2 in x + y") ?= [
         tree t.let_expr [
             tree t.bindings [
                 tree t.binding [
@@ -47,9 +47,9 @@ test.test [
                 leaf t.prefix_id "y"
             ]
         ]
-    ),
+    ],
     (parse 
-    "if True then if False then 1 else 2 else if True then 3 else 4") ?= (
+    "if True then if False then 1 else 2 else if True then 3 else 4") ?= [
         tree t.if_expr [
             leaf t.bool "True",
             tree t.if_expr [
@@ -63,8 +63,8 @@ test.test [
                 leaf t.number "4"
             ]
         ]
-    ),
-    (parse "let map = f -> fold (x accum -> f x : accum) [] in 3") ?= (
+    ],
+    (parse "let map = f -> fold (x accum -> f x : accum) [] in 3") ?= [
         tree t.let_expr [
             tree t.bindings [
                 tree t.binding [
@@ -92,8 +92,8 @@ test.test [
             ],
             leaf t.number "3"
         ]
-    ),
-    (parse "let enum a b, enum c in cat \"hello\" ['a', 'b']") ?= (
+    ],
+    (parse "let enum a b, enum c in cat \"hello\" ['a', 'b']") ?= [
         tree t.let_expr [
             tree t.bindings [
                 tree t.enum_expr [leaf t.prefix_id "a", leaf t.prefix_id "b"],
@@ -105,8 +105,8 @@ test.test [
                 tree t.list [leaf t.char "'a'", leaf t.char "'b'"]
             ]
         ]
-    ),
-    (parse "(.<>) {x=1, y={}, z={<> = 3}}.z") ?= (
+    ],
+    (parse "(.<>) {x=1, y={}, z={<> = 3}}.z") ?= [
         tree t.apply [
             tree t.part_getter [leaf t.infix_id "<>"],
             tree t.getter [
@@ -126,8 +126,8 @@ test.test [
                 leaf t.prefix_id "z"
             ]
         ]
-    ),
-    (parse "(1,)._0 + (2, 3,4)._1") ?= (
+    ],
+    (parse "(1,)._0 + (2, 3,4)._1") ?= [
         tree t.apply [
             tree t.getter [
                 tree t.tuple [leaf t.number "1"],
@@ -141,8 +141,8 @@ test.test [
                 leaf t.prefix_id "_1"
             ]
         ]
-    ),
-    (parse "let p = import starparse.parse, |> = 3 in export p |>") ?= (
+    ],
+    (parse "let p = import starparse.parse, |> = 3 in export p |>") ?= [
         tree t.let_expr [
             tree t.bindings [
                 tree t.binding [
@@ -162,5 +162,5 @@ test.test [
                 leaf t.infix_id "|>"
             ]
         ]
-    )
+    ]
 ]

@@ -10,13 +10,13 @@ enum let_elem obj_bindings ident_list,
 
 grammar = parser.grammar expr t.terminals [
     # an expression is an evaluatable part that is made up of several atoms
-    expr ::= [t.apply] | [atom] | [t.part_getter],
+    expr ::= [t.apply] | [atom] | [t.lambda] | [t.let_expr] | [t.if_expr],
+    expr ::= [t.part_getter] | [t.export_expr],
 
     # an atom is an indivisible unit
     atom ::= [t.number] | [t.char] | [t.bool] | [ident] | [t.object],
     atom ::= [t.tuple] | [t.string] | [t.list] | [t.lpar, expr, t.rpar], 
-    atom ::= [t.lambda] | [t.let_expr] | [t.if_expr] | [t.getter],
-    atom ::= [t.import_expr] | [t.export_expr],
+    atom ::= [t.getter] | [t.import_expr],
 
     # an application is a sequence of atoms that will be applied together
     t.apply ::= [atom, inner_apply],
@@ -79,6 +79,6 @@ suppress = [
     t.dot, t.lobj, t.robj, t.import_, t.export_, t.if_, t.then_, t.else_
 ],
 
-parse = parser.suppress suppress >> (parser.parse grammar)
+parse = map (parser.suppress suppress) >> (parser.parse grammar)
 
 in export parse
