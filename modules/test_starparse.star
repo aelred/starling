@@ -48,6 +48,22 @@ test.test [
             ]
         ]
     ),
+    (parse 
+    "if True then if False then 1 else 2 else if True then 3 else 4") ?= (
+        tree t.if_expr [
+            leaf t.bool "True",
+            tree t.if_expr [
+                leaf t.bool "False",
+                leaf t.number "1",
+                leaf t.number "2"
+            ],
+            tree t.if_expr [
+                leaf t.bool "True",
+                leaf t.number "3",
+                leaf t.number "4"
+            ]
+        ]
+    ),
     (parse "let map = f -> fold (x accum -> f x : accum) [] in 3") ?= (
         tree t.let_expr [
             tree t.bindings [

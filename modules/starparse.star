@@ -13,9 +13,10 @@ grammar = parser.grammar expr t.terminals [
     expr ::= [t.apply] | [atom] | [t.part_getter],
 
     # an atom is an indivisible unit
-    atom ::= [t.number] | [t.char] | [ident] | [t.object] | [t.tuple],
-    atom ::= [t.string] | [t.list] | [t.lpar, expr, t.rpar] | [t.lambda],
-    atom ::= [t.let_expr] | [t.getter] | [t.import_expr] | [t.export_expr],
+    atom ::= [t.number] | [t.char] | [t.bool] | [ident] | [t.object],
+    atom ::= [t.tuple] | [t.string] | [t.list] | [t.lpar, expr, t.rpar], 
+    atom ::= [t.lambda] | [t.let_expr] | [t.if_expr] | [t.getter],
+    atom ::= [t.import_expr] | [t.export_expr],
 
     # an application is a sequence of atoms that will be applied together
     t.apply ::= [atom, inner_apply],
@@ -31,6 +32,9 @@ grammar = parser.grammar expr t.terminals [
     inner_bindings ::= [let_elem, t.comma, inner_bindings] | [let_elem],
     let_elem ::= [t.binding] | [t.enum_expr],
     t.binding ::= [ident, t.equals, expr],
+
+    # an if-expression has a predicate, consequent and alternative
+    t.if_expr ::= [t.if_, expr, t.then_, expr, t.else_, expr],
 
     # an enum is the keyword enum followed by a list of identifiers
     t.enum_expr ::= [t.enum_, ident_list],
@@ -72,7 +76,7 @@ suppress = [
     expr, atom, t.lpar, t.rpar, inner_apply, t.arrow, ident,
     inner_params, inner_bindings, t.equals, t.let_, t.comma, t.in_,
     t.llist, t.rlist, expr_list, ident_list, t.enum_, let_elem, obj_bindings,
-    t.dot, t.lobj, t.robj, t.import_, t.export_
+    t.dot, t.lobj, t.robj, t.import_, t.export_, t.if_, t.then_, t.else_
 ],
 
 parse = parser.suppress suppress >> (parser.parse grammar)
