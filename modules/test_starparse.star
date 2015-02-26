@@ -125,5 +125,26 @@ test.test [
                 leaf t.prefix_id "_1"
             ]
         ]
+    ),
+    (parse "let p = import starparse.parse, |> = 3 in export p |>") ?= (
+        tree t.let_expr [
+            tree t.bindings [
+                tree t.binding [
+                    leaf t.prefix_id "p",
+                    tree t.getter [
+                        tree t.import_expr [leaf t.prefix_id "starparse"],
+                        leaf t.prefix_id "parse"
+                    ]
+                ],
+                tree t.binding [
+                    leaf t.infix_id "|>",
+                    leaf t.number "3"
+                ]
+            ],
+            tree t.export_expr [
+                leaf t.prefix_id "p",
+                leaf t.infix_id "|>"
+            ]
+        ]
     )
 ]

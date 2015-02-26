@@ -13,7 +13,7 @@ terminals = [
 
 # non-terminals
 enum apply lambda let_expr bindings binding list enum_expr object getter,
-enum part_getter tuple in 
+enum part_getter tuple import_expr export_expr in 
 
 export
 
@@ -24,4 +24,4 @@ prefix_id infix_id bool string char number
 terminals
 
 apply lambda let_expr bindings binding list enum_expr object getter 
-part_getter tuple
+part_getter tuple import_expr export_expr
