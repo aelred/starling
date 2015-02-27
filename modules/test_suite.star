@@ -1,5 +1,6 @@
 let test = import test in
 test.report True >> join [
+    import test_regex_dot,
     import test_dict,
     import test_starparse,
     import test_parser,
