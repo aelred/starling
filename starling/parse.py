@@ -6,6 +6,7 @@ import os
 import imp
 
 from starling import error, syntax_tree, star_path
+from starling.glob_env import trampoline
 
 lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
@@ -146,12 +147,19 @@ def evaluate_expr(expr, lib=True, input_=None, name='expr'):
 
 
 def _evaluate(path, input_, name):
-    module = imp.load_source(name, path)
+    result = imp.load_source(name, path)._result()
+
     if input_ is not None:
         encoded = input_.encode('string_escape').replace('"', r'\"')
         inp_expr = evaluate_expr('"' + encoded + '"', name='input')
-        module.input_ = inp_expr
-    return module._result()
+
+        try:
+            func = result.value['main']()
+        except AttributeError:
+            func = result
+        return trampoline(func(inp_expr))
+    else:
+        return result
 
 
 def _parse(expr):

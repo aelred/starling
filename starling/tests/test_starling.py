@@ -16,7 +16,7 @@ def programs(has_input=False):
                 if has_input:
                     program, input_ = program
                 else:
-                    input_ = ""
+                    input_ = None
                 expr = program
                 yield (
                     check_program, expr, input_, result
@@ -72,8 +72,12 @@ def test_lazy():
 @programs(has_input=True)
 def test_input():
     return {
-        ('input.head', 'Boo'): 'B',
-        ('input.tail', 'Boo'): 'oo'
+        ('(.head)', 'Boo'): 'B',
+        ('(.tail)', 'Boo'): 'oo',
+        ('reverse', 'Boo'): 'ooB',
+        ('{main=take 2}', 'Boo'): 'Bo',
+        ('let main = map str in export main', 'Boo'):
+        '["B", "o", "o"]'
     }
 
 
