@@ -114,7 +114,9 @@ class Object(StarType):
                 for s in self.repr_generator():
                     sd = s.decode('string_escape')
                     if sd != '"':
-                        yield s.decode('string_escape')
+                        yield sd
+                    else:
+                        yield s
                 return
 
         # otherwise, treat as object
