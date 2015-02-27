@@ -47,12 +47,10 @@ class Object(StarType):
         return self._value
 
     def repr_generator(self):
-        if 'head' in self.value and 'tail' in self.value:
+        if self.is_list():
             # kind of a hack at the moment
             # treat this like a list
-            obj = self
-            head = obj.value['head']()
-            if isinstance(head, Char):
+            if self.is_str():
                 # display as a string
                 lopen = '"'
                 ropen = '"'
@@ -66,17 +64,17 @@ class Object(StarType):
                 delim = True
 
             yield lopen
-            for s in show(obj.value['head']()):
+            for s in show(self.value['head']()):
                 yield s
-            obj = obj.value['tail']()
-            while 'head' in obj.value and 'tail' in obj.value:
+            obj = self.value['tail']()
+            while obj.is_list():
                 if delim:
                     yield ', '
                 for s in show(obj.value['head']()):
                     yield s
                 obj = obj.value['tail']()
             yield ropen
-        elif '_0' in self.value:
+        elif self.is_tuple():
             # treat this as a tuple
             yield '('
             for s in self.value['_0']().repr_generator():
@@ -107,17 +105,16 @@ class Object(StarType):
 
     def str_generator(self):
         # check if this is a string
-        if 'head' in self.value and 'tail' in self.value:
-            head = self.value['head']()
-            if isinstance(head, Char):
-                # return string representation unescaped
-                for s in self.repr_generator():
-                    sd = s.decode('string_escape')
-                    if sd != '"':
-                        yield sd
-                    else:
-                        yield s
-                return
+        if self.is_str():
+            # return string representation unescaped without surrounding quotes
+            gen = self.repr_generator()
+            gen.next()
+            last = ''
+            for s in gen:
+                sd = s.decode('string_escape')
+                yield last
+                last = sd
+            return
 
         # otherwise, treat as object
         for s in self.repr_generator():
@@ -155,6 +152,14 @@ class Object(StarType):
 
         return Boolean(True)
 
+    def is_tuple(self):
+        return '_0' in self.value
+
+    def is_list(self):
+        return 'head' in self.value and 'tail' in self.value
+
+    def is_str(self):
+        return self.is_list() and isinstance(self.value['head'](), Char)
 
 class _EmptyList(Object):
     def __init__(self):
