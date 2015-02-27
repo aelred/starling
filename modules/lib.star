@@ -7,8 +7,8 @@ let
 not = x -> if x then False else True,
 or = x y -> if x then True else if y then True else False,
 and = x y -> if x then (if y then True else False) else False,
-any = foldl (or) False,
-all = foldl (and) True,
+any = foldr (or) False,
+all = foldr (and) True,
 
 # useful, short if construct
 ? = p c a -> if p then c else a,
@@ -27,7 +27,7 @@ curry = f x y -> f (x, y),
 uncurry = f xs -> f (xs._0) (xs._1),
 
 # access array elements
-@ = xs n -> if n == 0 then xs.head else xs.tail@(n-1),
+@ = xs n -> if n == 0 then xs.head else xs.tail@(strict n-1),
 
 # comparison operators
 != = x y -> not (x == y),
@@ -58,7 +58,7 @@ foldr = f init xs ->
 foldl = f init xs ->
     if xs == []
     then init
-    else foldl f (strict (f init xs.head)) xs.tail,
+    else foldl f (strict f init xs.head) xs.tail,
 
 # fold is a synonoym for foldr
 fold = foldr,

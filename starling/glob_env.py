@@ -1,5 +1,5 @@
 from starling import star_type
-from itertools import imap, chain
+from itertools import chain
 
 
 def trampoline(f):
@@ -27,54 +27,6 @@ class Thunk:
         return self._mem
 
 
-def True_():
-    return star_type.Boolean(True)
-
-
-def False_():
-    return star_type.Boolean(False)
-
-
-def p__():
-    return lambda a: lambda: lambda b: a().add(b())
-
-
-def s__():
-    return lambda a: lambda: lambda b: a().sub(b())
-
-
-def a__():
-    return lambda a: lambda: lambda b: a().mul(b())
-
-
-def d__():
-    return lambda a: lambda: lambda b: a().div(b())
-
-
-def mod_():
-    return lambda a: lambda: lambda b: a().mod(b())
-
-
-def pow_():
-    return lambda a: lambda: lambda b: a().pow(b())
-
-
-def ee__():
-    return lambda a: lambda: lambda b: a().eq(b())
-
-
-def le__():
-    return lambda a: lambda: lambda b: a().le(b())
-
-
-def chr_():
-    return lambda x: star_type.Char(chr(x().value))
-
-
-def ord_():
-    return lambda c: star_type.Number(ord(c().value))
-
-
 def _str_to_list(s):
     try:
         c = s.next()
@@ -85,10 +37,30 @@ def _str_to_list(s):
     except StopIteration:
         return star_type.empty_list
 
+True_ = star_type.Boolean(True)
 
-def repr_():
-    return lambda o: _str_to_list(chain(*o().repr_generator()))
+False_ = star_type.Boolean(False)
 
+p__ = lambda a: lambda b: a().add(b())
 
-def str_():
-    return lambda o: _str_to_list(chain(*o().str_generator()))
+s__ = lambda a: lambda b: a().sub(b())
+
+a__ = lambda a: lambda b: a().mul(b())
+
+d__ = lambda a: lambda b: a().div(b())
+
+mod_ = lambda a: lambda b: a().mod(b())
+
+pow_ = lambda a: lambda b: a().pow(b())
+
+ee__ = lambda a: lambda b: a().eq(b())
+
+le__ = lambda a: lambda b: a().le(b())
+
+chr_ = lambda x: star_type.Char(chr(x().value))
+
+ord_ = lambda c: star_type.Number(ord(c().value))
+
+repr_ = lambda o: _str_to_list(chain(*o().repr_generator()))
+
+str_ = lambda o: _str_to_list(chain(*o().str_generator()))

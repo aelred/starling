@@ -10,7 +10,7 @@ lib_path = os.path.join(star_path.path, 'lib.star')
 
 _std_binds = None
 
-sys.setrecursionlimit(10000)
+sys.setrecursionlimit(20000)
 
 
 def run(expr=None, source=None, input_=None, lib=True, generator=False):

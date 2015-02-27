@@ -53,6 +53,7 @@ t.test [
     (any (map (x -> x<0) (range 0 1000))) ?= False,
     (all (map (x -> x>=0) (range 0 1000))) ?= True,
     ((reverse (range 0 1000)).head) ?= 999,
+    ((range 0 10000)@1000) ?= 1000,
 
     # partial application
     (map (* 2) [1, 2, 3]) ?= [2, 4, 6],

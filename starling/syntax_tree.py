@@ -175,7 +175,7 @@ class Expression(Token):
         i2 = _get_id()
         return (
             'def _f%s():\n%s\ndef _f%s():\n%s\n_t%s = Thunk(_f%s)\n'
-            'return trampoline(_f%s)(_t%s)' % (
+            'return lambda: trampoline(_f%s)(_t%s)' % (
                 i1, self.operand.gen_python(True),
                 i2, self.operator.gen_python(True), i1, i1, i2, i1))
 
