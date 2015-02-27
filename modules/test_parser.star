@@ -53,19 +53,6 @@ test.test [
             leaf num "2",
             leaf op "*",
             tree op_expr [
-                leaf num "1",
-                leaf op "-",
-                tree op_expr [
-                    leaf num "3",
-                    leaf op "/",
-                    leaf num "10"
-                ]
-            ]
-        ],
-        tree op_expr [
-            leaf num "2",
-            leaf op "*",
-            tree op_expr [
                 tree op_expr [
                     leaf num "1",
                     leaf op "-",
@@ -73,6 +60,19 @@ test.test [
                 ],
                 leaf op "/",
                 leaf num "10"
+            ]
+        ],
+        tree op_expr [
+            leaf num "2",
+            leaf op "*",
+            tree op_expr [
+                leaf num "1",
+                leaf op "-",
+                tree op_expr [
+                    leaf num "3",
+                    leaf op "/",
+                    leaf num "10"
+                ]
             ]
         ]
     ]
