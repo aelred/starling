@@ -13,11 +13,10 @@ ch_item = item n -> node item._0 item._1 n.left n.right,
 ch_left = left n -> node n.key n.value (left n.left) n.right,
 ch_right = right n -> node n.key n.value n.left (right n.right),
 
-tree_fold = f init n -> let
-    tf = tree_fold f init in
+tree_fold = f init n ->
     if n == empty
     then init
-    else f n (tf n.left) (tf n.right),
+    else f n (tree_fold f init n.left) (tree_fold f init n.right),
 
 if_not_empty = n f -> if n == empty then id else f,
 
@@ -56,7 +55,17 @@ has_key = tree_walk const const (const True) False,
 
 # return nothing if not present in dictionary
 enum nothing,
-get = tree_walk const const (.value) nothing,
+get = get_def nothing,
+
+# tail-recursive tree search, rather than using tree_fold
+get_def = default key n ->
+    if n == empty
+    then default
+    else if key < n.key
+    then get_def default key n.left
+    else if key > n.key
+    then get_def default key n.right
+    else n.value,
 
 put = key value -> let
     left_case = l -> rebalance_left >> (ch_left >> const l),
@@ -79,4 +88,4 @@ rem = let
         else ch_item swap_item swap_rem in
     tree_walk left_case right_case remove empty in
 
-export dict get size keys values items has_key put put_all rem 
+export dict get get_def size keys values items has_key put put_all rem 

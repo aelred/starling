@@ -7,6 +7,7 @@ test = import test,
 
 dict = d.dict,
 get = d.get,
+get_def = d.get_def,
 size = d.size,
 keys = d.keys,
 values = d.values,
@@ -31,6 +32,9 @@ test.test [
     get '0' dict2 ?= 0,
     get '8' dict2 ?= 8,
     get '9' dict2 ?= 9,
+
+    get_def '_' 9 dict1 ?= 'J',
+    get_def '_' 26 dict1 ?= '_',
 
     keys dict1 ?= (range 0 26),
     keys dict2 ?= digits,
