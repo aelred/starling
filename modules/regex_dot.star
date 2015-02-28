@@ -1,7 +1,7 @@
 let
 regex = import regex,
 
-dot = pattern -> let
+main = pattern -> let
     dfa = regex.minify_dfa >> regex.to_dfa >> regex.nfa pattern,
     start = join ["start -> ", str (dfa.start)],
     finals = map (final -> cat (str final) " [shape=doublecircle]") dfa.final,
@@ -24,4 +24,4 @@ dot = pattern -> let
 
     join ["digraph g {\n", join body, "}"] in
 
-export dot
+export main

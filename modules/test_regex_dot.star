@@ -4,7 +4,7 @@ test = import test,
 ?!= = test.assert_unequal,
 
 regex_dot = import regex_dot,
-dot = regex_dot.dot,
+dot = regex_dot.main,
 
 digraph = strs start finals -> let
     final_strs = map (final -> cat final " [shape=doublecircle]") finals,
