@@ -1,13 +1,5 @@
 let
-s = import set,
-set = s.set,
-set_empty = s.set_empty,
-set_has = s.set_has,
-set_add = s.set_add,
-set_add_all = s.set_add_all,
-set_items = s.set_items,
-set_union = s.set_union,
-set_diff = s.set_diff,
+set = import set,
 
 dict = import dict,
 multidict = dict.multidict,
@@ -33,7 +25,7 @@ tjoin = foldl cat [],
 grammar = start terminals productions -> let
     joined_prod = join productions in
     {
-        start=start, terminals=set terminals, 
+        start=start, terminals=set.set terminals, 
         left_corner_map=multidict (tmap (p -> ((p.expr).head, p)) joined_prod), 
         productions=multidict (tmap (p -> (p.sym, p)) joined_prod)
     },
@@ -54,10 +46,10 @@ parse = grammar tokens -> let
 # when used to remove top-level symbol, it will only return the first
 # child of the top level symbol.
 suppress = syms parse_tree -> let
-    sym_set = set syms,
+    sym_set = set.set syms,
     suppress_ = parse_tree -> let
         suppress_children = tjoin (tmap suppress_ parse_tree.children) in
-        if set_has parse_tree.sym sym_set
+        if set.has_elem parse_tree.sym sym_set
         # remove this node and return its children
         then if parse_tree.is_leaf then [] else suppress_children
         # keep this node
@@ -69,10 +61,10 @@ suppress = syms parse_tree -> let
 # build a new set by repeatedly mapping over a set until no new elements
 limit = more start -> let
     limit_ = old new -> let
-        new_ = fold (set_union >> more) set_empty (set_items new) in
-        if new_ == set_empty
+        new_ = fold (set.union >> more) set.empty (set.items new) in
+        if new_ == set.empty
         then old
-        else limit_ (set_union new_ old) (set_diff new_ old) in
+        else limit_ (set.union new_ old) (set.diff new_ old) in
     limit_ start start,
 
 is_passive = e -> e.expr == [],
@@ -84,24 +76,24 @@ build_chart = grammar tokens -> let
     edge = node sym expr -> {node=node, sym=sym, expr=expr},
 
     initial_chart = let
-        initial_state = uncurry (j token -> set [edge j token.type []]) in
-        set_empty : (tmap initial_state (zip nats tokens)),
+        initial_state = uncurry (j token -> set.set [edge j token.type []]) in
+        set.empty : (tmap initial_state (zip nats tokens)),
 
     build_state = let
         more = e ->
             if is_passive e
             then let
             predict =
-                set >>
+                set.set >>
                 (tmap (p -> edge e.node p.sym (p.expr).tail))
                 (dict.get_def [] e.sym grammar.left_corner_map),
             combine = 
-                set >>
+                set.set >>
                 (tmap (e2 -> edge e2.node e2.sym (e2.expr).tail)) >>
                 (tfilter (is_sym e.sym)) >>
-                set_items (dict.get e.node final_chart) in
-            set_union predict combine
-            else set_empty in
+                set.items (dict.get e.node final_chart) in
+            set.union predict combine
+            else set.empty in
         limit more,
 
     final_chart = dict.dict (zip nats (tmap build_state initial_chart)) in
@@ -112,7 +104,7 @@ passive_edge = i j sym -> {i=i, j=j, sym=sym},
 passive_edges = chart -> let
     state_passives = uncurry (j state -> 
         tmap (e -> passive_edge e.node j e.sym) >>
-        (tfilter is_passive) >> set_items state) in
+        (tfilter is_passive) >> set.items state) in
     tjoin (tmap state_passives (dict.items chart)),
 
 tree = sym children -> {is_leaf=False, sym=sym, children=children},
@@ -127,7 +119,7 @@ build_trees = grammar token_dict passive_chart -> let
         prod_trees = 
             tjoin >> (tmap (p -> tmap (tree e.sym) (children p.expr e.i e.j)))
             (dict.get_def [] e.sym grammar.productions) in
-        if (e.i == (e.j - 1)) and (set_has e.sym grammar.terminals)
+        if (e.i == (e.j - 1)) and (set.has_elem e.sym grammar.terminals)
         # this is a terminal production, add a leaf node
         then let scan_leaf = leaf e.sym (dict.get e.i token_dict).value in
         scan_leaf : prod_trees
