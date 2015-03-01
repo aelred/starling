@@ -43,6 +43,14 @@ rebalance_right = balance_left 1 >> (ch_right (balance_right 0)),
 
 dict = foldr (uncurry put) empty,
 
+# dictionary with a list for every value
+multidict = let
+    add_elem = d pair -> let
+        key = pair._0, value = pair._1,
+        old_value = if has_key key d then get key d else [] in
+        put key (value : old_value) d in
+    foldl add_elem (dict []),
+
 size = tree_fold (n l r -> 1 + l + r) 0,
 
 keys = map (._0) >> items,
@@ -88,4 +96,5 @@ rem = let
         else ch_item swap_item swap_rem in
     tree_walk left_case right_case remove empty in
 
-export dict get get_def size keys values items has_key put put_all rem 
+export 
+dict multidict get get_def size keys values items has_key put put_all rem 

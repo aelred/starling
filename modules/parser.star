@@ -10,6 +10,7 @@ set_union = s.set_union,
 set_diff = s.set_diff,
 
 dict = import dict,
+multidict = dict.multidict,
 
 # tail recursive methods
 # these don't improve the time/space complexity, but they help with Python's
@@ -36,14 +37,6 @@ grammar = start terminals productions -> let
         left_corner_map=multidict (tmap (p -> ((p.expr).head, p)) joined_prod), 
         productions=multidict (tmap (p -> (p.sym, p)) joined_prod)
     },
-
-# dictionary with a list for every value
-multidict = let
-    add_elem = d pair -> let
-        key = pair._0, value = pair._1,
-        old_value = if dict.has_key key d then dict.get key d else [] in
-        dict.put key (value : old_value) d in
-    foldl add_elem (dict.dict []),
 
 # get all parse trees for a given list of tokens
 parse = grammar tokens -> let

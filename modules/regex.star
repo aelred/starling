@@ -1,4 +1,6 @@
 let 
+dict = import dict,
+multidict = dict.multidict,
 
 nub = l -> let
     nub_ = xs ls ->

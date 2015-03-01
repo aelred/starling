@@ -6,6 +6,7 @@ test = import test,
 ?!= = test.assert_unequal,
 
 dict = d.dict,
+multidict = d.multidict,
 get = d.get,
 get_def = d.get_def,
 size = d.size,
@@ -20,11 +21,13 @@ rem = d.rem,
 alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
 digits = "0123456789",
 dict1 = dict (zip nats alpha),
-dict2 = dict (zip digits nats) in
+dict2 = dict (zip digits nats),
+mdict = multidict (map (n -> (n mod 2, n)) (range 0 10)) in
 
 test.test [
     size dict1 ?= 26,
     size dict2 ?= 10,
+    size mdict ?= 2,
 
     get 0 dict1 ?= 'A',
     get 10 dict1 ?= 'K',
@@ -32,9 +35,11 @@ test.test [
     get '0' dict2 ?= 0,
     get '8' dict2 ?= 8,
     get '9' dict2 ?= 9,
+    get 1 mdict ?= [9, 7, 5, 3, 1],
 
     get_def '_' 9 dict1 ?= 'J',
     get_def '_' 26 dict1 ?= '_',
+    get_def [] 11 mdict ?= [],
 
     keys dict1 ?= (range 0 26),
     keys dict2 ?= digits,
@@ -51,6 +56,7 @@ test.test [
     has_key '0' dict2 ?= True,
     has_key '2' dict2 ?= True,
     has_key '9' dict2 ?= True,
+    has_key 0 mdict ?= True,
 
     put 2 'C' dict1 ?= dict1,
     get 2 (put 2 '@' dict1) ?= '@',
