@@ -6,17 +6,17 @@ main = pattern -> let
     start = join ["start -> ", str (dfa.start)],
     finals = map (final -> cat (str final) " [shape=doublecircle]") dfa.final,
 
-    range_str = let
-        rstr = r ->
-            if r._0 == r._1
-            then str r._0
-            else join [str r._0, "-", str r._1] in
-        join >> (map rstr),
+    range_str = r ->
+        if r._0 == r._1
+        then str r._0
+        else join [repr r._0, "-", repr r._1],
 
     sym_str = sym -> 
         if (str sym.type) == "lit"
         then range_str sym.range
-        else join ["not ", range_str sym.range],
+        else if (str sym.type) == "ass_start"
+        then "^"
+        else "$",
 
     trans_str = t -> 
         join [

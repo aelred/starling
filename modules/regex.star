@@ -31,8 +31,7 @@ char_to_digit = c -> (ord c) - 48,
 
 parse_int = foldl (x c -> (10 * x) + (char_to_digit c)) 0,
 
-in_range = char -> 
-    any >> (map (ran -> (ran._0 <= char) and (char <= ran._1))),
+in_range = char range -> (range._0 <= char) and (char <= range._1),
 
 # helper functions that increment/decrement a character value
 incr = chr >> (+1) >> ord,
@@ -305,7 +304,11 @@ to_nfa = t -> let
         child = node.children,
         nfas = map parse_tree child,
         sym = node.sym in
-        if child == []
+        if sym.type == lit
+        # create a transition for every range
+        then let new_trans = map (r -> trans 0 1 {type=lit, range=r}) sym.range in
+        automata 0 1 new_trans [1, 0]
+        else if child == []
         # basic transition
         then automata 0 1 [trans 0 1 sym] [1, 0]
         # concatenate the two subautomata together
