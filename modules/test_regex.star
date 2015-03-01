@@ -64,5 +64,8 @@ test.test >> join [
     re "[[:graph:]]+$" [tm "a!~0U"] ["", " ", "\n", "\x7F"],
     re "[[:print:]]+$" [tm "a!~0U "] ["", "\n", "\x7F"],
     re "[:digit:]" [tm ":", tm "d", tm "i"] ["0", "3"],
-    re "\\u\\l\\a\\d\\D\\x\\w\\W\\s\\S\\p$" [tm "Abc0%f_\n\t\x7E\""] [""]
+    re "\\u\\l\\a\\d\\D\\x\\w\\W\\s\\S\\p$" [tm "Abc0%f_\n\t\x7E\""] [""],
+
+    # edge cases
+    re "[ab]c|a$" [tm "a", tm "ac", tm "bc"] ["c", "ab", ""]
 ]
