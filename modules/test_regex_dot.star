@@ -19,11 +19,11 @@ in
 test.test [
     dot "" ?= (digraph [] "0" ["0"]),
     dot "a" ?= (digraph ["1 -> 0 [label=\"a\"]"] "1" ["0"]),
-    dot "[^a]" ?= (digraph ["1 -> 0 [label=\"not a\"]"] "1" ["0"]),
+    dot "[a-c]" ?= (digraph ["1 -> 0 [label=\"'a'-'c'\"]"] "1" ["0"]),
 
-    dot "a.c" ?= (
+    dot "abc" ?= (
     digraph [
-        "1 -> 0 [label=\"c\"]", "2 -> 1 [label=\"all\"]", 
+        "1 -> 0 [label=\"c\"]", "2 -> 1 [label=\"b\"]", 
         "3 -> 2 [label=\"a\"]"
     ] "3" ["0"]),
 

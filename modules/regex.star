@@ -1,4 +1,5 @@
 let 
+set = import set,
 dict = import dict,
 multidict = dict.multidict,
 
@@ -86,6 +87,37 @@ negate_range = ranges -> let
     then all_range
     else new_range2,
 
+# change a list of ranges into a disjoint list of ranges (no overlaps)
+disjoin_range = ranges -> let
+    disjoin = ranges start ends -> let
+        r = ranges.head,
+        next_start = r._0,
+        next_end = (set.items ends).head in
+
+        # base case
+        if ranges == [] and (ends == set.empty)
+        then []
+        # if there are no endpoints, jump straight to next range
+        else if ends == set.empty
+        then disjoin ranges.tail next_start (set.add r._1 ends)
+
+        # add everything up to the end point and remove that end point
+        else if ranges == [] or (next_start > next_end)
+        then let 
+        disjoin_rec = disjoin ranges (incr next_end) (set.rem next_end ends) in 
+        if next_end >= start
+        then (start, next_end) : disjoin_rec
+        else disjoin_rec 
+
+        # add everything up to the new range and add the new range's endpoint
+        else let 
+        disjoin_rec = disjoin ranges.tail next_start (set.add r._1 ends) in
+        if next_start > start 
+        then (start, decr next_start) : disjoin_rec 
+        else disjoin_rec in
+
+    disjoin (sort ranges) '\x00' set.empty,
+
 all_range = [('\x00', '\xFF')],
 
 upper = [('A', 'Z')],
@@ -96,7 +128,7 @@ xdigit = [('0', '9'), ('A', 'F'),  ('a', 'f')],
 alnum = [('0', '9'), ('A', 'Z'), ('a', 'z')],
 word = [('0', '9'), ('A', 'Z'), ('_', '_'), ('a', 'z')],
 punct = [('!', '/'), (':', '@'), ('[', '`'), ('{', '~')],
-space = [(' ', ' '), ('\t', '\r')],
+space = [('\t', '\r'), (' ', ' ')],
 cntrl = [('\x00', '\x1F'), ('\x7F', '\x7F')],
 graph = [('!', '~')],
 print = [(' ', '~')],
@@ -353,6 +385,31 @@ to_nfa = t -> let
 
     if t == [] then empty else parse_tree t,
 
+# disjoin transitions in an NFA, so no transitions 'overlap'
+# e.g. [a-f] and [c-z] become [a-b], [c-f] and [g-z]
+disjoin_nfa = nfa -> let
+    # get a disjoint set of ranges from all symbols in NFA
+    syms = all_syms nfa,
+    lits = filter (s -> s.type == lit) syms,
+    ranges = map (.range) lits,
+    disjoined = disjoin_range ranges,
+
+    # disjoin a particular range into a disjoint list of ranges
+    disjoin = r -> filter (r2 -> in_range r2._0 r) disjoined,
+
+    # disjoin a literal transition into a list of disjoint transitions
+    disjoin_trans = t -> let
+        new_trans = r -> trans t.start t.end {type=lit, range=r} in
+        map new_trans (disjoin (t.sym).range),
+
+    # disjoin all literal transitions
+    lit_trans = filter (t -> (t.sym).type == lit) nfa.trans,
+    nonlit_trans = filter (t -> (t.sym).type != lit) nfa.trans,
+    new_lit_trans = join (map disjoin_trans lit_trans),
+    new_trans = cat nonlit_trans new_lit_trans in
+
+    automata nfa.start nfa.final new_trans nfa.nodes, 
+
 # turn an NFA into a deterministic finite automata (DFA)
 to_dfa = nfa -> let
     epsclosure = closure nfa {type=eps},
@@ -422,7 +479,7 @@ match_dfa = dfa str -> let
 # take a pattern and return a function that will match strings
 match = match_dfa >> minify_dfa >> to_dfa >> nfa,
 
-nfa = to_nfa >> to_tree >> lex_pattern,
+nfa = disjoin_nfa >> to_nfa >> to_tree >> lex_pattern,
 
 lex_pattern = to_postfix >> add_concat >> interp_pattern
 

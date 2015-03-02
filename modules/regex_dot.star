@@ -1,10 +1,9 @@
 let
 regex = import regex,
 
-main = pattern -> let
-    dfa = regex.minify_dfa >> regex.to_dfa >> regex.nfa pattern,
-    start = join ["start -> ", str (dfa.start)],
-    finals = map (final -> cat (str final) " [shape=doublecircle]") dfa.final,
+fa_to_dot = fa -> let
+    start = join ["start -> ", str (fa.start)],
+    finals = map (final -> cat (str final) " [shape=doublecircle]") fa.final,
 
     range_str = r ->
         if r._0 == r._1
@@ -14,6 +13,8 @@ main = pattern -> let
     sym_str = sym -> 
         if (str sym.type) == "lit"
         then range_str sym.range
+        else if (str sym.type) == "eps"
+        then "eps"
         else if (str sym.type) == "ass_start"
         then "^"
         else "$",
@@ -28,12 +29,14 @@ main = pattern -> let
             "\"]"
         ],
 
-    transitions = map trans_str dfa.trans,
+    transitions = map trans_str fa.trans,
 
     body = let
         indent = s -> join ["\t", s, ";\n"] in
         map indent (join [finals, [start], transitions]) in
 
-    join ["digraph g {\n", join body, "}"] in
+    join ["digraph g {\n", join body, "}"],
 
-export main
+main = fa_to_dot >> regex.minify_dfa >> regex.to_dfa >> regex.nfa in
+
+export main fa_to_dot
