@@ -37,6 +37,6 @@ fa_to_dot = fa -> let
 
     join ["digraph g {\n", join body, "}"],
 
-main = fa_to_dot >> regex.minify_dfa >> regex.to_dfa >> regex.nfa in
+main = fa_to_dot >> regex.build_dfa in
 
 export main fa_to_dot

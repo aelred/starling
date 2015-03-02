@@ -29,7 +29,7 @@ test.test [
 
     dot "abc|abd" ?= (
     digraph [
-        "2 -> 1 [label=\"d\"]", "2 -> 0 [label=\"c\"]", 
+        "2 -> 0 [label=\"c\"]", "2 -> 1 [label=\"d\"]", 
         "3 -> 2 [label=\"b\"]", "4 -> 3 [label=\"a\"]"
     ] "4" ["0", "1"])
 ]

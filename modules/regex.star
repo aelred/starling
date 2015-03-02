@@ -32,34 +32,36 @@ char_to_digit = c -> (ord c) - 48,
 
 parse_int = foldl (x c -> (10 * x) + (char_to_digit c)) 0,
 
+# merge two sorted lists
+merge = xs ys ->
+    if xs == []
+    then ys
+    else if ys == []
+    then xs
+    else if xs.head < ys.head
+    then xs.head : (merge xs.tail ys)
+    else ys.head : (merge xs ys.tail),
+
 in_range = char range -> (range._0 <= char) and (char <= range._1),
 
 # helper functions that increment/decrement a character value
 incr = chr >> (+1) >> ord,
 decr = chr >> (-1) >> ord,
 
-# union two lists of ranges, like merging sorted lists
-union_range = xs ys -> let
-    x = xs.head, y = ys.head,
-    take_x = x._0 < y._0,
-    next_elem = if take_x then x else y,
-    rem_x = if take_x then xs.tail else xs,
-    rem_y = if take_x then ys else ys.tail,
-    
-    merged = union_range rem_x rem_y,
-    top = merged.head in
+# merge a range, joining together touching ranges
+merge_range = xs -> let
+    x = xs.head, y = xs@1 in
 
-    # base cases
-    if xs == []
-    then ys
-    else if ys == []
+    # base case
+    if (xs == []) or (xs.tail == [])
     then xs
-    else if merged == []
-    then [next_elem]
-    # if ranges touch, they must be merged
-    else if decr top._0 <= next_elem._1
-    then (next_elem._0, top._1) : merged.tail
-    else next_elem : merged,
+    # check if these need to merge
+    else if incr x._1 >= y._0
+    then merge_range ((x._0, y._1) : (xs.tail).tail)
+    else x : (merge_range xs.tail),
+
+# union two lists of ranges, like merging sorted lists
+union_range = xs ys -> merge_range (merge xs ys),
 
 # give the negation of a range
 negate_range = ranges -> let
@@ -293,6 +295,10 @@ all_syms = fa -> nub >> (filter (!= {type=eps})) >> (map (.sym)) fa.trans,
 get_trans = p fa -> map (.end) >> (filter (t -> p t.sym)) >> (edges fa),
 succ = sym -> get_trans (==sym),
 
+# get all literal/nonliteral transitions in an FA
+lit_trans = filter (t -> (t.sym).type == lit) >> (.trans),
+nonlit_trans = filter (t -> (t.sym).type != lit) >> (.trans),
+
 succ_all = fa sym ns -> join (map (succ sym fa) ns),
 closure = fa sym ns -> let
     closure_ = ns visited -> let
@@ -403,10 +409,8 @@ disjoin_nfa = nfa -> let
         map new_trans (disjoin (t.sym).range),
 
     # disjoin all literal transitions
-    lit_trans = filter (t -> (t.sym).type == lit) nfa.trans,
-    nonlit_trans = filter (t -> (t.sym).type != lit) nfa.trans,
-    new_lit_trans = join (map disjoin_trans lit_trans),
-    new_trans = cat nonlit_trans new_lit_trans in
+    new_lit_trans = join >> (map disjoin_trans) >> lit_trans nfa,
+    new_trans = cat (nonlit_trans nfa) new_lit_trans in
 
     automata nfa.start nfa.final new_trans nfa.nodes, 
 
@@ -438,6 +442,25 @@ minify_dfa = dfa -> let
         map (t -> trans (rename t.start) (rename t.end) t.sym) dfa.trans,
     new_nodes = (unzip new_names)._1 in
     automata new_start new_final new_trans new_nodes,
+
+# after disjoining the NFA transitions, re-combine any redundant transitions
+rejoin_dfa = dfa -> let
+    # join transitions with the same start and final state
+    join_trans = ts -> let
+        t = ts.head,
+        lits = filter (t -> (t.sym).type == lit) ts,
+        min_range = merge_range >> sort (map (t -> (t.sym).range) lits) in
+        map (r -> trans t.start t.end {type=lit, range=r}) min_range,
+
+    # get all literal transitions, grouped by start/end state
+    group_start = dict.values dfa.trans_dict,
+    group_end = dict.values >> multidict >> (map (t -> (t.end, t))),
+    grouped_trans = join (map group_end group_start),
+
+    # new transitions
+    new_lit_trans = join (map join_trans grouped_trans),
+    new_trans = cat (nonlit_trans dfa) new_lit_trans in
+    automata dfa.start dfa.final new_trans dfa.nodes,
 
 # return true if a character matches the given symbol
 sym_match = char sym -> (sym.type == lit) and (in_range char sym.range),
@@ -477,12 +500,12 @@ match_dfa = dfa str -> let
     else {match=False},
 
 # take a pattern and return a function that will match strings
-match = match_dfa >> minify_dfa >> to_dfa >> nfa,
+match = match_dfa >> build_dfa,
 
-nfa = disjoin_nfa >> to_nfa >> to_tree >> lex_pattern,
+build_dfa = rejoin_dfa >> minify_dfa >> to_dfa >> build_nfa,
 
-lex_pattern = to_postfix >> add_concat >> interp_pattern
+build_nfa = disjoin_nfa >> to_nfa >> to_tree >> lex_pattern,
 
-in 
-export match add_concat to_postfix to_nfa nfa interp_pattern
-parse_int to_tree to_dfa minify_dfa lex_pattern interp_bracket_expr
+lex_pattern = to_postfix >> add_concat >> interp_pattern in 
+
+export match build_dfa build_nfa lex_pattern
