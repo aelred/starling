@@ -157,7 +157,7 @@ def _evaluate(path, input_, name):
             func = result.value['main']()
         except AttributeError:
             func = result
-        return trampoline(func(inp_expr))
+        return trampoline(lambda: func(inp_expr))
     else:
         return result
 
