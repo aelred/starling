@@ -1,5 +1,7 @@
 from starling import error
 
+from itertools import izip_longest
+
 
 class StarType(object):
     def str_generator(self):
@@ -45,6 +47,14 @@ class Object(StarType):
     @property
     def value(self):
         return self._value
+
+    def data_items(self):
+        """ Yield only data items, not functions. """
+        for k, v in self._items:
+            val = v()
+            if callable(val):
+                continue
+            yield k, val
 
     def repr_generator(self):
         if self.is_list():
@@ -92,15 +102,18 @@ class Object(StarType):
             yield ')'
         else:
             yield '{'
-            if len(self._items) > 0:
-                k, v = self._items[0]
+            items = self.data_items()
+            try:
+                k, v = next(items)
                 yield k + '='
-                for s in v().repr_generator():
+                for s in v.repr_generator():
                     yield s
-                for k, v in self._items[1:]:
-                    yield ', ' + k + '='
-                    for s in v().repr_generator():
-                        yield s
+            except StopIteration:
+                pass
+            for k, v in items:
+                yield ', ' + k + '='
+                for s in v.repr_generator():
+                    yield s
             yield '}'
 
     def str_generator(self):
@@ -124,28 +137,30 @@ class Object(StarType):
         if type(self) != type(other):
             return Boolean(False)
         else:
-            i1 = self._items
-            i2 = other._items
-            return Boolean(len(i1) == len(i2) and
-                           all(k1 == k2 and v1().eq(v2()).value
-                               for (k1, v1), (k2, v2) in zip(i1, i2)))
+            i1 = self.data_items()
+            i2 = other.data_items()
+            zipped = izip_longest(i1, i2, fillvalue=(None, None))
+            return Boolean(all(k1 == k2 and v1.eq(v2).value
+                               for (k1, v1), (k2, v2) in zipped))
 
     def le(self, other):
         # everything is greater than the empty list
         if other == empty_list:
             return Boolean(False)
 
-        # only objects with identical keys are comparable
-        if type(self) != type(other) or (
-             sorted(self.value.keys()) != sorted(other.value.keys())):
-            raise error.StarlingRuntimeError(
-                'Type error: Can\'t compare %s and %s' % (
-                    self.str(), other.str()))
+        zipped = izip_longest(
+            self.data_items(), other.data_items(), fillvalue=(None, None))
 
-        for (k1, v1), (k2, v2) in zip(self._items, other._items):
-            if v1().eq(v2()).value:
+        for (k1, v1), (k2, v2) in zipped:
+            # only objects with identical keys are comparable
+            if k1 != k2:
+                raise error.StarlingRuntimeError(
+                    'Type error: Can\'t compare %s and %s' % (
+                        self.str(), other.str()))
+
+            if v1.eq(v2).value:
                 continue
-            elif v1().le(v2()).value:
+            elif v1.le(v2).value:
                 return Boolean(True)
             else:
                 return Boolean(False)
