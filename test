@@ -1,5 +1,2 @@
-while true; do
-    nosetests
-    time python -m starling test_suite
-    inotifywait -e modify,move,create,delete -r --exclude ".*\.sw[px]" modules starling >/dev/null 2>&1 
-done
+nosetests
+time python -m starling test_suite
