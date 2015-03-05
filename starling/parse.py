@@ -68,7 +68,7 @@ lambda_expr = lambda_inner
 object_binding = Group(ident + equals + expr)('object_binding')
 object_expr = Group(lobj + Optional(delimitedList(object_binding)) +
                     robj)('object')
-object_accessor = Group(atom + dot + ident)('accessor')
+object_accessor = Group(atom + OneOrMore(dot + ident))('accessor')
 partial_accessor = Group(dot + ident)('part_accessor')
 
 tuple_expr = Group(lpar +
@@ -249,6 +249,16 @@ def _string_token(value):
     return syntax_tree.String(value[1:-1])
 
 
+def _accessor_token(value):
+    if len(value) <= 2:
+        return syntax_tree.Accessor(value)
+    else:
+        # split up multiple accessors
+        return token_classes['accessor']([
+            _accessor_token(value[:-1]), value[-1]
+        ])
+
+
 def _part_accessor_token(value):
     # transform into a lambda function
     temp_id = token_classes['prefix_id']('$temp_partial')
@@ -291,7 +301,7 @@ token_classes = {
     'lambda': syntax_tree.Lambda,
     'object': syntax_tree.Object,
     'object_binding': syntax_tree.ObjectBinding,
-    'accessor': syntax_tree.Accessor,
+    'accessor': _accessor_token,
     'part_accessor': _part_accessor_token,
     'tuple': _tuple_token,
     'import': _import_token,

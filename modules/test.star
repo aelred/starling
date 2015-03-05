@@ -27,9 +27,9 @@ report = fail_fast results -> let
     dots = map (t -> if t.pass then '.' else 'F') filter_results,
 
     # get numbered failing tests
-    fails = filter (t -> not (t._1).pass) (enumerate filter_results),
+    fails = filter (t -> not t._1.pass) (enumerate filter_results),
     fail_message = 
-        t -> join ["FAIL: Test ", str t._0, "\n", (t._1).message, "\n"],
+        t -> join ["FAIL: Test ", str t._0, "\n", t._1.message, "\n"],
 
     # string details of each failing test    
     detail = 

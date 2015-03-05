@@ -7,7 +7,7 @@ node = key value left right -> {
 
 empty = {height = (0-1)},
 
-balance = n -> (n.left).height - (n.right).height,
+balance = n -> n.left.height - n.right.height,
 
 ch_item = item n -> node item._0 item._1 n.left n.right,
 ch_left = left n -> node n.key n.value (left n.left) n.right,
