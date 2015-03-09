@@ -24,7 +24,7 @@ const = x y -> x,
 curry = f x y -> f (x, y),
 
 # transform a curried function into one that takes a pair
-uncurry = f xs -> f (xs._0) (xs._1),
+uncurry = f xs -> f xs._0 xs._1,
 
 # access array elements
 @ = xs n -> if n == 0 then xs.head else xs.tail@(strict n-1),
