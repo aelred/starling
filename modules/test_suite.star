@@ -1,5 +1,5 @@
 let test = import test in
-test.report True >> join [
+join >> (map str) [
     import test_regex_dot,
     import test_dict,
     import test_starparse,

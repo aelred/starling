@@ -6,7 +6,7 @@ import os
 import imp
 
 from starling import error, syntax_tree, star_path
-from starling.glob_env import trampoline
+from starling.util import trampoline
 
 lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
@@ -129,6 +129,9 @@ def expr_to_py(expr, lib=True, path=None):
         # convert standard library and include it
         star_to_py('lib', False)
         tree = tree.wrap_import('lib')
+    else:
+        # otherwise, this is the stdlib, so include additional code
+        tree = tree.wrap_stdlib()
     code = tree.gen_python()
 
     # write code to path
@@ -154,7 +157,7 @@ def _evaluate(path, input_, name):
         inp_expr = evaluate_expr('"' + encoded + '"', name='input')
 
         try:
-            func = result.value['main']()
+            func = result.items['main']()
         except AttributeError:
             func = result
         return trampoline(lambda: func(inp_expr))

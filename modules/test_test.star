@@ -14,40 +14,43 @@ test [
     (3 ?!= 3) ?= {message="3 == 3", pass=False},
     (3 ?!= 4) ?= {pass=True},
 
-    (test []) ?= [],
+    (test []) ?= {tests=[]},
 
     (test [1?=1, False?=False, True?=True, assert True "Bad constants"]) ?= 
-    [{pass=True}, {pass=True}, {pass=True}, {pass=True}],
+    {tests=[{pass=True}, {pass=True}, {pass=True}, {pass=True}]},
 
-    (test [assert False "FAILURE"]) ?= [{pass=False, message="FAILURE"}],
+    (test [assert False "FAILURE"]) ?= {tests=[{pass=False,
+    message="FAILURE"}]},
 
     (test ["ab" ?= "bc", assert (not True) "A" ]) ?= 
-    [{pass=False, message="\"ab\" != \"bc\""}, {pass=False, message="A"}],
+    {tests=[
+        {pass=False, message="\"ab\" != \"bc\""}, 
+        {pass=False, message="A"}
+    ]},
     
     (test [assert (3*3 == 9) "Pass", assert False "Fail", assert True "Pass"]) 
-    ?= [{pass=True}, {pass=False, message="Fail"}, {pass=True}],
+    ?= {tests=[{pass=True}, {pass=False, message="Fail"}, {pass=True}]},
 
     (test [assert True "Pass", assert True "Pass", assert False "Fail"]) ?=
-    [{pass=True}, {pass=True}, {pass=False, message="Fail"}],
+    {tests=[{pass=True}, {pass=True}, {pass=False, message="Fail"}]},
 
-    (report False (test [assert True "A", assert True "B", assert True "C"]))
+    str (test [assert True "A", assert True "B", assert True "C"])
     ?= "...\nOK",
 
-    (report False (test [
+    str (test [
         assert True "A", 
         assert True "B", 
         assert False "yup",
         assert False "yes",
         assert True "C"
-    ])) ?=
-    "..FF.\nFAIL: Test 2\nyup\nFAIL: Test 3\nyes\n",
+    ]) ?=
+    "..F\nFAIL: Test 2\nyup\nF\nFAIL: Test 3\nyes\n.\nFAIL",
 
-    (report True (test [
+    str (test [
         assert True "A", 
         assert True "B", 
         assert False "yup",
-        assert False "yes",
         assert True "C"
-    ])) ?=
-    "..F\nFAIL: Test 2\nyup\n"
+    ]) ?=
+    "..F\nFAIL: Test 2\nyup\n.\nFAIL"
 ]

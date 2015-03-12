@@ -1,7 +1,32 @@
 let
 
+# placeholder str and repr functions
+str = obj -> obj.str obj,
+repr = obj -> obj.repr obj,
+
+# the empty list
+empty_list = {
+    str = self -> "[]",
+    repr = self -> "[]"
+},
+
+intersperse = x xs ->
+    if xs == []
+    then []
+    else if xs.tail == []
+    then [xs.head]
+    else xs.head : (x : (intersperse x xs.tail)),
+
 # list constructor
-: = x xs -> {head=x, tail=xs},
+: = x xs -> {
+    head = x, 
+    tail = xs,
+
+    str = self -> 
+        join ["[", join (intersperse ", " (map (y -> y.repr y) self)), "]"],
+
+    repr = self -> self.str self
+},
 
 # basic logic
 not = x -> if x then False else True,
@@ -161,7 +186,7 @@ sort = xs ->
     cat (sort less) (pivot : (sort more))
 
 in export 
-    : not or and any all ? id const >> curry uncurry @ != < >= > max min sum
-    flip has foldr foldl fold foldr1 foldl1 fold1 map filter span break take
-    take_while take_until drop drop_while drop_until join range nats length
-    reverse cat zip unzip sort
+    str repr empty_list : not or and any all ? id const >> curry uncurry @ != 
+    < >= > max min sum flip has foldr foldl fold foldr1 foldl1 fold1 map 
+    filter span break take take_while take_until drop drop_while drop_until 
+    join range nats length reverse cat zip unzip sort
