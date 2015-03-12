@@ -31,9 +31,9 @@ uncurry = f xs -> f (xs._0) (xs._1),
 
 # comparison operators
 != = x y -> not (x == y),
-< = x -> not >> (<= x),
+< = x y -> not (y <= x),
 > = x y -> not (x <= y),
->= = x -> not >> (> x),
+>= = x y -> not (y > x),
 
 # max and min functions
 max = x y -> x > y? x y,
