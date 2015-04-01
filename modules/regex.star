@@ -254,7 +254,7 @@ to_postfix = pat -> let
     # pop symbols off the stack onto output while they satisfy p
     pop = p state -> let
         stack_split = span p state.stack in
-        {stack=stack_split._1, out=cat (reverse stack_split._0) state.out},
+        {stack=stack_split._1, out=(reverse stack_split._0) ++ state.out},
     # fold function
     pf = sym -> 
         # push '(' onto the stack
@@ -268,7 +268,7 @@ to_postfix = pat -> let
         else output sym,
     pf_fold = fold pf {stack=[], out=[]} (reverse pat) in
     # fold over pattern, then append stack to output
-    cat (reverse pf_fold.out) pf_fold.stack,
+    (reverse pf_fold.out) ++ pf_fold.stack,
 
 # tree constructor
 tree = sym children -> {sym=sym, children=children},
@@ -303,7 +303,7 @@ succ_all = fa sym ns -> join (map (succ sym fa) ns),
 closure = fa sym ns -> let
     closure_ = ns visited -> let
         filt_ns = filter (not >> (visited has)) ns,
-        new_visited = cat filt_ns visited in
+        new_visited = filt_ns ++ visited in
         if filt_ns == []
         then visited
         else closure_ (succ_all fa sym filt_ns) new_visited in
@@ -315,7 +315,7 @@ to_nfa = t -> let
     set_final = n nfa -> automata nfa.start n nfa.trans nfa.nodes,
     # add new transitions to the automata
     add_trans = ts nfa -> 
-        automata nfa.start nfa.final (cat ts nfa.trans) nfa.nodes,
+        automata nfa.start nfa.final (ts ++ nfa.trans) nfa.nodes,
     # an empty nfa
     empty = automata 0 0 [] [0],
 
@@ -331,8 +331,8 @@ to_nfa = t -> let
 
     join = nfa1 nfa2 -> let
         rnfa2 = relabel_nfa nfa2 nfa1,
-        new_trans = cat rnfa2.trans nfa1.trans,
-        new_nodes = cat rnfa2.nodes nfa1.nodes,
+        new_trans = rnfa2.trans ++ nfa1.trans,
+        new_nodes = rnfa2.nodes ++ nfa1.nodes,
         new_nfa = automata nfa1.start nfa1.final new_trans new_nodes in 
         {new=new_nfa, n1=nfa1, n2=rnfa2},
 
@@ -410,7 +410,7 @@ disjoin_nfa = nfa -> let
 
     # disjoin all literal transitions
     new_lit_trans = join >> (map disjoin_trans) >> lit_trans nfa,
-    new_trans = cat (nonlit_trans nfa) new_lit_trans in
+    new_trans = (nonlit_trans nfa) ++ new_lit_trans in
 
     automata nfa.start nfa.final new_trans nfa.nodes, 
 
@@ -427,8 +427,8 @@ to_dfa = nfa -> let
         new_trans = filter not_empty (map trans_closure syms),
         new_nodes = map (.end) new_trans,
         filt_nodes = filter (not >> (new_dfa.nodes has)) new_nodes,
-        new_dfa = automata dfa.start dfa.final (cat new_trans dfa.trans) (nodeset : dfa.nodes) in
-        if stack == [] then dfa else convert (nub (cat filt_nodes stack.tail)) new_dfa,
+        new_dfa = automata dfa.start dfa.final (new_trans ++ dfa.trans) (nodeset : dfa.nodes) in
+        if stack == [] then dfa else convert (nub (filt_nodes ++ stack.tail)) new_dfa,
     result = convert [new_start] (automata new_start new_start [] []) in
     automata result.start (new_finals result) result.trans result.nodes,
 
@@ -459,7 +459,7 @@ rejoin_dfa = dfa -> let
 
     # new transitions
     new_lit_trans = join (map join_trans grouped_trans),
-    new_trans = cat (nonlit_trans dfa) new_lit_trans in
+    new_trans = (nonlit_trans dfa) ++ new_lit_trans in
     automata dfa.start dfa.final new_trans dfa.nodes,
 
 # return true if a character matches the given symbol

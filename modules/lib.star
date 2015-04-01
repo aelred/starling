@@ -113,7 +113,7 @@ drop_while = p xs -> (span p xs)._1,
 drop_until = p -> drop_while (not >> p),
 
 # join a list of lists into a single list
-join = fold cat [],
+join = fold (++) [],
 
 # return all numbers between start (inclusive) and end (exclusive)
 range = start end -> 
@@ -131,7 +131,7 @@ length = foldl (const >> (+1)) 0,
 reverse = foldl (flip (:)) [],
 
 # return the concatenation of two lists
-cat = xs ys -> fold (:) ys xs,
+++ = xs ys -> fold (:) ys xs,
 
 # zip two lists together
 zip = xs ys -> 
@@ -158,10 +158,10 @@ sort = xs ->
         pivot = xs.head,
         less = filter (< pivot) xs.tail,
         more = filter (>= pivot) xs.tail in 
-    cat (sort less) (pivot : (sort more))
+    (sort less) ++ (pivot : (sort more))
 
 in export 
     : not or and any all ? id const >> curry uncurry @ != < >= > max min sum
     flip has foldr foldl fold foldr1 foldl1 fold1 map filter span break take
     take_while take_until drop drop_while drop_until join range nats length
-    reverse cat zip unzip sort
+    reverse ++ zip unzip sort

@@ -14,7 +14,7 @@ re = pat pos neg -> let
         map (s -> test.assert (pred s) (join [pat, msg, str s])),
     pos_t = assertions (s -> (match pat s.inp) == s.res) " doesn't match " pos,
     neg_t = assertions (s -> not (match pat s).match) " matches " neg in
-    cat pos_t neg_t in
+    pos_t ++ neg_t in
 
 test.test >> join [
     re "" [m "anything" "", m "at" "", m "all" ""] [],

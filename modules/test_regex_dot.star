@@ -7,8 +7,8 @@ regex_dot = import regex_dot,
 dot = regex_dot.main,
 
 digraph = strs start finals -> let
-    final_strs = map (final -> cat final " [shape=doublecircle]") finals,
-    new_strs = cat final_strs (join ["start -> ", start] : strs) in
+    final_strs = map (final -> final ++ " [shape=doublecircle]") finals,
+    new_strs = final_strs ++ (join ["start -> ", start] : strs) in
     join [
         "digraph g {\n",
         join (map (s -> join ["\t", s, ";\n"]) new_strs), 

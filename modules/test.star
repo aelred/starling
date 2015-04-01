@@ -20,7 +20,7 @@ report = fail_fast results -> let
         if fail_fast
         then let 
         split = span (.pass) results in 
-        cat split._0 (take 1 split._1)
+        split._0 ++ (take 1 split._1)
         else results,
 
     # print a dot for every passing test and an 'F' for every failing test

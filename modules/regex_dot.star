@@ -3,7 +3,7 @@ regex = import regex,
 
 fa_to_dot = fa -> let
     start = join ["start -> ", str (fa.start)],
-    finals = map (final -> cat (str final) " [shape=doublecircle]") fa.final,
+    finals = map (final -> (str final) ++ " [shape=doublecircle]") fa.final,
 
     range_str = r ->
         if r._0 == r._1

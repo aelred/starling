@@ -9,7 +9,7 @@ multidict = dict.multidict,
 # recursion limit
 tmap = f -> reverse >> (foldl (ys x -> f x : ys) []),
 tfilter = f -> reverse >> (foldl (ys x -> if f x then x : ys else ys) []),
-tjoin = foldl cat [],
+tjoin = foldl (++) [],
 
 # declare a new non-terminal production
 ::= = sym expr -> [{sym=sym, expr=expr}],

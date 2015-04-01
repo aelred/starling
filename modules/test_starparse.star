@@ -93,15 +93,15 @@ test.test [
             leaf t.number "3"
         ]
     ],
-    (parse "let enum a b, enum c in cat \"hello\" ['a', 'b']") ?= [
+    (parse "let enum a b, enum c in \"hello\" ++ ['a', 'b']") ?= [
         tree t.let_expr [
             tree t.bindings [
                 tree t.enum_expr [leaf t.prefix_id "a", leaf t.prefix_id "b"],
                 tree t.enum_expr [leaf t.prefix_id "c"]
             ],
             tree t.apply [
-                leaf t.prefix_id "cat",
                 leaf t.string "\"hello\"",
+                leaf t.infix_id "++",
                 tree t.list [leaf t.char "'a'", leaf t.char "'b'"]
             ]
         ]
