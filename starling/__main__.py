@@ -3,6 +3,7 @@ from starling import run
 import argparse
 import logging
 import sys
+import re
 
 
 def _print_run(expr=None, source=None, input_=None):
@@ -16,17 +17,28 @@ def _print_run(expr=None, source=None, input_=None):
 
 
 def cli(input_=None):
+    # maintain a list of bindings
+    bindings = []
+
     # run an interpreter
     while True:
         inp = raw_input('>>> ')
         if inp == 'quit':
             break
 
-        try:
-            _print_run(expr=inp, input_=input_)
-        except Exception, e:
-            # print the error, but don't quit
-            print e
+        if re.match(r'^\s*[A-Za-z_][A-Za-z0-9_]*\s*=[^=]', inp):
+            # if this looks like a binding, store it
+            bindings.append(inp)
+        else:
+            # wrap any existing bindings
+            if bindings:
+                inp = 'let %s in %s' % (', '.join(bindings), inp)
+
+            try:
+                _print_run(expr=inp, input_=input_)
+            except Exception, e:
+                # print the error, but don't quit
+                print e
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Starling interpreter.')
