@@ -21,7 +21,12 @@ def cli(input_=None):
         inp = raw_input('>>> ')
         if inp == 'quit':
             break
-        _print_run(expr=inp, input_=input_)
+
+        try:
+            _print_run(expr=inp, input_=input_)
+        except Exception, e:
+            # print the error, but don't quit
+            print e
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Starling interpreter.')
