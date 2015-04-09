@@ -222,10 +222,10 @@ interp_pattern = pat -> let
     else {type=type} : (interp_pattern pat.tail),
 
 enum alt star concat opt plus crep urep,
-enum lit lpar rpar ass_start ass_end eps,
+enum lit lpar rpar group ass_start ass_end eps,
 
-is_op = sym -> [alt, star, concat, opt, plus, crep, urep] has sym.type,
-is_unary = sym -> [star, opt, plus, crep, urep] has sym.type,
+is_op = sym -> [alt, star, concat, opt, plus, crep, urep, group] has sym.type,
+is_unary = sym -> [star, opt, plus, crep, urep, group] has sym.type,
 
 # add explicit concat symbol
 add_concat = pat ->
@@ -245,28 +245,50 @@ to_postfix = pat -> let
     # operator precedence
     prec = sym -> 
         if is_unary sym then 3 else if sym.type == concat then 2 else 1,
+
     # push a symbol onto the stack
-    push = sym state -> {stack=sym:state.stack, out=state.out},
+    push = sym state -> {
+        stack=sym:state.stack, out=state.out, group_count=state.group_count
+    },
     # output a symbol
-    output = sym state -> {stack=state.stack, out=sym:state.out},
+    output = sym state -> {
+        stack=state.stack, out=sym:state.out, group_count=state.group_count
+    },
     # drop the top stack symbol
-    drop = state -> {stack=(state.stack).tail, out=state.out},
+    drop = state -> {
+        stack=(state.stack).tail, out=state.out, group_count=state.group_count
+    },
     # pop symbols off the stack onto output while they satisfy p
     pop = p state -> let
-        stack_split = span p state.stack in
-        {stack=stack_split._1, out=(reverse stack_split._0) ++ state.out},
+        stack_split = span p state.stack in {
+            stack=stack_split._1, out=(reverse stack_split._0) ++ state.out,
+            group_count=state.group_count
+        },
+    # pop one symbol off stack to output
+    pop_one = state -> {
+        stack=(state.stack).tail, out=(state.stack).head:state.out,
+        group_count=state.group_count
+    },
+    # start a new group capture
+    start_group = state -> let
+        num = state.group_count + 1 in {
+            stack={type=group, num=num}:state.stack, out=state.out, 
+            group_count=num
+        },
+
     # fold function
     pf = sym -> 
-        # push '(' onto the stack
-        if sym.type == lpar then push sym 
-        # pop symbols to output until a '(', then remove the '('
-        else if sym.type == rpar then drop >> (pop (s -> s.type != lpar))
+        # start a group capture
+        if sym.type == lpar then start_group
+        # pop symbols to output up to and including the group symbol
+        else if sym.type == rpar
+        then pop_one >> (pop (s -> s.type != group))
         # pop higher-precedence operators to output, then push operator
         else if is_op sym
         then push sym >> (pop (op -> is_op op and ((prec sym) < (prec op))))
         # otherwise, push identifier to output
         else output sym,
-    pf_fold = fold pf {stack=[], out=[]} (reverse pat) in
+    pf_fold = fold pf {stack=[], out=[], group_count=0} (reverse pat) in
     # fold over pattern, then append stack to output
     (reverse pf_fold.out) ++ pf_fold.stack,
 
@@ -282,9 +304,10 @@ to_tree = pfix -> let
     (foldl subtree [[]] pfix).head,
 
 # NFA/DFA operations
-automata = s f t n -> {
+automata = s f t n g -> {
         start=s, final=f, trans=t, 
-        trans_dict=multidict (map (tt -> (tt.start, tt)) t), nodes=n
+        trans_dict=multidict (map (tt -> (tt.start, tt)) t), nodes=n, 
+        node_groups=g
     },
 trans = start end sym -> {start=start, end=end, sym=sym},
 
@@ -312,31 +335,46 @@ closure = fa sym ns -> let
 # turn a tree into a nondeterministic finite automata (NFA)
 to_nfa = t -> let
     # change the end node of an automata
-    set_final = n nfa -> automata nfa.start n nfa.trans nfa.nodes,
+    set_final = n nfa -> 
+        automata nfa.start n nfa.trans nfa.nodes nfa.node_groups,
     # add new transitions to the automata
     add_trans = ts nfa -> 
-        automata nfa.start nfa.final (ts ++ nfa.trans) nfa.nodes,
+        automata nfa.start nfa.final (ts ++ nfa.trans) nfa.nodes nfa.node_groups,
     # an empty nfa
-    empty = automata 0 0 [] [0],
+    empty = automata 0 0 [] [0] (dict.dict []),
 
     relabel_nfa = nfa nfa_other -> let
         offset = (nfa_other.nodes).head + 1,
         relabel = (+ offset),
         relabel_trans = t -> trans (relabel t.start) (relabel t.end) t.sym,
+        relabel_group = uncurry (node group -> (relabel node, group)),
         new_start = relabel nfa.start,
         new_final = relabel nfa.final,
         new_trans = map relabel_trans nfa.trans,
-        new_nodes = map relabel nfa.nodes in
-        automata new_start new_final new_trans new_nodes,
+        new_nodes = map relabel nfa.nodes,
+        new_node_groups = 
+            dict.dict (map relabel_group (dict.items nfa.node_groups)) in
+        automata new_start new_final new_trans new_nodes new_node_groups,
 
     join = nfa1 nfa2 -> let
         rnfa2 = relabel_nfa nfa2 nfa1,
         new_trans = rnfa2.trans ++ nfa1.trans,
         new_nodes = rnfa2.nodes ++ nfa1.nodes,
-        new_nfa = automata nfa1.start nfa1.final new_trans new_nodes in 
+        new_groups = 
+            dict.dict (
+                (dict.items rnfa2.node_groups) ++ 
+                (dict.items nfa1.node_groups)
+            ),
+        new_nfa = 
+            automata nfa1.start nfa1.final new_trans new_nodes new_groups in 
         {new=new_nfa, n1=nfa1, n2=rnfa2},
 
     epstrans = start end -> trans start end {type=eps},
+
+    add_node_group = node group nfa ->
+        automata 
+            nfa.start nfa.final nfa.trans nfa.nodes 
+            (dict.put node group nfa.node_groups),
     
     parse_tree = node -> let
         child = node.children,
@@ -345,10 +383,10 @@ to_nfa = t -> let
         if sym.type == lit
         # create a transition for every range
         then let new_trans = map (r -> trans 0 1 {type=lit, range=r}) sym.range in
-        automata 0 1 new_trans [1, 0]
+        automata 0 1 new_trans [1, 0] (dict.dict [])
         else if child == []
         # basic transition
-        then automata 0 1 [trans 0 1 sym] [1, 0]
+        then automata 0 1 [trans 0 1 sym] [1, 0] (dict.dict [])
         # concatenate the two subautomata together
         else if sym.type == concat then let
         joined = join (nfas@0) (nfas@1), 
@@ -361,7 +399,7 @@ to_nfa = t -> let
                    epstrans (joined.n2).final 0] joined.new
         # alternate between subautomata
         else if sym.type == alt then let
-        join1 = join (automata 0 1 [] [1, 0]) (nfas@0),
+        join1 = join (automata 0 1 [] [1, 0] (dict.dict [])) (nfas@0),
         join2 = join join1.new (nfas@1),
         new_trans = 
             [epstrans 0 (join1.n2).start, epstrans 0 (join2.n2).start,
@@ -369,7 +407,7 @@ to_nfa = t -> let
         add_trans new_trans join2.new
         # optionally accept the subautomata
         else if sym.type == opt then let
-        joined = join (automata 0 1 [epstrans 0 1] [1, 0]) (nfas@0) in
+        joined = join (automata 0 1 [epstrans 0 1] [1, 0] (dict.dict [])) (nfas@0) in
         add_trans [epstrans 0 (joined.n2).start,
                    epstrans (joined.n2).final 1] joined.new
         # one or more repetitions
@@ -383,11 +421,16 @@ to_nfa = t -> let
         then empty 
         else parse_tree (sym.m==0? (tree {type=opt} [rec_tree]) rec_tree)
         # handle unbounded repetitions like a{3,}
-        else let
+        else if sym.type == urep then let
         next_rep = tree {type=urep, m=sym.m-1} child in
         if sym.m == 0
         then parse_tree (tree {type=star} child)
-        else parse_tree (tree {type=concat} (next_rep:child)) in
+        else parse_tree (tree {type=concat} (next_rep:child)) 
+        # handle capture groups
+        else let
+        joined = join empty (nfas@0) in 
+        add_node_group 0 (sym.num)
+        (add_trans [epstrans 0 (joined.n2).start] joined.new) in
 
     if t == [] then empty else parse_tree t,
 
@@ -412,7 +455,7 @@ disjoin_nfa = nfa -> let
     new_lit_trans = join >> (map disjoin_trans) >> lit_trans nfa,
     new_trans = (nonlit_trans nfa) ++ new_lit_trans in
 
-    automata nfa.start nfa.final new_trans nfa.nodes, 
+    automata nfa.start nfa.final new_trans nfa.nodes nfa.node_groups,
 
 # turn an NFA into a deterministic finite automata (DFA)
 to_dfa = nfa -> let
@@ -427,10 +470,10 @@ to_dfa = nfa -> let
         new_trans = filter not_empty (map trans_closure syms),
         new_nodes = map (.end) new_trans,
         filt_nodes = filter (not >> (new_dfa.nodes has)) new_nodes,
-        new_dfa = automata dfa.start dfa.final (new_trans ++ dfa.trans) (nodeset : dfa.nodes) in
+        new_dfa = automata dfa.start dfa.final (new_trans ++ dfa.trans) (nodeset : dfa.nodes) dfa.node_groups in
         if stack == [] then dfa else convert (nub (filt_nodes ++ stack.tail)) new_dfa,
-    result = convert [new_start] (automata new_start new_start [] []) in
-    automata result.start (new_finals result) result.trans result.nodes,
+    result = convert [new_start] (automata new_start new_start [] [] (dict.dict [])) in
+    automata result.start (new_finals result) result.trans result.nodes result.node_groups,
 
 # minify DFA by changing union node names into fresh names
 minify_dfa = dfa -> let

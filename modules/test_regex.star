@@ -14,9 +14,14 @@ re = pat pos neg -> let
         map (s -> test.assert (pred s) (join [pat, msg, str s])),
     pos_t = assertions (s -> (match pat s.inp) == s.res) " doesn't match " pos,
     neg_t = assertions (s -> not (match pat s).match) " matches " neg in
-    pos_t ++ neg_t in
+    pos_t ++ neg_t,
+
+group = pat inp groups -> test.assert_equal (match pat inp).groups groups in
 
 test.test >> join [
+    # group capture
+    group "a([0-9]+)b" "a549b" ["549"],
+
     re "" [m "anything" "", m "at" "", m "all" ""] [],
     re "." [tm "c", m "hi" "h", m "what" "w"] [""],
     re "this" [tm "this"] ["", "not this"],
