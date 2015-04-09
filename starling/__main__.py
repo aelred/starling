@@ -16,6 +16,10 @@ def _print_run(expr=None, source=None, input_=None):
     print
 
 
+_re_binding = re.compile(r'^\s*[A-Za-z_][A-Za-z0-9_]*\s*=[^=]')
+_re_enum = re.compile(r'^\s*enum\s')
+
+
 def cli(input_=None):
     # maintain a list of bindings
     bindings = []
@@ -26,7 +30,7 @@ def cli(input_=None):
         if inp == 'quit':
             break
 
-        if re.match(r'^\s*[A-Za-z_][A-Za-z0-9_]*\s*=[^=]', inp):
+        if _re_binding.match(inp) or _re_enum.match(inp):
             # if this looks like a binding, store it
             bindings.append(inp)
         else:

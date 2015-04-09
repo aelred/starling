@@ -31,3 +31,6 @@ def test_input():
     _input(['(1, 2)', 'quit'], ['(1, 2)', ''])
     _input(['x=1', 'x+1', 'quit'], ['2', ''])
     _input([' f= x -> x*x', 'x = y', 'x =3 ', 'f x', 'quit'], ['9', ''])
+    _input(['x = 3', 'x==3', 'x == 3', 'x== 3', 'x !=3', 'x', 'quit'],
+           ['True', 'True', 'True', 'False', '3', ''])
+    _input(['enum a b c', 'a', 'b', 'c', 'quit'], ['a', 'b', 'c', ''])
