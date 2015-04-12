@@ -21,6 +21,12 @@ _re_enum = re.compile(r'^\s*enum\s')
 
 
 def cli(input_=None):
+    # add support for command history
+    try:
+        import readline
+    except:
+        pass
+
     # maintain a list of bindings
     bindings = []
 
