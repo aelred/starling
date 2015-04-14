@@ -1,10 +1,22 @@
 import logging
 import os
+import llvmlite.ir as ll
+import llvmlite.binding as llvm
 from starling import star_path
 
 _id = 0
 
 log = logging.getLogger('starling.syntax_tree')
+
+_bool = ll.IntType(1)
+_boolp = ll.PointerType(_bool)
+_i8 = ll.IntType(8)
+_i8p = ll.PointerType(_i8)
+_i32 = ll.IntType(32)
+_i32p = ll.PointerType(_i32)
+
+_unfunc = ll.FunctionType(_i8p, [_i8p])
+_binfunc = ll.FunctionType(_i8p, [_i8p, _i8p])
 
 
 def _get_id():
@@ -82,6 +94,127 @@ class Script(Token):
             '        raise error.StarlingRuntimeError(str(e))' % (
                 self.body.gen_python(True)))
 
+    def gen_llvm(self):
+        llvm.initialize()
+        llvm.initialize_native_target()
+        llvm.initialize_native_asmprinter()
+
+        module = ll.Module()
+
+        # define helper functions
+        helper = {
+            'make_closure': ll.Function(
+                module, ll.FunctionType(_i8p, [_i8p, ll.PointerType(_binfunc)]),
+                'make_closure'),
+            'apply_closure': ll.Function(module, _binfunc, 'apply_closure'),
+            'make_thunk': ll.Function(
+                module, ll.FunctionType(_i8p, [_i8p, ll.PointerType(_unfunc)]),
+                'make_thunk'),
+            'wrap_thunk': ll.Function(module, _unfunc, 'wrap_thunk'),
+            'eval_thunk': ll.Function(module, _unfunc, 'eval_thunk'),
+            'malloc': ll.Function(
+                module, ll.FunctionType(_i8p, [_i32]), 'malloc')
+        }
+
+        # define all global methods and constants
+
+        def glob_const(llvm_name, type_):
+            # reference pre-defined internal function
+            internal = ll.GlobalVariable(
+                module, type_, name='%s_intern' % llvm_name)
+
+            def make_ref(builder):
+                return builder.call(
+                    helper['wrap_thunk'],
+                    [builder.bitcast(internal, _i8p)], name='thunk')
+
+            return make_ref
+
+
+        def glob_func(llvm_name, ret_type, arg_types):
+            funtype = ll.FunctionType(ret_type, arg_types)
+
+            # reference pre-defined internal function
+            internal = ll.Function(module, funtype, '%s_intern' % llvm_name)
+
+            # create function that converts pointers to correct type
+            func_ptr = ll.Function(
+                module, ll.FunctionType(_i8p, [_i8p] * len(arg_types)),
+                '%s_ptr' % llvm_name)
+            func_ptr.linkage = 'private'
+            builder = ll.IRBuilder(func_ptr.append_basic_block())
+
+            # evaluate and cast arguments to right type
+            arg_vals = []
+            for arg, arg_type in zip(func_ptr.args, arg_types):
+                val_ptr = builder.call(helper['eval_thunk'], [arg])
+                val = builder.load(
+                    builder.bitcast(val_ptr, ll.PointerType(arg_type)))
+                arg_vals.append(val)
+
+            # get result and convert back to pointer
+            res = builder.call(internal, arg_vals, name='res')
+            # TODO: Correct size
+            res_ptr = builder.call(
+                helper['malloc'], [ll.Constant(_i32, 4)], name='res_ptr')
+            res_cast = builder.bitcast(
+                res_ptr, ll.PointerType(ret_type), name='res_cast')
+            builder.store(res, res_cast)
+            builder.ret(res_ptr)
+
+            # create function that makes closure for first argument
+            func = ll.Function(module, _binfunc, '%s_func' % llvm_name)
+            func.linkage = 'private'
+            func.args[0].name = 'env_null'
+            func.args[1].name = 'arg'
+            builder_ = ll.IRBuilder(func.append_basic_block())
+            res = builder_.call(
+                helper['make_closure'],
+                [func.args[1], func_ptr], name='res')
+            builder_.ret(res)
+
+            # function to build a closure for this global function
+            def make_closure(builder, func=func, name=llvm_name):
+                closure = builder.call(
+                    helper['make_closure'], [ll.Constant(_i8p, None), func],
+                    name=llvm_name)
+                return builder.call(
+                    helper['wrap_thunk'], [closure], name='thunk')
+
+
+            return make_closure
+
+        env = {
+            'True': glob_const('true', _bool),
+            'False': glob_const('false', _bool),
+            '+': glob_func('add', _i32, [_i32, _i32]),
+            '-': glob_func('sub', _i32, [_i32, _i32]),
+            '*': glob_func('mul', _i32, [_i32, _i32]),
+            '/': glob_func('div', _i32, [_i32, _i32]),
+            'mod': glob_func('mod', _i32, [_i32, _i32]),
+            'pow': glob_func('pow', _i32, [_i32, _i32]),
+            '==': glob_func('eq', _bool, [_i32, _i32]),
+            '<=': glob_func('le', _bool, [_i32, _i32])
+        }
+
+        # create main function
+        main = ll.Function(module, ll.FunctionType(_i32, []), 'main')
+        builder = ll.IRBuilder(main.append_basic_block('entry'))
+
+        # generate code
+        thunk_ptr = self.body.gen_llvm(module, helper, builder, env)
+        res_ptr = builder.call(
+            helper['eval_thunk'], [thunk_ptr], name='res_ptr')
+        res_ptr32 = builder.bitcast(res_ptr, _i32p, name='res_cast')
+        res = builder.load(res_ptr32, name='res')
+        builder.ret(res)
+
+        # parse assembly
+        print str(module)
+        llmod = llvm.parse_assembly(str(module))
+
+        return llmod
+
     def wrap_import(self, imp):
         return Script([ModWrapper([Identifier(imp, False), self.body])])
 
@@ -104,6 +237,9 @@ class ModWrapper(Token):
         ) % (self.name.value,
              os.path.join(star_path.cache_dir, self.name.value + '.py'))
         return '%s\n%s' % (imports, self.body.gen_python())
+
+    def gen_llvm(self, module, helper, builder, env):
+        return self.body.gen_llvm(module, helper, builder, env)
 
 
 class Terminator(Token):
@@ -149,10 +285,21 @@ class Identifier(Terminator):
     def _gen_python(self):
         return 'return %s' % self.python_name()
 
+    def gen_llvm(self, module, helper, builder, env):
+        return env[self.value](builder)
+
 
 class Number(Terminator):
     def _gen_python(self):
         return 'return star_type.Number(%s)' % self.value
+
+    def gen_llvm(self, module, helper, builder, env):
+        const = builder.constant(_i32, int(self.value))
+        ptr = builder.call(
+            helper['malloc'], [builder.constant(_i32, 4)], name='num')
+        builder.store(const, builder.bitcast(ptr, _i32p, name='num32'))
+        thunk = builder.call(helper['wrap_thunk'], [ptr], name='thunk')
+        return thunk
 
 
 class Char(Terminator):
@@ -178,6 +325,23 @@ class Expression(Token):
             'return lambda: trampoline(_f%s)(_t%s)' % (
                 i1, self.operand.gen_python(True),
                 i2, self.operator.gen_python(True), i1, i1, i2, i1))
+
+    def gen_llvm(self, module, helper, builder, env):
+        # create function to evaluate this expression
+        func = ll.Function(module, _unfunc, module.get_unique_name())
+        func.linkage = 'private'
+        fbuilder = ll.IRBuilder(func.append_basic_block())
+
+        optor = self.operator.gen_llvm(module, helper, fbuilder, env)
+        opand = self.operand.gen_llvm(module, helper, fbuilder, env)
+        optor_val = fbuilder.call(
+            helper['eval_thunk'], [optor], name='operator')
+        res = fbuilder.call(
+            helper['apply_closure'], [optor_val, opand], tail=True, name='res')
+        fbuilder.ret(res)
+
+        return builder.call(
+            helper['make_thunk'], [ll.Constant(_i8p, None), func], name='expr')
 
 
 class EmptyList(EmptyToken):
@@ -260,6 +424,32 @@ class If(Token):
                 i1, self.predicate.gen_python(True),
                 i2, self.consequent.gen_python(True),
                 i3, self.alternative.gen_python(True), it, i1, it, i2, it, i3))
+
+    def gen_llvm(self, module, helper, builder, env):
+        func = builder.function
+        pred = self.predicate.gen_llvm(module, helper, builder, env)
+
+        if_con = func.append_basic_block('if.con')
+        if_alt = func.append_basic_block('if.alt')
+        if_end = func.append_basic_block('if.end')
+
+        pred_val = builder.call(helper['eval_thunk'], [pred], name='pred_val')
+        pred_ptr = builder.bitcast(pred_val, _boolp, name='pred_ptr')
+        builder.cbranch(builder.load(pred_ptr, name='pred'), if_con, if_alt)
+
+        builder.position_at_start(if_con)
+        con = self.consequent.gen_llvm(module, helper, builder, env)
+        builder.branch(if_end)
+
+        builder.position_at_start(if_alt)
+        alt = self.alternative.gen_llvm(module, helper, builder, env)
+        builder.branch(if_end)
+
+        builder.position_at_start(if_end)
+        phi = builder.phi(_i8p, 'my_phi')
+        phi.incomings = [(con, if_con), (alt, if_alt)]
+
+        return phi
 
 
 class Let(Token):

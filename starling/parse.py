@@ -5,6 +5,10 @@ from pyparsing import ParseException, ParseSyntaxException
 import os
 import imp
 
+import llvmlite.ir as ll
+import llvmlite.binding as llvm
+from ctypes import CFUNCTYPE, c_int
+
 from starling import error, syntax_tree, star_path
 from starling.glob_env import trampoline
 
@@ -130,6 +134,41 @@ def expr_to_py(expr, lib=True, path=None):
         star_to_py('lib', False)
         tree = tree.wrap_import('lib')
     code = tree.gen_python()
+
+    # generate LLVM code
+    llir = tree.gen_llvm()
+
+    # load runtime
+    runtime = llvm.parse_assembly(open('runtime.ll').read())
+
+    # link runtime
+    llir.link_in(runtime)
+
+    # optimize code
+    pmb = llvm.create_pass_manager_builder()
+    pmb.opt_level = 3
+    pmb.inlining_threshold = 1000
+    pm = llvm.create_module_pass_manager()
+    pmb.populate(pm)
+
+    # repeatedly optimize until no change in code
+    prev = None
+    curr = str(llir)
+    while prev != curr:
+        pm.run(llir)
+        prev = curr
+        curr = str(llir)
+
+    print curr
+
+    target_machine = llvm.Target.from_default_triple().create_target_machine()
+
+    with llvm.create_mcjit_compiler(llir, target_machine) as ee:
+        ee.finalize_object()
+        cfptr = ee.get_pointer_to_global(llir.get_function('main'))
+        print target_machine.emit_assembly(llir)
+        cfunc = CFUNCTYPE(c_int)(cfptr)
+        print "LLVM RESULT: ", cfunc()
 
     # write code to path
     with open(path, 'w') as f:
