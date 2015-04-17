@@ -6,7 +6,7 @@ import os
 import imp
 
 from starling import error, syntax_tree, star_path
-from starling.glob_env import trampoline
+from starling.util import trampoline
 
 lpar = Suppress(Literal('('))
 rpar = Suppress(Literal(')'))
@@ -68,7 +68,7 @@ lambda_expr = lambda_inner
 object_binding = Group(ident + equals + expr)('object_binding')
 object_expr = Group(lobj + Optional(delimitedList(object_binding)) +
                     robj)('object')
-object_accessor = Group(atom + dot + ident)('accessor')
+object_accessor = Group(atom + OneOrMore(dot + ident))('accessor')
 partial_accessor = Group(dot + ident)('part_accessor')
 
 tuple_expr = Group(lpar +
@@ -129,6 +129,9 @@ def expr_to_py(expr, lib=True, path=None):
         # convert standard library and include it
         star_to_py('lib', False)
         tree = tree.wrap_import('lib')
+    else:
+        # otherwise, this is the stdlib, so include additional code
+        tree = tree.wrap_stdlib()
     code = tree.gen_python()
 
     # write code to path
@@ -154,7 +157,7 @@ def _evaluate(path, input_, name):
         inp_expr = evaluate_expr('"' + encoded + '"', name='input')
 
         try:
-            func = result.value['main']()
+            func = result.items['main']()
         except AttributeError:
             func = result
         return trampoline(lambda: func(inp_expr))
@@ -249,6 +252,16 @@ def _string_token(value):
     return syntax_tree.String(value[1:-1])
 
 
+def _accessor_token(value):
+    if len(value) <= 2:
+        return syntax_tree.Accessor(value)
+    else:
+        # split up multiple accessors
+        return token_classes['accessor']([
+            _accessor_token(value[:-1]), value[-1]
+        ])
+
+
 def _part_accessor_token(value):
     # transform into a lambda function
     temp_id = token_classes['prefix_id']('$temp_partial')
@@ -291,7 +304,7 @@ token_classes = {
     'lambda': syntax_tree.Lambda,
     'object': syntax_tree.Object,
     'object_binding': syntax_tree.ObjectBinding,
-    'accessor': syntax_tree.Accessor,
+    'accessor': _accessor_token,
     'part_accessor': _part_accessor_token,
     'tuple': _tuple_token,
     'import': _import_token,

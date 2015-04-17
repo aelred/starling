@@ -1,7 +1,32 @@
 let
 
+# placeholder str and repr functions
+str = obj -> obj.str obj,
+repr = obj -> obj.repr obj,
+
+# the empty list
+empty_list = {
+    str = self -> "[]",
+    repr = self -> "[]"
+},
+
+intersperse = x xs ->
+    if xs == []
+    then []
+    else if xs.tail == []
+    then [xs.head]
+    else xs.head : (x : (intersperse x xs.tail)),
+
 # list constructor
-: = x xs -> {head=x, tail=xs},
+: = x xs -> {
+    head = x, 
+    tail = xs,
+
+    str = self -> 
+        join ["[", join (intersperse ", " (map (y -> y.repr y) self)), "]"],
+
+    repr = self -> self.str self
+},
 
 # basic logic
 not = x -> if x then False else True,
@@ -24,16 +49,16 @@ const = x y -> x,
 curry = f x y -> f (x, y),
 
 # transform a curried function into one that takes a pair
-uncurry = f xs -> f (xs._0) (xs._1),
+uncurry = f xs -> f xs._0 xs._1,
 
 # access array elements
 @ = xs n -> if n == 0 then xs.head else xs.tail@(strict n-1),
 
 # comparison operators
 != = x y -> not (x == y),
-< = x -> not >> (<= x),
+< = x y -> not (y <= x),
 > = x y -> not (x <= y),
->= = x -> not >> (> x),
+>= = x y -> not (y > x),
 
 # max and min functions
 max = x y -> x > y? x y,
