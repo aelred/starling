@@ -69,45 +69,21 @@ class Script(Token):
         return self._value[0]
 
     def _gen_python(self):
-        return """
-from starling.util import trampoline, Thunk
-import starling.star_type as star_type
-from starling.star_type import *
-from starling.glob_env import *
-from starling import error
-import imp
-
-def _main():
-%s
-def _result():
-    try:
-        return trampoline(_main)
-    except NameError, e:
-        raise error.StarlingRuntimeError(str(e))
-        """ % self.body.gen_python(True)
+        return (
+            'from starling import star_type, error\n'
+            'from starling.glob_env import *\n'
+            'import imp\n'
+            'def _main():\n'
+            '%s\n'
+            'def _result():\n'
+            '    try:\n'
+            '        return trampoline(_main)\n'
+            '    except NameError, e:\n'
+            '        raise error.StarlingRuntimeError(str(e))' % (
+                self.body.gen_python(True)))
 
     def wrap_import(self, imp):
         return Script([ModWrapper([Identifier(imp, False), self.body])])
-
-    def wrap_stdlib(self):
-        return Script([StdLib([self.body])])
-
-
-class StdLib(Token):
-
-    @property
-    def body(self):
-        return self._value[0]
-
-    def _gen_python(self):
-        return (
-            'def _stdlib():\n'
-            '%s\n\n'
-            '_stdlib_eval = _stdlib()\n'
-            'star_type.cons = _stdlib_eval.items["c_"]\n'
-            'star_type.empty_list = _stdlib_eval.items["empty_list"]\n'
-            'return _stdlib_eval'
-        ) % self.body.gen_python(True)
 
 
 class ModWrapper(Token):
@@ -123,7 +99,7 @@ class ModWrapper(Token):
     def _gen_python(self):
         imports = (
             '_m = imp.load_source(\'%s\', \'%s\')\n'
-            'for k, v in _m._result().items_no_defaults.iteritems():\n'
+            'for k, v in _m._result().value.iteritems():\n'
             '    globals()[k + \'_\'] = v\n'
         ) % (self.name.value,
              os.path.join(star_path.cache_dir, self.name.value + '.py'))
@@ -176,12 +152,12 @@ class Identifier(Terminator):
 
 class Number(Terminator):
     def _gen_python(self):
-        return 'return Number(%s)' % self.value
+        return 'return star_type.Number(%s)' % self.value
 
 
 class Char(Terminator):
     def _gen_python(self):
-        return 'return Char(\'%s\')' % self.value
+        return 'return star_type.Char(\'%s\')' % self.value
 
 
 class Expression(Token):
@@ -207,7 +183,7 @@ class Expression(Token):
 class EmptyList(EmptyToken):
 
     def _gen_python(self):
-        return 'return empty_list_'
+        return 'return star_type.empty_list'
 
 
 class List(Token):
@@ -333,7 +309,7 @@ class Enum(Token):
 
     def _gen_python(self):
         names = [i.python_name() for i in self.identifiers]
-        return '\n'.join('%s = Enum(\'%s\', %s)' % (n, n, _get_id())
+        return '\n'.join('%s = star_type.Enum(\'%s\', %s)' % (n, n, _get_id())
                          for n in names)
 
 
@@ -362,7 +338,7 @@ class Object(Token):
         names = [b.identifier.python_name(True) for b in self.bindings]
         return (
             '%s\n'
-            'return Object({%s})'
+            'return star_type.Object({%s})'
         ) % ('\n'.join(b._gen_python() for b in self.bindings),
              ', '.join('\'%s\': Thunk(_o%s)' % (n, n) for n in names))
 
@@ -396,7 +372,7 @@ class Accessor(Token):
         return (
             'def _f%s():\n'
             '%s\n'
-            'return trampoline(_f%s).items[\'%s\']'
+            'return trampoline(_f%s).value[\'%s\']'
         ) % (i, self.body.gen_python(True),
              i, self.attribute.python_name(True))
 
@@ -423,7 +399,7 @@ class Export(Token):
         names = [(i.python_name(True), i.python_name())
                  for i in self.identifiers]
         return (
-            'return Object({%s})'
+            'return star_type.Object({%s})'
         ) % ', '.join(['\'%s\': %s' % (an, mn) for an, mn in names])
 
 

@@ -1,74 +1,88 @@
 from starling import error
-from starling.util import trampoline, Thunk
-
-from itertools import izip, izip_longest
 
 
-# these are set by the standard starling library later
-cons = None
-empty_list = None
+class StarType(object):
+    def str_generator(self):
+        """
+        Return generator for string output.
+
+        Useful for representing potentially infinite objects.
+        Must implement one of str_generator or str.
+        """
+        yield self.str()
+
+    def str(self):
+        """"
+        Return string representation for output.
+
+        Must implement one of str_generator or str.
+        """
+        return ''.join(self.str_generator())
+
+    def repr_generator(self):
+        """
+        Return string generator for debugging.
+
+        Useful for representing potentially infinite objects.
+        Must implement one of repr_generator or repr.
+        """
+        yield self.repr()
+
+    def repr(self):
+        """
+        Return string representation for debugging.
+
+        Must implement one of repr_generator or repr.
+        """
+        return ''.join(self.repr_generator())
 
 
-def _str_to_list(s):
-    try:
-        c = next(s)
-        head = Thunk(lambda: Char(c))
-        tail = Thunk(lambda: _str_to_list(s))
-        return cons()(head)(tail)
-    except StopIteration:
-        return empty_list
-
-
-class Object(object):
-    def __init__(self, items):
-        # store a copy of items without any defaults
-        self.items_no_defaults = dict(items)
-        self._items = items
-
-        # give default str and repr functions
-        if 'str' not in items or self.is_str():
-            self._def_str = True
-            items['str'] = lambda: lambda o: _str_to_list(o()._str_default())
-        else:
-            self._def_str = False
-
-        if 'repr' not in items or self.is_str():
-            self._def_repr = True
-            items['repr'] = lambda: lambda o: _str_to_list(o()._repr_default())
-        else:
-            self._def_repr = False
+class Object(StarType):
+    def __init__(self, value):
+        self._value = value
+        self._items = sorted(self.value.items())
 
     @property
-    def items(self):
-        return self._items
+    def value(self):
+        return self._value
 
-    def data_items(self):
-        """ Yield only data items, not functions. """
-        for k, v in sorted(self._items.items()):
-            val = v()
-            if callable(val):
-                continue
-            yield k, val
+    def repr_generator(self):
+        if self.is_list():
+            # kind of a hack at the moment
+            # treat this like a list
+            if self.is_str():
+                # display as a string
+                lopen = '"'
+                ropen = '"'
+                show = lambda elem: [elem.str().encode('string_escape')]
+                delim = False
+            else:
+                # display as a list
+                lopen = '['
+                ropen = ']'
+                show = lambda elem: elem.repr_generator()
+                delim = True
 
-    def _repr_default(self):
-        if self.is_str():
-            # display as a string
-            obj = self
-            yield '"'
+            yield lopen
+            for s in show(self.value['head']()):
+                yield s
+            obj = self.value['tail']()
             while obj.is_list():
-                for s in obj.items['head']().str().encode('string_escape'):
+                if delim:
+                    yield ', '
+                for s in show(obj.value['head']()):
                     yield s
-                obj = obj.items['tail']()
-            yield '"'
+                obj = obj.value['tail']()
+            yield ropen
         elif self.is_tuple():
             # treat this as a tuple
             yield '('
-            for s in self.items['_0']().repr_generator():
+            for s in self.value['_0']().repr_generator():
                 yield s
             i = 1
-            while '_%d' % i in self.items:
+            while '_%d' % i in self.value:
                 yield ', '
-                for s in self.items['_%d' % i]().repr_generator():
+                for s in self.value['_%d' % i]().repr_generator():
                     yield s
                 i += 1
 
@@ -78,118 +92,106 @@ class Object(object):
             yield ')'
         else:
             yield '{'
-            items = self.data_items()
-            try:
-                k, v = next(items)
-                for s in k:
+            if len(self._items) > 0:
+                k, v = self._items[0]
+                yield k + '='
+                for s in v().repr_generator():
                     yield s
-                yield '='
-                for s in v.repr_generator():
-                    yield s
-            except StopIteration:
-                pass
-            for k, v in items:
-                yield ','
-                yield ' '
-                for s in k:
-                    yield s
-                yield '='
-                for s in v.repr_generator():
-                    yield s
+                for k, v in self._items[1:]:
+                    yield ', ' + k + '='
+                    for s in v().repr_generator():
+                        yield s
             yield '}'
 
-    def repr(self):
-        return ''.join(self.repr_generator())
-
-    def repr_generator(self):
-        if self._def_repr:
-            for s in self._repr_default():
-                yield s
-        else:
-            for s in trampoline(self.items['repr']()(self)).str_generator():
-                yield s
-
-    def _str_default(self):
-        if self.is_str():
-            # return string unescaped without surrounding quotes
-            obj = self
-            while obj.is_list():
-                for s in obj.items['head']().str():
-                    yield s
-                obj = obj.items['tail']()
-            return
-        else:
-            for s in self.repr_generator():
-                yield s
-
-    def str(self):
-        return ''.join(self.str_generator())
-
     def str_generator(self):
-        if self._def_str:
-            for s in self._str_default():
-                yield s
-        else:
-            for s in trampoline(self.items['str']()(self)).str_generator():
-                yield s
+        # check if this is a string
+        if self.is_str():
+            # return string representation unescaped without surrounding quotes
+            gen = self.repr_generator()
+            gen.next()
+            last = ''
+            for s in gen:
+                sd = s.decode('string_escape')
+                yield last
+                last = sd
+            return
+
+        # otherwise, treat as object
+        for s in self.repr_generator():
+            yield s
 
     def eq(self, other):
         if type(self) != type(other):
-            print "NOOPPPE"
             return Boolean(False)
         else:
-            i1 = self.data_items()
-            i2 = other.data_items()
-            zipped = izip_longest(i1, i2, fillvalue=(None, None))
-            return Boolean(all(k1 == k2 and v1.eq(v2).value
-                           for (k1, v1), (k2, v2) in zipped))
+            i1 = self._items
+            i2 = other._items
+            return Boolean(len(i1) == len(i2) and
+                           all(k1 == k2 and v1().eq(v2()).value
+                               for (k1, v1), (k2, v2) in zip(i1, i2)))
 
     def le(self, other):
-        zipped = izip(self.data_items(), other.data_items())
+        # everything is greater than the empty list
+        if other == empty_list:
+            return Boolean(False)
 
-        for (k1, v1), (k2, v2) in zipped:
-            # only objects with identical keys are comparable
-            if k1 != k2:
-                raise error.StarlingRuntimeError(
-                    'Type error: Can\'t compare %s and %s' % (
-                        self.str(), other.str()))
+        # only objects with identical keys are comparable
+        if type(self) != type(other) or (
+             sorted(self.value.keys()) != sorted(other.value.keys())):
+            raise error.StarlingRuntimeError(
+                'Type error: Can\'t compare %s and %s' % (
+                    self.str(), other.str()))
 
-            if v1.eq(v2).value:
+        for (k1, v1), (k2, v2) in zip(self._items, other._items):
+            if v1().eq(v2()).value:
                 continue
-            elif v1.le(v2).value:
+            elif v1().le(v2()).value:
                 return Boolean(True)
             else:
                 return Boolean(False)
 
-        # everything is greater than the empty object
-        if (len(list(self.data_items())) > 0 and
-           len(list(other.data_items())) == 0):
-            return Boolean(False)
-        else:
-            return Boolean(True)
+        return Boolean(True)
 
     def is_tuple(self):
-        return '_0' in self.items
+        return '_0' in self.value
 
     def is_list(self):
-        return 'head' in self.items and 'tail' in self.items
+        return 'head' in self.value and 'tail' in self.value
 
     def is_str(self):
-        return self.is_list() and isinstance(self.items['head'](), Char)
+        return self.is_list() and isinstance(self.value['head'](), Char)
 
-
-class Enum(Object):
-    def __init__(self, name, id_):
+class _EmptyList(Object):
+    def __init__(self):
         Object.__init__(self, {})
+
+    def str_generator(self):
+        yield '[]'
+
+    def repr_generator(self):
+        yield '[]'
+
+    def eq(self, other):
+        return Boolean(self == other)
+
+    def le(self, other):
+        # empty list is the 'first' element when ordered
+        return Boolean(True)
+
+empty_list = _EmptyList()
+
+
+class Enum(StarType):
+    def __init__(self, name, id_):
         self._name = name
         self._id = id_
 
-    def _str_default(self):
+    def str(self):
         # remove trailing underscore
-        return iter(self._name[:-1])
+        return self._name[:-1]
 
-    def _repr_default(self):
-        return iter(self._str_default())
+    def repr(self):
+        return self.str()
 
     def eq(self, other):
         return Boolean(type(self) == type(other) and self._id == other._id)
@@ -198,20 +200,19 @@ class Enum(Object):
         return Boolean(self._id <= other._id)
 
 
-class Primitive(Object):
+class Primitive(StarType):
     def __init__(self, value):
-        Object.__init__(self, {})
         self._value = value
 
     @property
     def value(self):
         return self._value
 
-    def _str_default(self):
-        return iter(str(self.value))
+    def str(self):
+        return str(self.value)
 
-    def _repr_default(self):
-        return iter(self._str_default())
+    def repr(self):
+        return self.str()
 
     def eq(self, other):
         return Boolean(type(self) == type(other) and self.value == other.value)
@@ -226,10 +227,6 @@ class Comp(Primitive):
 
 class Boolean(Primitive):
     pass
-
-True_ = Boolean(True)
-
-False_ = Boolean(False)
 
 
 class Number(Comp):
@@ -253,15 +250,14 @@ class Number(Comp):
 
 
 class Char(Comp):
-    def _str_default(self):
-        yield str(self.value)
+    def str(self):
+        return str(self.value)
 
-    def _repr_default(self):
+    def repr(self):
         rep = repr(self.value)
         # replace double quotes with single
         if rep[0] == '"':
             # escape all inner single quotes
             rep = rep.replace('\'', '\\\'')
             rep = '\'' + rep[1:-1] + '\''
-        for s in rep:
-            yield s
+        return rep

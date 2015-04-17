@@ -57,7 +57,7 @@ merge_range = xs -> let
     then xs
     # check if these need to merge
     else if incr x._1 >= y._0
-    then merge_range ((x._0, y._1) : xs.tail.tail)
+    then merge_range ((x._0, y._1) : (xs.tail).tail)
     else x : (merge_range xs.tail),
 
 # union two lists of ranges, like merging sorted lists
@@ -71,7 +71,7 @@ negate_range = ranges -> let
     right_edge = 
         if negate_rec == [] 
         then '\xFF' 
-        else negate_rec.head._1,
+        else (negate_rec.head)._1,
     
     # create two new ranges:
     # 0<---new2--->[===r===]<----new1---->[===next-range====]
@@ -250,7 +250,7 @@ to_postfix = pat -> let
     # output a symbol
     output = sym state -> {stack=state.stack, out=sym:state.out},
     # drop the top stack symbol
-    drop = state -> {stack=state.stack.tail, out=state.out},
+    drop = state -> {stack=(state.stack).tail, out=state.out},
     # pop symbols off the stack onto output while they satisfy p
     pop = p state -> let
         stack_split = span p state.stack in
@@ -296,8 +296,8 @@ get_trans = p fa -> map (.end) >> (filter (t -> p t.sym)) >> (edges fa),
 succ = sym -> get_trans (==sym),
 
 # get all literal/nonliteral transitions in an FA
-lit_trans = filter (t -> t.sym.type == lit) >> (.trans),
-nonlit_trans = filter (t -> t.sym.type != lit) >> (.trans),
+lit_trans = filter (t -> (t.sym).type == lit) >> (.trans),
+nonlit_trans = filter (t -> (t.sym).type != lit) >> (.trans),
 
 succ_all = fa sym ns -> join (map (succ sym fa) ns),
 closure = fa sym ns -> let
@@ -320,7 +320,7 @@ to_nfa = t -> let
     empty = automata 0 0 [] [0],
 
     relabel_nfa = nfa nfa_other -> let
-        offset = nfa_other.nodes.head + 1,
+        offset = (nfa_other.nodes).head + 1,
         relabel = (+ offset),
         relabel_trans = t -> trans (relabel t.start) (relabel t.end) t.sym,
         new_start = relabel nfa.start,
@@ -352,26 +352,26 @@ to_nfa = t -> let
         # concatenate the two subautomata together
         else if sym.type == concat then let
         joined = join (nfas@0) (nfas@1), 
-        new_trans = [epstrans joined.n1.final joined.n2.start] in
-        set_final joined.n2.final (add_trans new_trans joined.new)
+        new_trans = [epstrans (joined.n1).final (joined.n2).start] in
+        set_final (joined.n2).final (add_trans new_trans joined.new)
         # loop over the subautomata
         else if sym.type == star then let
         joined = join empty (nfas@0) in
-        add_trans [epstrans 0 joined.n2.start,
-                   epstrans joined.n2.final 0] joined.new
+        add_trans [epstrans 0 (joined.n2).start,
+                   epstrans (joined.n2).final 0] joined.new
         # alternate between subautomata
         else if sym.type == alt then let
         join1 = join (automata 0 1 [] [1, 0]) (nfas@0),
         join2 = join join1.new (nfas@1),
         new_trans = 
-            [epstrans 0 join1.n2.start, epstrans 0 join2.n2.start,
-             epstrans join1.n2.final 1, epstrans join2.n2.final 1] in
+            [epstrans 0 (join1.n2).start, epstrans 0 (join2.n2).start,
+             epstrans (join1.n2).final 1, epstrans (join2.n2).final 1] in
         add_trans new_trans join2.new
         # optionally accept the subautomata
         else if sym.type == opt then let
         joined = join (automata 0 1 [epstrans 0 1] [1, 0]) (nfas@0) in
-        add_trans [epstrans 0 joined.n2.start,
-                   epstrans joined.n2.final 1] joined.new
+        add_trans [epstrans 0 (joined.n2).start,
+                   epstrans (joined.n2).final 1] joined.new
         # one or more repetitions
         else if sym.type == plus then
         parse_tree (tree {type=concat} (tree {type=star} child : child))
@@ -406,7 +406,7 @@ disjoin_nfa = nfa -> let
     # disjoin a literal transition into a list of disjoint transitions
     disjoin_trans = t -> let
         new_trans = r -> trans t.start t.end {type=lit, range=r} in
-        map new_trans (disjoin t.sym.range),
+        map new_trans (disjoin (t.sym).range),
 
     # disjoin all literal transitions
     new_lit_trans = join >> (map disjoin_trans) >> lit_trans nfa,
@@ -435,7 +435,7 @@ to_dfa = nfa -> let
 # minify DFA by changing union node names into fresh names
 minify_dfa = dfa -> let
     new_names = zip dfa.nodes nats,
-    rename = node -> (filter (n -> n._0==node) new_names).head._1,
+    rename = node -> ((filter (n -> n._0==node) new_names).head)._1,
     new_start = rename dfa.start,
     new_final = map rename dfa.final,
     new_trans = 
@@ -448,8 +448,8 @@ rejoin_dfa = dfa -> let
     # join transitions with the same start and final state
     join_trans = ts -> let
         t = ts.head,
-        lits = filter (t -> t.sym.type == lit) ts,
-        min_range = merge_range >> sort (map (t -> t.sym.range) lits) in
+        lits = filter (t -> (t.sym).type == lit) ts,
+        min_range = merge_range >> sort (map (t -> (t.sym).range) lits) in
         map (r -> trans t.start t.end {type=lit, range=r}) min_range,
 
     # get all literal transitions, grouped by start/end state

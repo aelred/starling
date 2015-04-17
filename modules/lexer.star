@@ -12,10 +12,10 @@ tokenize = syntax input ->
     else let
     match_types = map (r -> {match=r.re input, type=r.type}) syntax,
     matches = filter ((.match) >> (.match)) match_types,
-    longest_match = max_by (r -> length r.match.str) matches,
-    match_str = longest_match.match.str,
+    longest_match = max_by (r -> length (r.match).str) matches,
+    match_str = (longest_match.match).str,
     type = longest_match.type,
-    rem = longest_match.match.rem in
+    rem = (longest_match.match).rem in
     if matches != []
     then {value=match_str, type=type} : (tokenize syntax rem)
     else [],

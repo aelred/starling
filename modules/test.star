@@ -11,25 +11,32 @@ assert_equal = x y -> assert (x==y) (join [repr x, " != ", repr y]),
 
 assert_unequal = x y -> assert (x!=y) (join [repr x, " == ", repr y]),
 
-test = asserts -> {
-    tests = map (t -> if t.pass then {pass=True} else t) asserts, 
-    str = self -> report self.tests
-},
+test = map (t -> if t.pass then {pass=True} else t),
 
-report = results -> let
-    # do all tests pass?
-    pass = all (map (.pass) results),
+report = fail_fast results -> let
 
-    # get a message for failing tests and a single '.' for passes
-    test_message = t ->
-        if t._1.pass
-        then "."
-        else join ["F\nFAIL: Test ", str t._0, "\n", t._1.message, "\n"],
+    # if fail_fast, only examine up to the first failing test
+    filter_results =
+        if fail_fast
+        then let 
+        split = span (.pass) results in 
+        split._0 ++ (take 1 split._1)
+        else results,
 
-    test_messages = join (map test_message (enumerate results)),
+    # print a dot for every passing test and an 'F' for every failing test
+    dots = map (t -> if t.pass then '.' else 'F') filter_results,
 
-    final_message = if pass then "OK" else "FAIL" in
+    # get numbered failing tests
+    fails = filter (t -> not (t._1).pass) (enumerate filter_results),
+    fail_message = 
+        t -> join ["FAIL: Test ", str t._0, "\n", (t._1).message, "\n"],
 
-    join [test_messages, "\n", final_message]
+    # string details of each failing test    
+    detail = 
+        if fails == []
+        then "OK"
+        else join (map fail_message fails) in
 
-in export assert assert_equal assert_unequal test
+    join [dots, "\n", detail]
+
+in export assert assert_equal assert_unequal test report

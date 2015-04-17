@@ -16,7 +16,7 @@ tjoin = foldl (++) [],
 
 # alternate between different productions
 # this completely abuses left-associativity!
-| = production expr -> {sym=production.head.sym, expr=expr} : production,
+| = production expr -> {sym=(production.head).sym, expr=expr} : production,
 
 # create a new grammar
 # start: the top-level symbol to start the pars
@@ -26,7 +26,7 @@ grammar = start terminals productions -> let
     joined_prod = join productions in
     {
         start=start, terminals=set.set terminals, 
-        left_corner_map=multidict (tmap (p -> (p.expr.head, p)) joined_prod), 
+        left_corner_map=multidict (tmap (p -> ((p.expr).head, p)) joined_prod), 
         productions=multidict (tmap (p -> (p.sym, p)) joined_prod)
     },
 
@@ -38,9 +38,9 @@ parse = grammar tokens -> let
     passive_chart = passive_edges final_chart,
     final_chart = build_chart grammar tokens,
     results = 
-        tfilter (e -> e._0.j == length_tokens) >> 
+        tfilter (e -> (e._0).j == length_tokens) >> 
         (dict.get (0, grammar.start)) edge_trees in
-    results.head._1,
+    (results.head)._1,
 
 # remove the given symbols from the parse tree
 # when used to remove top-level symbol, it will only return the first
@@ -68,7 +68,7 @@ limit = more start -> let
     limit_ start start,
 
 is_passive = e -> e.expr == [],
-is_sym = sym p -> (not (is_passive p)) and (p.expr.head == sym),
+is_sym = sym p -> (not (is_passive p)) and ((p.expr).head == sym),
 
 # Kilbury Parsing, from http://www.cs.rit.edu/~swm/cs561/Ljunglof-2002a.pdf
 build_chart = grammar tokens -> let
@@ -85,11 +85,11 @@ build_chart = grammar tokens -> let
             then let
             predict =
                 set.set >>
-                (tmap (p -> edge e.node p.sym p.expr.tail))
+                (tmap (p -> edge e.node p.sym (p.expr).tail))
                 (dict.get_def [] e.sym grammar.left_corner_map),
             combine = 
                 set.set >>
-                (tmap (e2 -> edge e2.node e2.sym e2.expr.tail)) >>
+                (tmap (e2 -> edge e2.node e2.sym (e2.expr).tail)) >>
                 (tfilter (is_sym e.sym)) >>
                 set.items (dict.get e.node final_chart) in
             set.union predict combine
