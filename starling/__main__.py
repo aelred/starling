@@ -50,7 +50,8 @@ def cli(input_=None):
                 # print the error, but don't quit
                 print e
 
-if __name__ == '__main__':
+
+def main():
     parser = argparse.ArgumentParser(description='Starling interpreter.')
     parser.add_argument('file', nargs='?')
     parser.add_argument('-d', '--debug', action='store_true')
@@ -69,3 +70,7 @@ if __name__ == '__main__':
         cli(input_=input_)
     else:
         _print_run(source=args.file, input_=input_)
+
+
+if __name__ == '__main__':
+    main()
