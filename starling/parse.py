@@ -99,18 +99,18 @@ grammar.enablePackrat()
 
 
 def star_to_py(source, lib=True):
-    source = os.path.join(star_path.path, source) + '.star'
-    path = source + '.py'
+    star = os.path.join(star_path.path, source) + '.star'
+    py = os.path.join(star_path.cache_dir, source) + '.py'
 
-    if os.path.isfile(path) and (
-       os.path.getmtime(source) < os.path.getmtime(path)):
+    if os.path.isfile(py) and (
+       os.path.getmtime(star) < os.path.getmtime(py)):
         # no need to convert this file
-        return path
+        return py
 
-    with open(source) as f:
+    with open(star) as f:
         expr = f.read()
 
-    return expr_to_py(expr, lib, path)
+    return expr_to_py(expr, lib, py)
 
 
 def expr_to_py(expr, lib=True, path=None):

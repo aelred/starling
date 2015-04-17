@@ -102,7 +102,7 @@ class ModWrapper(Token):
             'for k, v in _m._result().value.iteritems():\n'
             '    globals()[k + \'_\'] = v\n'
         ) % (self.name.value,
-             os.path.join(star_path.path, self.name.value + '.star.py'))
+             os.path.join(star_path.cache_dir, self.name.value + '.py'))
         return '%s\n%s' % (imports, self.body.gen_python())
 
 
@@ -386,7 +386,7 @@ class Import(Token):
     def _gen_python(self):
         return 'return imp.load_source(\'%s\', \'%s\')._result()' % (
             self.name.value,
-            os.path.join(star_path.path, self.name.value + '.star.py'))
+            os.path.join(star_path.cache_dir, self.name.value + '.py'))
 
 
 class Export(Token):
