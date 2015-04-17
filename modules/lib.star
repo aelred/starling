@@ -5,8 +5,8 @@ let
 
 # basic logic
 not = x -> if x then False else True,
-or = x y -> if x then True else if y then True else False,
-and = x y -> if x then (if y then True else False) else False,
+or = x y -> if x then True else y,
+and = x y -> if x then y else False,
 any = foldr (or) False,
 all = foldr (and) True,
 
