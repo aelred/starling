@@ -4,8 +4,7 @@ python:
 install:
     - sudo add-apt-repository --yes 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main'
     - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
-    - sudo apt-get update
-    - sudo apt-get install llvm-3.5-runtime libllvm3.5 llvm-3.5-dev llvm-3.5
-    - sudo apt-get -f install
+    - sudo apt-get -qq update
+    - sudo apt-get -qq install llvm-3.5 llvm-3.5-dev llvm-3.5-runtime libllvm3.5 libedit2 libedit-dev
     - sudo python setup.py install
 script: ./test
