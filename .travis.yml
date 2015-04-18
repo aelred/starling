@@ -9,8 +9,8 @@ install:
     - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
     - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
     - travis_retry sudo apt-get update
-    - sudo apt-get install -y libedit-dev gcc-4.8 llvm-3.5-dev
-    - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
+    - sudo apt-get install -y libedit-dev g++-4.8 llvm-3.5-dev
+    - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
     - pip install enum34
     - pip install -r requirements.txt
     - python setup.py install
