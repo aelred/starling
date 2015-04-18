@@ -6,7 +6,7 @@ env:
 install:
     - sudo add-apt-repository --yes 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main'
     - sudo add-apt-repository --yes 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main'
-    - sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
     - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
     - travis_retry sudo apt-get update
     - sudo apt-get install -y libedit-dev gcc-4.8 llvm-3.5-dev
