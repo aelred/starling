@@ -8,7 +8,7 @@ install:
     - rm /tmp/llvm.list
     - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
     - sudo apt-get update
-    - sudo apt-get install llvm-3.5
     - sudo apt-get install llvm-3.5-runtime libllvm3.5 llvm-3.5-dev llvm-3.5
+    - sudo apt-get -f install
     - sudo python setup.py install
 script: ./test
