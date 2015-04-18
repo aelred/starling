@@ -19,7 +19,7 @@ setup (
     description='Pure, lazy functional language',
     author='Felix Chapman',
     packages=['starling'],
-    install_requires=['pyparsing', 'appdirs', 'llvmlite'],
+    install_requires=['pyparsing', 'appdirs', 'enum34', 'llvmlite'],
     entry_points={
         'console_scripts': ['starling = starling.__main__:main']
     },
