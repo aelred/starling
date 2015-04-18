@@ -4,7 +4,7 @@ python:
 install:
     - sudo add-apt-repository --yes 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main'
     - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
-    - sudo travis_retry apt-get update
+    - travis_retry sudo apt-get update
     - sudo apt-get install -y llvm-3.5 || sudo apt-get -f install -y
-    - sudo travis_retry LLVMCONFIG=/usr/bin/llvmconfig/3-5 python setup.py install
+    - travis_retry sudo LLVMCONFIG=/usr/bin/llvmconfig/3-5 python setup.py install
 script: ./test
