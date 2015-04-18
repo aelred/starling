@@ -9,6 +9,7 @@ install:
     - sudo apt-get install -y libedit-dev
     - sudo apt-get install -y llvm-3.5-dev || sudo apt-get -f install -y
     - export LLVM_CONFIG=/usr/bin/llvmconfig-3.5
+    - pip install enum34
     - travis_retry pip install -r requirements.txt
     - python setup.py install
 script: ./test
