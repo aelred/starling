@@ -1,5 +1,6 @@
 import logging
 import os
+from itertools import chain
 import llvmlite.ir as ll
 import llvmlite.binding as llvm
 from starling import star_path
@@ -17,6 +18,48 @@ _i32p = ll.PointerType(_i32)
 
 _unfunc = ll.FunctionType(_i8p, [_i8p])
 _binfunc = ll.FunctionType(_i8p, [_i8p, _i8p])
+
+_global_ids = set(
+    ['True', 'False', '+', '-', '*', '/', 'mod', 'pow', '==', '<='])
+
+
+def _nest_function(module, helper, builder, env, free_ids):
+    """ Create a nested LLVM function, binding all free identifiers. """
+    func = ll.Function(module, _unfunc, module.get_unique_name())
+    func.linkage = 'private'
+    func.args[0].name = 'env'
+    fbuilder = ll.IRBuilder(func.append_basic_block())
+
+    # ignore global identifiers
+    free_ids = free_ids - _global_ids
+
+    # for each free identifier, pass it to the function and load it
+    new_env = dict(env)
+    env_type = ll.ArrayType(helper['thp'], len(free_ids))
+    env_ptr = fbuilder.bitcast(
+        func.args[0], ll.PointerType(env_type), name='env_ptr')
+
+    # TODO: Make sure this is the right size
+    env_pass_ptr = builder.call(
+        helper['malloc'],
+        [ll.Constant(_i32, 8 * len(free_ids))], name='env_pass_ptr')
+    env_pass_cast = builder.bitcast(
+        env_pass_ptr, ll.PointerType(env_type), name='env_pass_cast')
+    for index, ident in enumerate(free_ids):
+        # write the value before calling
+        index_val = [ll.Constant(_i32, 0), ll.Constant(_i32, index)]
+        index_ptr = builder.gep(env_pass_cast, index_val, True, 'env_index')
+        builder.store(env[ident], index_ptr)
+
+        # read the value after calling
+        read_ptr = fbuilder.gep(env_ptr, index_val, True, 'env_index')
+        new_env[ident] = fbuilder.load(read_ptr, name=ident)
+
+    # create a thunk combining the function and environment
+    thunk = builder.call(
+        helper['make_thunk'], [env_pass_ptr, func], name='thunk')
+
+    return fbuilder, new_env, thunk
 
 
 def _get_id():
@@ -53,6 +96,9 @@ class EmptyToken:
 
         return add_indent(result)
 
+    def free_identifiers(self):
+        return set()
+
 
 class Token(EmptyToken):
 
@@ -72,6 +118,13 @@ class Token(EmptyToken):
 
     def __str__(self):
         return self._display()
+
+    def free_identifiers(self):
+        ids = [v.free_identifiers() for v in self._value]
+        if ids:
+            return set.union(*ids)
+        else:
+            return set()
 
 
 class Script(Token):
@@ -101,17 +154,33 @@ class Script(Token):
 
         module = ll.Module()
 
+        thtype = module.context.get_identified_type('thunk')
+        thp = ll.PointerType(thtype)
+        cltype = module.context.get_identified_type('closure')
+
         # define helper functions
         helper = {
+            'thp': thp,
             'make_closure': ll.Function(
-                module, ll.FunctionType(_i8p, [_i8p, ll.PointerType(_binfunc)]),
+                module,
+                ll.FunctionType(
+                    _i8p,
+                    [
+                        thp,
+                        ll.PointerType(ll.FunctionType(_i8p, [thp] * 2))
+                    ]),
                 'make_closure'),
-            'apply_closure': ll.Function(module, _binfunc, 'apply_closure'),
+            'apply_closure': ll.Function(
+                module,
+                ll.FunctionType(_i8p, [_i8p, thp]), 'apply_closure'),
             'make_thunk': ll.Function(
-                module, ll.FunctionType(_i8p, [_i8p, ll.PointerType(_unfunc)]),
+                module,
+                ll.FunctionType(thp, [_i8p, ll.PointerType(_unfunc)]),
                 'make_thunk'),
-            'wrap_thunk': ll.Function(module, _unfunc, 'wrap_thunk'),
-            'eval_thunk': ll.Function(module, _unfunc, 'eval_thunk'),
+            'wrap_thunk': ll.Function(
+                module, ll.FunctionType(thp, [_i8p]), 'wrap_thunk'),
+            'eval_thunk': ll.Function(
+                module, ll.FunctionType(_i8p, [thp]), 'eval_thunk'),
             'malloc': ll.Function(
                 module, ll.FunctionType(_i8p, [_i32]), 'malloc')
         }
@@ -119,16 +188,8 @@ class Script(Token):
         # define all global methods and constants
 
         def glob_const(llvm_name, type_):
-            # reference pre-defined internal function
-            internal = ll.GlobalVariable(
-                module, type_, name='%s_intern' % llvm_name)
-
-            def make_ref(builder):
-                return builder.call(
-                    helper['wrap_thunk'],
-                    [builder.bitcast(internal, _i8p)], name='thunk')
-
-            return make_ref
+            # reference pre-defined function
+            return ll.GlobalVariable(module, thtype, llvm_name)
 
 
         def glob_func(llvm_name, ret_type, arg_types):
@@ -137,9 +198,9 @@ class Script(Token):
             # reference pre-defined internal function
             internal = ll.Function(module, funtype, '%s_intern' % llvm_name)
 
-            # create function that converts pointers to correct type
+            # create function that evals thunks to correct type
             func_ptr = ll.Function(
-                module, ll.FunctionType(_i8p, [_i8p] * len(arg_types)),
+                module, ll.FunctionType(_i8p, [thp] * len(arg_types)),
                 '%s_ptr' % llvm_name)
             func_ptr.linkage = 'private'
             builder = ll.IRBuilder(func_ptr.append_basic_block())
@@ -156,15 +217,17 @@ class Script(Token):
             res = builder.call(internal, arg_vals, name='res')
             # TODO: Correct size
             res_ptr = builder.call(
-                helper['malloc'], [ll.Constant(_i32, 4)], name='res_ptr')
+                helper['malloc'], [ll.Constant(_i32, 8)], name='res_ptr')
             res_cast = builder.bitcast(
                 res_ptr, ll.PointerType(ret_type), name='res_cast')
             builder.store(res, res_cast)
             builder.ret(res_ptr)
 
             # create function that makes closure for first argument
-            func = ll.Function(module, _binfunc, '%s_func' % llvm_name)
-            func.linkage = 'private'
+            func = ll.Function(
+                module,
+                ll.FunctionType(_i8p, [thp, thp]), '%s_closure' % llvm_name)
+            func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
             func.args[1].name = 'arg'
             builder_ = ll.IRBuilder(func.append_basic_block())
@@ -173,16 +236,8 @@ class Script(Token):
                 [func.args[1], func_ptr], name='res')
             builder_.ret(res)
 
-            # function to build a closure for this global function
-            def make_closure(builder, func=func, name=llvm_name):
-                closure = builder.call(
-                    helper['make_closure'], [ll.Constant(_i8p, None), func],
-                    name=llvm_name)
-                return builder.call(
-                    helper['wrap_thunk'], [closure], name='thunk')
-
-
-            return make_closure
+            # finally, access external definition of thunk
+            return ll.GlobalVariable(module, thtype, llvm_name)
 
         env = {
             'True': glob_const('true', _bool),
@@ -210,7 +265,6 @@ class Script(Token):
         builder.ret(res)
 
         # parse assembly
-        print str(module)
         llmod = llvm.parse_assembly(str(module))
 
         return llmod
@@ -256,6 +310,9 @@ class Terminator(Token):
         return '%s%s: %s' % (
             '  ' * indent, self.__class__.__name__, self.value)
 
+    def free_identifiers(self):
+        return set()
+
 
 class Identifier(Terminator):
     def __init__(self, value, is_infix):
@@ -285,8 +342,11 @@ class Identifier(Terminator):
     def _gen_python(self):
         return 'return %s' % self.python_name()
 
+    def free_identifiers(self):
+        return set([self.value])
+
     def gen_llvm(self, module, helper, builder, env):
-        return env[self.value](builder)
+        return env[self.value]
 
 
 class Number(Terminator):
@@ -298,8 +358,7 @@ class Number(Terminator):
         ptr = builder.call(
             helper['malloc'], [builder.constant(_i32, 4)], name='num')
         builder.store(const, builder.bitcast(ptr, _i32p, name='num32'))
-        thunk = builder.call(helper['wrap_thunk'], [ptr], name='thunk')
-        return thunk
+        return builder.call(helper['wrap_thunk'], [ptr], name='thunk')
 
 
 class Char(Terminator):
@@ -328,20 +387,18 @@ class Expression(Token):
 
     def gen_llvm(self, module, helper, builder, env):
         # create function to evaluate this expression
-        func = ll.Function(module, _unfunc, module.get_unique_name())
-        func.linkage = 'private'
-        fbuilder = ll.IRBuilder(func.append_basic_block())
+        fbuilder, new_env, thunk = _nest_function(
+            module, helper, builder, env, self.free_identifiers())
 
-        optor = self.operator.gen_llvm(module, helper, fbuilder, env)
-        opand = self.operand.gen_llvm(module, helper, fbuilder, env)
+        optor = self.operator.gen_llvm(module, helper, fbuilder, new_env)
+        opand = self.operand.gen_llvm(module, helper, fbuilder, new_env)
         optor_val = fbuilder.call(
             helper['eval_thunk'], [optor], name='operator')
         res = fbuilder.call(
             helper['apply_closure'], [optor_val, opand], tail=True, name='res')
         fbuilder.ret(res)
 
-        return builder.call(
-            helper['make_thunk'], [ll.Constant(_i8p, None), func], name='expr')
+        return thunk
 
 
 class EmptyList(EmptyToken):
@@ -446,7 +503,7 @@ class If(Token):
         builder.branch(if_end)
 
         builder.position_at_start(if_end)
-        phi = builder.phi(_i8p, 'my_phi')
+        phi = builder.phi(helper['thp'], 'my_phi')
         phi.incomings = [(con, if_con), (alt, if_alt)]
 
         return phi
@@ -465,6 +522,12 @@ class Let(Token):
     def _gen_python(self):
         return '%s\n%s' % (self.bindings.gen_python(), self.body.gen_python())
 
+    def free_identifiers(self):
+        ids = Token.free_identifiers(self)
+        # remove any identifiers that are bound here
+        binds = set(i.value for i in chain(*[
+            bind.bound_identifiers for bind in self.bindings.elements]))
+        return ids - binds
 
 class Bindings(Token):
 
@@ -483,6 +546,10 @@ class Binding(Token):
         return self._value[0]
 
     @property
+    def bound_identifiers(self):
+        return [self.identifier]
+
+    @property
     def body(self):
         return self._value[1]
 
@@ -491,16 +558,26 @@ class Binding(Token):
         return 'def _f%s():\n%s\n%s = Thunk(_f%s)' % (
             i, self.body.gen_python(True), self.identifier.python_name(), i)
 
+    def free_identifiers(self):
+        return self.body.free_identifiers()
+
 
 class Enum(Token):
     @property
     def identifiers(self):
         return self._value
 
+    @property
+    def bound_identifiers(self):
+        return list(self.identifiers)
+
     def _gen_python(self):
         names = [i.python_name() for i in self.identifiers]
         return '\n'.join('%s = star_type.Enum(\'%s\', %s)' % (n, n, _get_id())
                          for n in names)
+
+    def free_identifiers(self):
+        return set()
 
 
 class Lambda(Token):
@@ -512,6 +589,12 @@ class Lambda(Token):
     @property
     def body(self):
         return self._value[1]
+
+    def free_identifiers(self):
+        ids = self.body.free_identifiers()
+        # remove bound parameter from free identifiers
+        ids.remove(self.parameter.value)
+        return ids
 
     def _gen_python(self):
         i = _get_id()
@@ -547,6 +630,9 @@ class ObjectBinding(Token):
         return 'def _o%s():\n%s' % (self.identifier.python_name(True),
                                     self.body.gen_python(True))
 
+    def free_identifiers(self):
+        return self.body.free_identifiers()
+
 
 class Accessor(Token):
     @property
@@ -566,6 +652,9 @@ class Accessor(Token):
         ) % (i, self.body.gen_python(True),
              i, self.attribute.python_name(True))
 
+    def free_identifiers(self):
+        return self.body.free_identifiers()
+
 
 class Import(Token):
 
@@ -577,6 +666,9 @@ class Import(Token):
         return 'return imp.load_source(\'%s\', \'%s\')._result()' % (
             self.name.value,
             os.path.join(star_path.cache_dir, self.name.value + '.py'))
+
+    def free_identifiers(self):
+        return set()
 
 
 class Export(Token):
