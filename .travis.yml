@@ -6,6 +6,7 @@ install:
     - echo 'deb-src http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main' >> /tmp/llvm.list
     - sudo cp /tmp/llvm.list /etc/apt/sources.list.d/
     - rm /tmp/llvm.list
+    - wget -0 - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
     - sudo apt-get update
     - sudo apt-get install llvm-3.5
     - sudo python setup.py install
