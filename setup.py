@@ -6,12 +6,15 @@ except ImportError:
 
 import os
 
+from pip.req import parse_requirements
+
 def is_star(f):
     return os.path.splitext(f)[1] == '.star'
 
 mods_dir = 'modules'
 modules = [f for f in next(os.walk(mods_dir))[2] if is_star(f)]
-print [(mods_dir, os.path.join(mods_dir, f)) for f in modules]
+
+reqs = [str(ir.req) for ir in parse_requirements('requirements.txt')]
 
 setup (
     name='starling',
@@ -20,7 +23,7 @@ setup (
     author='Felix Chapman',
     packages=['starling'],
     setup_requires = ['enum34'],
-    install_requires=['pyparsing', 'appdirs', 'enum34', 'llvmlite'],
+    install_requires=reqs,
     entry_points={
         'console_scripts': ['starling = starling.__main__:main']
     },
