@@ -2,7 +2,7 @@ language: python
 python:
     - "2.7"
 env:
-    - LLVM_CONFIG=/usr/bin/llvmconfig-3.5
+    - LLVM_CONFIG=/usr/bin/llvm-config-3.5
 install:
     - sudo add-apt-repository --yes 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main'
     - sudo add-apt-repository --yes 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main'
