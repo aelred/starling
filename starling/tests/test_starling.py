@@ -95,6 +95,5 @@ def test_runtime_error():
         'a',
         '((let y=10 in y) + y)',
         '(let foo=(x -> 2 * x) in (foo x))',
-        'if 1 then 2 else 0',
         '3 <= "False"'
     ]
