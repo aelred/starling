@@ -7,6 +7,7 @@ except ImportError:
 import os
 
 from pip.req import parse_requirements
+from pip.download import PipSession
 
 def is_star(f):
     return os.path.splitext(f)[1] == '.star'
@@ -14,7 +15,10 @@ def is_star(f):
 mods_dir = 'modules'
 modules = [f for f in next(os.walk(mods_dir))[2] if is_star(f)]
 
-reqs = [str(ir.req) for ir in parse_requirements('requirements.txt')]
+sesh = PipSession()
+reqs = [
+    str(ir.req) for ir in parse_requirements('requirements.txt', session=sesh)
+]
 
 setup (
     name='starling',

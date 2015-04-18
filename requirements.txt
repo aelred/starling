@@ -1,2 +1,4 @@
 pyparsing
 appdirs
+enum34
+llvmlite
