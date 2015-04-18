@@ -2,11 +2,12 @@ language: python
 python:
     - "2.7"
 install:
+    - sudo add-apt-repository --yes 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main'
     - sudo add-apt-repository --yes 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main'
     - wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
     - travis_retry sudo apt-get update
     - sudo apt-get install -y libedit-dev
-    - sudo apt-get install -y llvm-3.5-runtime libllvm3.5 llvm-3.5-dev libstdc++6 llvm-3.5 || sudo apt-get -f install -y
+    - sudo apt-get install -y llvm-3.5 || sudo apt-get -f install -y
     - export LLVMCONFIG=/usr/bin/llvmconfig/3-5 
     - travis_retry python setup.py install
 script: ./test
