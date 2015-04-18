@@ -2,6 +2,10 @@ language: python
 python:
     - "2.7"
 install:
+    - echo 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main' > /tmp/llvm.list
+    - echo 'deb-src http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main' >> /tmp/llvm.list
+    - sudo cp /tmp/llvm.list /etc/apt/sources.list.d/
+    - rm /tmp/llvm.list
     - sudo apt-get update
     - sudo apt-get install llvm-3.5
     - sudo python setup.py install
