@@ -1,15 +1,18 @@
+from __future__ import print_function
+
 from pyparsing import StringEnd, Word, Literal, SkipTo, Keyword, QuotedString
 from pyparsing import Optional, OneOrMore, Group, Suppress, Forward, Regex
 from pyparsing import alphas, alphanums, nums, lineEnd, delimitedList
 from pyparsing import ParseException, ParseSyntaxException
 import os
 import imp
+import sys
 
 import llvmlite.ir as ll
 import llvmlite.binding as llvm
 from ctypes import CFUNCTYPE, c_int
 
-from starling import error, syntax_tree, star_path
+from starling import error, syntax_tree, star_path, star_type
 from starling.glob_env import trampoline
 
 lpar = Suppress(Literal('('))
@@ -135,7 +138,50 @@ def expr_to_py(expr, lib=True, path=None):
         tree = tree.wrap_import('lib')
     code = tree.gen_python()
 
+    # write code to path
+    with open(path, 'w') as f:
+        f.write(code)
+
+    return path
+
+
+def evaluate_star(source, lib=True, input_=None):
+    return _evaluate(star_to_py(source, lib), input_, source)
+
+
+def evaluate_expr(expr, lib=True, input_=None, name='expr'):
+    try:
+        # try and evaluate using LLVM first
+        return _evaluate_as_llvm(expr, lib, input_)
+    except Exception, e:
+        # fallback to python
+        print('WARNING:', e, file=sys.stderr)
+        return _evaluate(expr_to_py(expr, lib), input_, name)
+
+
+def _evaluate(path, input_, name):
+    result = imp.load_source(name, path)._result()
+
+    if input_ is not None:
+        encoded = input_.encode('string_escape').replace('"', r'\"')
+        inp_expr = evaluate_expr('"' + encoded + '"', name='input')
+
+        try:
+            func = result.value['main']()
+        except AttributeError:
+            func = result
+        return trampoline(lambda: func(inp_expr))
+    else:
+        return result
+
+
+def _evaluate_as_llvm(expr, lib=True, input_=None):
     # generate LLVM code
+    tree = tokenize(expr)
+    if lib:
+        # convert standard library and include it
+        star_to_py('lib', False)
+        tree = tree.wrap_import('lib')
     llir = tree.gen_llvm()
 
     # load runtime
@@ -159,46 +205,13 @@ def expr_to_py(expr, lib=True, path=None):
         prev = curr
         curr = str(llir)
 
-    print curr
-
     target_machine = llvm.Target.from_default_triple().create_target_machine()
 
     with llvm.create_mcjit_compiler(llir, target_machine) as ee:
         ee.finalize_object()
         cfptr = ee.get_pointer_to_global(llir.get_function('main'))
-        print target_machine.emit_assembly(llir)
         cfunc = CFUNCTYPE(c_int)(cfptr)
-        print "LLVM RESULT: ", cfunc()
-
-    # write code to path
-    with open(path, 'w') as f:
-        f.write(code)
-
-    return path
-
-
-def evaluate_star(source, lib=True, input_=None):
-    return _evaluate(star_to_py(source, lib), input_, source)
-
-
-def evaluate_expr(expr, lib=True, input_=None, name='expr'):
-    return _evaluate(expr_to_py(expr, lib), input_, name)
-
-
-def _evaluate(path, input_, name):
-    result = imp.load_source(name, path)._result()
-
-    if input_ is not None:
-        encoded = input_.encode('string_escape').replace('"', r'\"')
-        inp_expr = evaluate_expr('"' + encoded + '"', name='input')
-
-        try:
-            func = result.value['main']()
-        except AttributeError:
-            func = result
-        return trampoline(lambda: func(inp_expr))
-    else:
-        return result
+        return star_type.Number(cfunc())
 
 
 def _parse(expr):
