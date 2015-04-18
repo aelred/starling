@@ -13,7 +13,6 @@ def is_star(f):
 
 mods_dir = 'modules'
 modules = [f for f in next(os.walk(mods_dir))[2] if is_star(f)]
-print [(mods_dir, os.path.join(mods_dir, f)) for f in modules]
 
 reqs = [str(ir.req) for ir in parse_requirements('requirements.txt')]
 
