@@ -1,6 +1,8 @@
 language: python
 python:
     - "2.7"
+env:
+    - LLVM_CONFIG=/usr/bin/llvmconfig-3.5
 install:
     - sudo add-apt-repository --yes 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main'
     - sudo add-apt-repository --yes 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.5 main'
@@ -9,7 +11,6 @@ install:
     - sudo apt-get install -y libedit-dev
     - sudo apt-get install -y llvm-3.5-dev || sudo apt-get -f install -y
     - pip install enum34
-    - export LLVM_CONFIG=/usr/bin/llvmconfig-3.5
     - pip install -r requirements.txt
     - python setup.py install
 script: ./test
