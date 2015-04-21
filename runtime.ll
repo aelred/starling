@@ -28,6 +28,21 @@ define linkonce_odr i8* @apply_closure(i8* %c_ptr, %thunk* %arg) {
 
 ; Make a thunk
 define linkonce_odr %thunk* @make_thunk(i8* %env, i8* (i8*)* %fun) {
+    %t_ptr = call %thunk* @thunk_ptr()
+    call void @fill_thunk(%thunk* %t_ptr, i8* %env, i8* (i8*)* %fun)
+    ret %thunk* %t_ptr
+}
+
+; Generate a thunk pointer
+define linkonce_odr %thunk* @thunk_ptr() {
+    ; TODO - Make sure this size is always correct
+    %t_ptr = call i8* @malloc(i32 16)
+    %t_cast = bitcast i8* %t_ptr to %thunk*
+    ret %thunk* %t_cast
+}
+
+; Fill an existing thunk pointer with something
+define linkonce_odr void @fill_thunk(%thunk* %t_ptr, i8* %env, i8* (i8*)* %fun) {
     %ti1 = insertvalue %thunk_inner zeroinitializer, i8* %env, 0
     %ti2 = insertvalue %thunk_inner %ti1, i8* (i8*)* %fun, 1
 
@@ -37,12 +52,8 @@ define linkonce_odr %thunk* @make_thunk(i8* %env, i8* (i8*)* %fun) {
     store %thunk_inner %ti2, %thunk_inner* %ti_cast
 
     %t = insertvalue %thunk {i1 false, i8* null}, i8* %ti_ptr, 1
-
-    ; TODO - Make sure this size is always correct
-    %t_ptr = call i8* @malloc(i32 16)
-    %t_cast = bitcast i8* %t_ptr to %thunk*
-    store %thunk %t, %thunk* %t_cast
-    ret %thunk* %t_cast
+    store %thunk %t, %thunk* %t_ptr
+    ret void
 }
 
 ; Make a pre-evaluated thunk

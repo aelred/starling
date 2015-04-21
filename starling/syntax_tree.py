@@ -9,6 +9,7 @@ _id = 0
 
 log = logging.getLogger('starling.syntax_tree')
 
+_void = ll.VoidType()
 _bool = ll.IntType(1)
 _boolp = ll.PointerType(_bool)
 _i8 = ll.IntType(8)
@@ -23,7 +24,7 @@ _global_ids = set(
     ['True', 'False', '+', '-', '*', '/', 'mod', 'pow', '==', '<='])
 
 
-def _nest_function(module, helper, builder, env, free_ids):
+def _nest_function(module, helper, builder, env, free_ids, thunk=None):
     """ Create a nested LLVM function, binding all free identifiers. """
     func = ll.Function(module, _unfunc, module.get_unique_name())
     func.linkage = 'private'
@@ -56,8 +57,11 @@ def _nest_function(module, helper, builder, env, free_ids):
         new_env[ident] = fbuilder.load(read_ptr, name=ident)
 
     # create a thunk combining the function and environment
-    thunk = builder.call(
-        helper['make_thunk'], [env_pass_ptr, func], name='thunk')
+    if thunk is None:
+        thunk = builder.call(
+            helper['make_thunk'], [env_pass_ptr, func], name='thunk')
+    else:
+        builder.call(helper['fill_thunk'], [thunk, env_pass_ptr, func])
 
     return fbuilder, new_env, thunk
 
@@ -177,6 +181,12 @@ class Script(Token):
                 module,
                 ll.FunctionType(thp, [_i8p, ll.PointerType(_unfunc)]),
                 'make_thunk'),
+            'thunk_ptr': ll.Function(
+                module, ll.FunctionType(thp, []), 'thunk_ptr'),
+            'fill_thunk': ll.Function(
+                module,
+                ll.FunctionType(_void, [thp, _i8p, ll.PointerType(_unfunc)]),
+                'fill_thunk'),
             'wrap_thunk': ll.Function(
                 module, ll.FunctionType(thp, [_i8p]), 'wrap_thunk'),
             'eval_thunk': ll.Function(
@@ -483,7 +493,6 @@ class If(Token):
                 i3, self.alternative.gen_python(True), it, i1, it, i2, it, i3))
 
     def gen_llvm(self, module, helper, builder, env):
-        func = builder.function
         pred = self.predicate.gen_llvm(module, helper, builder, env)
 
         if_con = func.append_basic_block('if.con')
@@ -529,6 +538,12 @@ class Let(Token):
             bind.bound_identifiers for bind in self.bindings.elements]))
         return ids - binds
 
+    def gen_llvm(self, module, helper, builder, env):
+        # get new bindings environment
+        new_env = self.bindings.gen_llvm_env(module, helper, builder, env)
+        return self.body.gen_llvm(module, helper, builder, new_env)
+
+
 class Bindings(Token):
 
     @property
@@ -537,6 +552,21 @@ class Bindings(Token):
 
     def _gen_python(self):
         return '\n'.join([e.gen_python() for e in self.elements])
+
+    def gen_llvm_env(self, module, helper, builder, env):
+        # first build the environment...
+        new_env = dict(env)
+        thunks = []
+        for elem in self.elements:
+            thunk = elem.get_llvm_ref(module, helper, builder, new_env)
+            new_env[elem.identifier.value] = thunk
+            thunks.append(thunk)
+
+        # ...then use the new environment for each binding!
+        for elem, thunk in zip(self.elements, thunks):
+            elem.gen_llvm_ref(module, helper, builder, new_env, thunk)
+
+        return new_env
 
 
 class Binding(Token):
@@ -560,6 +590,21 @@ class Binding(Token):
 
     def free_identifiers(self):
         return self.body.free_identifiers()
+
+
+    def get_llvm_ref(self, module, helper, builder, env):
+        # call to get a reference to this binding before it is generated
+        # this is important for recursive definitions
+        return builder.call(helper['thunk_ptr'], [], name=self.identifier.value)
+
+
+    def gen_llvm_ref(self, module, helper, builder, env, ref):
+        # generate LLVM code, filling the referred thunk
+        fbuilder, new_env, thunk = _nest_function(
+            module, helper, builder, env, self.body.free_identifiers(), ref)
+        bthunk = self.body.gen_llvm(module, helper, fbuilder, new_env)
+        res = fbuilder.call(helper['eval_thunk'], [bthunk], name='res')
+        fbuilder.ret(res)
 
 
 class Enum(Token):
