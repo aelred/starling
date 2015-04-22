@@ -10,7 +10,7 @@ import sys
 
 import llvmlite.ir as ll
 import llvmlite.binding as llvm
-from ctypes import CFUNCTYPE, c_int
+from ctypes import CFUNCTYPE, c_byte, c_int, c_long, Structure, POINTER
 
 from starling import error, syntax_tree, star_path, star_type
 from starling.glob_env import trampoline
@@ -175,6 +175,9 @@ def _evaluate(path, input_, name):
         return result
 
 
+class _LLVMObject(Structure):
+    _fields_ = [('type', c_byte), ('val', c_long)]
+
 def _evaluate_as_llvm(expr, lib=True, input_=None):
     # generate LLVM code
     tree = tokenize(expr)
@@ -210,8 +213,12 @@ def _evaluate_as_llvm(expr, lib=True, input_=None):
     with llvm.create_mcjit_compiler(llir, target_machine) as ee:
         ee.finalize_object()
         cfptr = ee.get_pointer_to_global(llir.get_function('main'))
-        cfunc = CFUNCTYPE(c_int)(cfptr)
-        return star_type.Number(cfunc())
+        res_ptr = CFUNCTYPE(POINTER(_LLVMObject))(cfptr)()
+        res = res_ptr.contents
+        return {
+            0: star_type.Number,
+            1: lambda x: star_type.Boolean(bool(x))
+        }[res.type](res.val)
 
 
 def _parse(expr):

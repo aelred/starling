@@ -16,8 +16,8 @@ _i8 = ll.IntType(8)
 _i8p = ll.PointerType(_i8)
 _i32 = ll.IntType(32)
 _i32p = ll.PointerType(_i32)
+_i64 = ll.IntType(64)
 
-_unfunc = ll.FunctionType(_i8p, [_i8p])
 _binfunc = ll.FunctionType(_i8p, [_i8p, _i8p])
 
 _global_ids = set(
@@ -26,7 +26,7 @@ _global_ids = set(
 
 def _nest_function(module, helper, builder, env, free_ids, thunk=None):
     """ Create a nested LLVM function, binding all free identifiers. """
-    func = ll.Function(module, _unfunc, module.get_unique_name())
+    func = ll.Function(module, helper['objfunc'], module.get_unique_name())
     func.linkage = 'private'
     func.args[0].name = 'env'
     fbuilder = ll.IRBuilder(func.append_basic_block())
@@ -161,48 +161,60 @@ class Script(Token):
         thtype = module.context.get_identified_type('thunk')
         thp = ll.PointerType(thtype)
         cltype = module.context.get_identified_type('closure')
+        objtype = module.context.get_identified_type('object')
+        objp = ll.PointerType(objtype)
+
+        objfunc = ll.FunctionType(objp, [_i8p])
 
         # define helper functions
         helper = {
+            'objp': objp,
             'thp': thp,
+            'objfunc': objfunc,
             'make_closure': ll.Function(
                 module,
                 ll.FunctionType(
-                    _i8p,
+                    objp,
                     [
                         thp,
-                        ll.PointerType(ll.FunctionType(_i8p, [thp] * 2))
+                        ll.PointerType(ll.FunctionType(objp, [thp] * 2))
                     ]),
                 'make_closure'),
             'apply_closure': ll.Function(
                 module,
-                ll.FunctionType(_i8p, [_i8p, thp]), 'apply_closure'),
+                ll.FunctionType(objp, [objp, thp]), 'apply_closure'),
             'make_thunk': ll.Function(
                 module,
-                ll.FunctionType(thp, [_i8p, ll.PointerType(_unfunc)]),
+                ll.FunctionType(thp, [_i8p, ll.PointerType(objfunc)]),
                 'make_thunk'),
             'thunk_ptr': ll.Function(
                 module, ll.FunctionType(thp, []), 'thunk_ptr'),
             'fill_thunk': ll.Function(
                 module,
-                ll.FunctionType(_void, [thp, _i8p, ll.PointerType(_unfunc)]),
+                ll.FunctionType(_void, [thp, _i8p, ll.PointerType(objfunc)]),
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
                 module, ll.FunctionType(thp, [_i8p]), 'wrap_thunk'),
             'eval_thunk': ll.Function(
-                module, ll.FunctionType(_i8p, [thp]), 'eval_thunk'),
+                module, ll.FunctionType(objp, [thp]), 'eval_thunk'),
             'malloc': ll.Function(
-                module, ll.FunctionType(_i8p, [_i32]), 'malloc')
+                module, ll.FunctionType(_i8p, [_i32]), 'malloc'),
+            'number': ll.Function(
+                module, ll.FunctionType(thp, [_i64]), 'number'),
+            'make_object': ll.Function(
+                module, ll.FunctionType(objp, [_i8, _i64]), 'make_object'),
+            'obj_val': ll.Function(
+                module, ll.FunctionType(_i64, [objp]), 'obj_val')
         }
 
         # define all global methods and constants
 
-        def glob_const(llvm_name, type_):
+        def glob_const(llvm_name):
             # reference pre-defined function
             return ll.GlobalVariable(module, thtype, llvm_name)
 
 
-        def glob_func(llvm_name, ret_type, arg_types):
+        def glob_func(llvm_name, ret_type, arg_types, type_int):
             funtype = ll.FunctionType(ret_type, arg_types)
 
             # reference pre-defined internal function
@@ -210,7 +222,7 @@ class Script(Token):
 
             # create function that evals thunks to correct type
             func_ptr = ll.Function(
-                module, ll.FunctionType(_i8p, [thp] * len(arg_types)),
+                module, ll.FunctionType(objp, [thp] * len(arg_types)),
                 '%s_ptr' % llvm_name)
             func_ptr.linkage = 'private'
             builder = ll.IRBuilder(func_ptr.append_basic_block())
@@ -218,25 +230,23 @@ class Script(Token):
             # evaluate and cast arguments to right type
             arg_vals = []
             for arg, arg_type in zip(func_ptr.args, arg_types):
-                val_ptr = builder.call(helper['eval_thunk'], [arg])
-                val = builder.load(
-                    builder.bitcast(val_ptr, ll.PointerType(arg_type)))
+                obj_ptr = builder.call(helper['eval_thunk'], [arg], 'obj_ptr')
+                val = builder.call(helper['obj_val'], [obj_ptr], 'val')
+                val_cast = builder.trunc(val, arg_type, 'val_cast')
                 arg_vals.append(val)
 
-            # get result and convert back to pointer
+            # get result and convert back to object
             res = builder.call(internal, arg_vals, name='res')
-            # TODO: Correct size
-            res_ptr = builder.call(
-                helper['malloc'], [ll.Constant(_i32, 8)], name='res_ptr')
-            res_cast = builder.bitcast(
-                res_ptr, ll.PointerType(ret_type), name='res_cast')
-            builder.store(res, res_cast)
-            builder.ret(res_ptr)
+            res_cast = builder.zext(res, _i64)
+            obj = builder.call(
+                helper['make_object'], [ll.Constant(_i8, type_int), res_cast],
+                'obj')
+            builder.ret(obj)
 
             # create function that makes closure for first argument
             func = ll.Function(
                 module,
-                ll.FunctionType(_i8p, [thp, thp]), '%s_closure' % llvm_name)
+                ll.FunctionType(objp, [thp, thp]), '%s_closure' % llvm_name)
             func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
             func.args[1].name = 'arg'
@@ -250,29 +260,27 @@ class Script(Token):
             return ll.GlobalVariable(module, thtype, llvm_name)
 
         env = {
-            'True': glob_const('true', _bool),
-            'False': glob_const('false', _bool),
-            '+': glob_func('add', _i32, [_i32, _i32]),
-            '-': glob_func('sub', _i32, [_i32, _i32]),
-            '*': glob_func('mul', _i32, [_i32, _i32]),
-            '/': glob_func('div', _i32, [_i32, _i32]),
-            'mod': glob_func('mod', _i32, [_i32, _i32]),
-            'pow': glob_func('pow', _i32, [_i32, _i32]),
-            '==': glob_func('eq', _bool, [_i32, _i32]),
-            '<=': glob_func('le', _bool, [_i32, _i32])
+            'True': glob_const('true'),
+            'False': glob_const('false'),
+            '+': glob_func('add', _i64, [_i64, _i64], 0),
+            '-': glob_func('sub', _i64, [_i64, _i64], 0),
+            '*': glob_func('mul', _i64, [_i64, _i64], 0),
+            '/': glob_func('div', _i64, [_i64, _i64], 0),
+            'mod': glob_func('mod', _i64, [_i64, _i64], 0),
+            'pow': glob_func('pow', _i64, [_i64, _i64], 0),
+            '==': glob_func('eq', _bool, [_i64, _i64], 1),
+            '<=': glob_func('le', _bool, [_i64, _i64], 1)
         }
 
         # create main function
-        main = ll.Function(module, ll.FunctionType(_i32, []), 'main')
+        main = ll.Function(module, ll.FunctionType(objp, []), 'main')
         builder = ll.IRBuilder(main.append_basic_block('entry'))
 
         # generate code
         thunk_ptr = self.body.gen_llvm(module, helper, builder, env)
         res_ptr = builder.call(
             helper['eval_thunk'], [thunk_ptr], name='res_ptr')
-        res_ptr32 = builder.bitcast(res_ptr, _i32p, name='res_cast')
-        res = builder.load(res_ptr32, name='res')
-        builder.ret(res)
+        builder.ret(res_ptr)
 
         # parse assembly
         llmod = llvm.parse_assembly(str(module))
@@ -364,11 +372,8 @@ class Number(Terminator):
         return 'return star_type.Number(%s)' % self.value
 
     def gen_llvm(self, module, helper, builder, env):
-        const = builder.constant(_i32, int(self.value))
-        ptr = builder.call(
-            helper['malloc'], [builder.constant(_i32, 4)], name='num')
-        builder.store(const, builder.bitcast(ptr, _i32p, name='num32'))
-        return builder.call(helper['wrap_thunk'], [ptr], name='thunk')
+        return builder.call(
+            helper['number'], [ll.Constant(_i64, int(self.value))])
 
 
 class Char(Terminator):
@@ -493,15 +498,18 @@ class If(Token):
                 i3, self.alternative.gen_python(True), it, i1, it, i2, it, i3))
 
     def gen_llvm(self, module, helper, builder, env):
+        func = builder.function
         pred = self.predicate.gen_llvm(module, helper, builder, env)
 
         if_con = func.append_basic_block('if.con')
         if_alt = func.append_basic_block('if.alt')
         if_end = func.append_basic_block('if.end')
 
-        pred_val = builder.call(helper['eval_thunk'], [pred], name='pred_val')
-        pred_ptr = builder.bitcast(pred_val, _boolp, name='pred_ptr')
-        builder.cbranch(builder.load(pred_ptr, name='pred'), if_con, if_alt)
+        pred_ptr = builder.call(helper['eval_thunk'], [pred], name='pred_ptr')
+        pred_cast = builder.bitcast(pred_ptr, helper['objp'], name='pred_cast')
+        pred_val = builder.call(helper['obj_val'], [pred_cast], 'pred')
+        pred_bool = builder.trunc(pred_val, _bool, 'pred_bool')
+        builder.cbranch(pred_bool, if_con, if_alt)
 
         builder.position_at_start(if_con)
         con = self.consequent.gen_llvm(module, helper, builder, env)
