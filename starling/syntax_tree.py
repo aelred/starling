@@ -34,27 +34,32 @@ def _nest_function(module, helper, builder, env, free_ids, thunk=None):
     # ignore global identifiers
     free_ids = free_ids - _global_ids
 
-    # for each free identifier, pass it to the function and load it
     new_env = dict(env)
-    env_type = ll.ArrayType(helper['thp'], len(free_ids))
-    env_ptr = fbuilder.bitcast(
-        func.args[0], ll.PointerType(env_type), name='env_ptr')
 
-    # TODO: Make sure this is the right size
-    env_pass_ptr = builder.call(
-        helper['malloc'],
-        [ll.Constant(_i32, 8 * len(free_ids))], name='env_pass_ptr')
-    env_pass_cast = builder.bitcast(
-        env_pass_ptr, ll.PointerType(env_type), name='env_pass_cast')
-    for index, ident in enumerate(free_ids):
-        # write the value before calling
-        index_val = [ll.Constant(_i32, 0), ll.Constant(_i32, index)]
-        index_ptr = builder.gep(env_pass_cast, index_val, True, 'env_index')
-        builder.store(env[ident], index_ptr)
+    if free_ids:
+        # for each free identifier, pass it to the function and load it
+        env_type = ll.ArrayType(helper['thp'], len(free_ids))
+        env_ptr = fbuilder.bitcast(
+            func.args[0], ll.PointerType(env_type), name='env_ptr')
 
-        # read the value after calling
-        read_ptr = fbuilder.gep(env_ptr, index_val, True, 'env_index')
-        new_env[ident] = fbuilder.load(read_ptr, name=ident)
+        # TODO: Make sure this is the right size
+        env_pass_ptr = builder.call(
+            helper['malloc'],
+            [ll.Constant(_i32, 8 * len(free_ids))], name='env_pass_ptr')
+        env_pass_cast = builder.bitcast(
+            env_pass_ptr, ll.PointerType(env_type), name='env_pass_cast')
+        for index, ident in enumerate(free_ids):
+            # write the value before calling
+            index_val = [ll.Constant(_i32, 0), ll.Constant(_i32, index)]
+            index_ptr = builder.gep(env_pass_cast, index_val, True, 'env_index')
+            builder.store(env[ident], index_ptr)
+
+            # read the value after calling
+            read_ptr = fbuilder.gep(env_ptr, index_val, True, 'env_index')
+            new_env[ident] = fbuilder.load(read_ptr, name=ident)
+    else:
+        # if there are no free identifiers, skip creating environment
+        env_pass_ptr = ll.Constant(_i8p, None)
 
     # create a thunk combining the function and environment
     if thunk is None:
