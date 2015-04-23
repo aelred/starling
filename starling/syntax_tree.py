@@ -600,12 +600,10 @@ class Binding(Token):
     def free_identifiers(self):
         return self.body.free_identifiers()
 
-
     def get_llvm_ref(self, module, helper, builder, env):
         # call to get a reference to this binding before it is generated
         # this is important for recursive definitions
         return builder.call(helper['thunk_ptr'], [], name=self.identifier.value)
-
 
     def gen_llvm_ref(self, module, helper, builder, env, ref):
         # generate LLVM code, filling the referred thunk
