@@ -24,17 +24,28 @@ _global_ids = set(
     ['True', 'False', '+', '-', '*', '/', 'mod', 'pow', '==', '<='])
 
 
-def _nest_function(module, helper, builder, env, free_ids, thunk=None):
+def _nest_function(
+     module, helper, builder, env, free_ids, thunk=None, lambda_arg=None):
     """ Create a nested LLVM function, binding all free identifiers. """
-    func = ll.Function(module, helper['objfunc'], module.get_unique_name())
+    if lambda_arg:
+        ftype = helper['lambdafunc']
+    else:
+        ftype = helper['objfunc']
+
+    func = ll.Function(module, ftype, module.get_unique_name())
     func.linkage = 'private'
     func.args[0].name = 'env'
+
     fbuilder = ll.IRBuilder(func.append_basic_block())
 
     # ignore global identifiers
     free_ids = free_ids - _global_ids
 
     new_env = dict(env)
+
+    if lambda_arg:
+        func.args[1].name = lambda_arg
+        new_env[lambda_arg] = func.args[1]
 
     if free_ids:
         # for each free identifier, pass it to the function and load it
@@ -62,7 +73,11 @@ def _nest_function(module, helper, builder, env, free_ids, thunk=None):
         env_pass_ptr = ll.Constant(_i8p, None)
 
     # create a thunk combining the function and environment
-    if thunk is None:
+    if lambda_arg:
+        lambda_ = builder.call(
+            helper['make_lambda'], [env_pass_ptr, func], name='lambda')
+        thunk = builder.call(helper['wrap_thunk'], [lambda_])
+    elif thunk is None:
         thunk = builder.call(
             helper['make_thunk'], [env_pass_ptr, func], name='thunk')
     else:
@@ -170,12 +185,14 @@ class Script(Token):
         objp = ll.PointerType(objtype)
 
         objfunc = ll.FunctionType(objp, [_i8p])
+        lambdafunc = ll.FunctionType(objp, [_i8p, thp])
 
         # define helper functions
         helper = {
             'objp': objp,
             'thp': thp,
             'objfunc': objfunc,
+            'lambdafunc': lambdafunc,
             'make_lambda': ll.Function(
                 module,
                 ll.FunctionType(
@@ -196,7 +213,7 @@ class Script(Token):
                 ll.FunctionType(_void, [thp, _i8p, ll.PointerType(objfunc)]),
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
-                module, ll.FunctionType(thp, [_i8p]), 'wrap_thunk'),
+                module, ll.FunctionType(thp, [objp]), 'wrap_thunk'),
             'eval_thunk': ll.Function(
                 module, ll.FunctionType(objp, [thp]), 'eval_thunk'),
             'malloc': ll.Function(
@@ -652,6 +669,18 @@ class Lambda(Token):
         i = _get_id()
         return 'def _f%s(%s):\n%s\nreturn _f%s' % (
             i, self.parameter.python_name(), self.body.gen_python(True), i)
+
+    def gen_llvm(self, module, helper, builder, env):
+        free_ids = self.free_identifiers()
+        fbuilder, new_env, thunk = _nest_function(
+            module, helper, builder, env, free_ids,
+            lambda_arg=self.parameter.value)
+
+        res_thunk = self.body.gen_llvm(module, helper, fbuilder, new_env)
+        res = fbuilder.call(helper['eval_thunk'], [res_thunk], name='res')
+        fbuilder.ret(res)
+
+        return thunk
 
 
 class Object(Token):
