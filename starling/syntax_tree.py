@@ -165,7 +165,7 @@ class Script(Token):
 
         thtype = module.context.get_identified_type('thunk')
         thp = ll.PointerType(thtype)
-        cltype = module.context.get_identified_type('closure')
+        cltype = module.context.get_identified_type('lambda')
         objtype = module.context.get_identified_type('object')
         objp = ll.PointerType(objtype)
 
@@ -176,15 +176,15 @@ class Script(Token):
             'objp': objp,
             'thp': thp,
             'objfunc': objfunc,
-            'make_closure': ll.Function(
+            'make_lambda': ll.Function(
                 module,
                 ll.FunctionType(
                     objp,
                     [_i8p, ll.PointerType(ll.FunctionType(objp, [_i8p, thp]))]),
-                'make_closure'),
-            'apply_closure': ll.Function(
+                'make_lambda'),
+            'apply_lambda': ll.Function(
                 module,
-                ll.FunctionType(objp, [objp, thp]), 'apply_closure'),
+                ll.FunctionType(objp, [objp, thp]), 'apply_lambda'),
             'make_thunk': ll.Function(
                 module,
                 ll.FunctionType(thp, [_i8p, ll.PointerType(objfunc)]),
@@ -244,17 +244,17 @@ class Script(Token):
                 'obj')
             builder.ret(obj)
 
-            # create function that makes closure for first argument
+            # create function that makes lambda for first argument
             func = ll.Function(
                 module,
-                ll.FunctionType(objp, [_i8p, thp]), '%s_closure' % llvm_name)
+                ll.FunctionType(objp, [_i8p, thp]), '%s_apply' % llvm_name)
             func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
             func.args[1].name = 'arg'
             builder_ = ll.IRBuilder(func.append_basic_block())
             arg_cast = builder_.bitcast(func.args[1], _i8p, name='arg_cast')
             res = builder_.call(
-                helper['make_closure'], [arg_cast, func_ptr], name='res')
+                helper['make_lambda'], [arg_cast, func_ptr], name='res')
             builder_.ret(res)
 
             # finally, access external definition of thunk
@@ -411,7 +411,7 @@ class Expression(Token):
         optor_val = fbuilder.call(
             helper['eval_thunk'], [optor], name='operator')
         res = fbuilder.call(
-            helper['apply_closure'], [optor_val, opand], tail=True, name='res')
+            helper['apply_lambda'], [optor_val, opand], tail=True, name='res')
         fbuilder.ret(res)
 
         return thunk
