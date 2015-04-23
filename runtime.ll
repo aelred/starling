@@ -1,14 +1,14 @@
 %thunk_inner = type {i8*, %object* (i8*)*}
 %thunk = type {i1, i8*}
-%closure = type {%thunk*, %object* (%thunk*, %thunk*)*}
+%closure = type {i8*, %object* (i8*, %thunk*)*}
 %object = type {i8, i64}
 
 declare i8* @malloc(i32)
 
 ; Make a new closure from an environment pointer and function
-define linkonce_odr %object* @make_closure(%thunk* %env, %object* (%thunk*, %thunk*)* %fun) {
-    %c1 = insertvalue %closure zeroinitializer, %thunk* %env, 0
-    %c2 = insertvalue %closure %c1, %object* (%thunk*, %thunk*)* %fun, 1
+define linkonce_odr %object* @make_closure(i8* %env, %object* (i8*, %thunk*)* %fun) {
+    %c1 = insertvalue %closure zeroinitializer, i8* %env, 0
+    %c2 = insertvalue %closure %c1, %object* (i8*, %thunk*)* %fun, 1
 
     ; TODO - Make sure this size is always correct
     %c_ptr = call i8* @malloc(i32 16)
@@ -30,7 +30,7 @@ define linkonce_odr %object* @apply_closure(%object* %c_obj, %thunk* %arg) {
     %c = load %closure* %c_cast
     %env = extractvalue %closure %c, 0
     %fun = extractvalue %closure %c, 1
-    %res = call %object* %fun(%thunk* %env, %thunk* %arg)
+    %res = call %object* %fun(i8* %env, %thunk* %arg)
     ret %object* %res
 }
 
@@ -135,8 +135,8 @@ define linkonce_odr i64 @add_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @add_closure(%thunk*, %thunk*)
-@add_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @add_closure}
+declare %object* @add_closure(i8*, %thunk*)
+@add_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @add_closure}
 @add_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @add_null to i64)}
 @add = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @add_obj to i8*)}
 
@@ -146,8 +146,8 @@ define linkonce_odr i64 @sub_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @sub_closure(%thunk*, %thunk*)
-@sub_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @sub_closure}
+declare %object* @sub_closure(i8*, %thunk*)
+@sub_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @sub_closure}
 @sub_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @sub_null to i64)}
 @sub = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @sub_obj to i8*)}
 
@@ -157,8 +157,8 @@ define linkonce_odr i64 @mul_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @mul_closure(%thunk*, %thunk*)
-@mul_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @mul_closure}
+declare %object* @mul_closure(i8*, %thunk*)
+@mul_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @mul_closure}
 @mul_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @mul_null to i64)}
 @mul = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @mul_obj to i8*)}
 
@@ -168,8 +168,8 @@ define linkonce_odr i64 @div_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @div_closure(%thunk*, %thunk*)
-@div_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @div_closure}
+declare %object* @div_closure(i8*, %thunk*)
+@div_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @div_closure}
 @div_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @div_null to i64)}
 @div = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @div_obj to i8*)}
 
@@ -184,8 +184,8 @@ define linkonce_odr i64 @mod_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @mod_closure(%thunk*, %thunk*)
-@mod_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @mod_closure}
+declare %object* @mod_closure(i8*, %thunk*)
+@mod_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @mod_closure}
 @mod_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @mod_null to i64)}
 @mod = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @mod_obj to i8*)}
 
@@ -215,8 +215,8 @@ end:
     ret i64 %res
 }
 
-declare %object* @pow_closure(%thunk*, %thunk*)
-@pow_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @pow_closure}
+declare %object* @pow_closure(i8*, %thunk*)
+@pow_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @pow_closure}
 @pow_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @pow_null to i64)}
 @pow = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @pow_obj to i8*)}
 
@@ -226,8 +226,8 @@ define linkonce_odr i1 @eq_intern(i64 %x, i64 %y) {
     ret i1 %res
 }
 
-declare %object* @eq_closure(%thunk*, %thunk*)
-@eq_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @eq_closure}
+declare %object* @eq_closure(i8*, %thunk*)
+@eq_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @eq_closure}
 @eq_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @eq_null to i64)}
 @eq = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @eq_obj to i8*)}
 
@@ -237,7 +237,7 @@ define linkonce_odr i1 @le_intern(i64 %x, i64 %y) {
     ret i1 %res
 }
 
-declare %object* @le_closure(%thunk*, %thunk*)
-@le_null = private constant %closure {%thunk* null, %object* (%thunk*, %thunk*)* @le_closure}
+declare %object* @le_closure(i8*, %thunk*)
+@le_null = private constant %closure {i8* null, %object* (i8*, %thunk*)* @le_closure}
 @le_obj = private constant %object {i8 2, i64 ptrtoint (%closure* @le_null to i64)}
 @le = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @le_obj to i8*)}

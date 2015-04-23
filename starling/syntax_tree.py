@@ -180,10 +180,7 @@ class Script(Token):
                 module,
                 ll.FunctionType(
                     objp,
-                    [
-                        thp,
-                        ll.PointerType(ll.FunctionType(objp, [thp] * 2))
-                    ]),
+                    [_i8p, ll.PointerType(ll.FunctionType(objp, [_i8p, thp]))]),
                 'make_closure'),
             'apply_closure': ll.Function(
                 module,
@@ -219,29 +216,28 @@ class Script(Token):
             return ll.GlobalVariable(module, thtype, llvm_name)
 
 
-        def glob_func(llvm_name, ret_type, arg_types, type_int):
-            funtype = ll.FunctionType(ret_type, arg_types)
+        def glob_func(llvm_name, ret_type, arg_type, type_int):
+            funtype = ll.FunctionType(ret_type, [arg_type] * 2)
 
             # reference pre-defined internal function
             internal = ll.Function(module, funtype, '%s_intern' % llvm_name)
 
             # create function that evals thunks to correct type
             func_ptr = ll.Function(
-                module, ll.FunctionType(objp, [thp] * len(arg_types)),
+                module, ll.FunctionType(objp, [_i8p, thp]),
                 '%s_ptr' % llvm_name)
             func_ptr.linkage = 'private'
             builder = ll.IRBuilder(func_ptr.append_basic_block())
 
-            # evaluate and cast arguments to right type
-            arg_vals = []
-            for arg, arg_type in zip(func_ptr.args, arg_types):
-                obj_ptr = builder.call(helper['eval_thunk'], [arg], 'obj_ptr')
-                val = builder.call(helper['obj_val'], [obj_ptr], 'val')
-                val_cast = builder.trunc(val, arg_type, 'val_cast')
-                arg_vals.append(val)
+            x_thunk = builder.bitcast(func_ptr.args[0], thp, 'x_thunk')
+            x_object = builder.call(helper['eval_thunk'], [x_thunk], 'xo')
+            x = builder.call(helper['obj_val'], [x_object], 'x')
+            y_object = builder.call(
+                helper['eval_thunk'], [func_ptr.args[1]], 'yo')
+            y = builder.call(helper['obj_val'], [y_object], 'y')
 
             # get result and convert back to object
-            res = builder.call(internal, arg_vals, name='res')
+            res = builder.call(internal, [x, y], name='res')
             res_cast = builder.zext(res, _i64)
             obj = builder.call(
                 helper['make_object'], [ll.Constant(_i8, type_int), res_cast],
@@ -251,14 +247,14 @@ class Script(Token):
             # create function that makes closure for first argument
             func = ll.Function(
                 module,
-                ll.FunctionType(objp, [thp, thp]), '%s_closure' % llvm_name)
+                ll.FunctionType(objp, [_i8p, thp]), '%s_closure' % llvm_name)
             func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
             func.args[1].name = 'arg'
             builder_ = ll.IRBuilder(func.append_basic_block())
+            arg_cast = builder_.bitcast(func.args[1], _i8p, name='arg_cast')
             res = builder_.call(
-                helper['make_closure'],
-                [func.args[1], func_ptr], name='res')
+                helper['make_closure'], [arg_cast, func_ptr], name='res')
             builder_.ret(res)
 
             # finally, access external definition of thunk
@@ -267,14 +263,14 @@ class Script(Token):
         env = {
             'True': glob_const('true'),
             'False': glob_const('false'),
-            '+': glob_func('add', _i64, [_i64, _i64], 0),
-            '-': glob_func('sub', _i64, [_i64, _i64], 0),
-            '*': glob_func('mul', _i64, [_i64, _i64], 0),
-            '/': glob_func('div', _i64, [_i64, _i64], 0),
-            'mod': glob_func('mod', _i64, [_i64, _i64], 0),
-            'pow': glob_func('pow', _i64, [_i64, _i64], 0),
-            '==': glob_func('eq', _bool, [_i64, _i64], 1),
-            '<=': glob_func('le', _bool, [_i64, _i64], 1)
+            '+': glob_func('add', _i64, _i64, 0),
+            '-': glob_func('sub', _i64, _i64, 0),
+            '*': glob_func('mul', _i64, _i64, 0),
+            '/': glob_func('div', _i64, _i64, 0),
+            'mod': glob_func('mod', _i64, _i64, 0),
+            'pow': glob_func('pow', _i64, _i64, 0),
+            '==': glob_func('eq', _bool, _i64, 1),
+            '<=': glob_func('le', _bool, _i64, 1)
         }
 
         # create main function
