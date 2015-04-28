@@ -30,7 +30,7 @@ def _nest_function(
     if lambda_arg:
         ftype = helper['lambdafunc']
     else:
-        ftype = helper['objfunc']
+        ftype = helper['elemfunc']
 
     func = ll.Function(module, ftype, module.get_unique_name())
     func.linkage = 'private'
@@ -181,49 +181,50 @@ class Script(Token):
         thtype = module.context.get_identified_type('thunk')
         thp = ll.PointerType(thtype)
         cltype = module.context.get_identified_type('lambda')
-        objtype = module.context.get_identified_type('object')
-        objp = ll.PointerType(objtype)
+        elemtype = module.context.get_identified_type('elem')
+        elemp = ll.PointerType(elemtype)
 
-        objfunc = ll.FunctionType(objp, [_i8p])
-        lambdafunc = ll.FunctionType(objp, [_i8p, thp])
+        elemfunc = ll.FunctionType(elemp, [_i8p])
+        lambdafunc = ll.FunctionType(elemp, [_i8p, thp])
 
         # define helper functions
         helper = {
-            'objp': objp,
+            'elemp': elemp,
             'thp': thp,
-            'objfunc': objfunc,
+            'elemfunc': elemfunc,
             'lambdafunc': lambdafunc,
             'make_lambda': ll.Function(
                 module,
                 ll.FunctionType(
-                    objp,
-                    [_i8p, ll.PointerType(ll.FunctionType(objp, [_i8p, thp]))]),
+                    elemp,
+                    [_i8p, ll.PointerType(ll.FunctionType(elemp, [_i8p, thp]))]
+                ),
                 'make_lambda'),
             'apply_lambda': ll.Function(
                 module,
-                ll.FunctionType(objp, [objp, thp]), 'apply_lambda'),
+                ll.FunctionType(elemp, [elemp, thp]), 'apply_lambda'),
             'make_thunk': ll.Function(
                 module,
-                ll.FunctionType(thp, [_i8p, ll.PointerType(objfunc)]),
+                ll.FunctionType(thp, [_i8p, ll.PointerType(elemfunc)]),
                 'make_thunk'),
             'thunk_ptr': ll.Function(
                 module, ll.FunctionType(thp, []), 'thunk_ptr'),
             'fill_thunk': ll.Function(
                 module,
-                ll.FunctionType(_void, [thp, _i8p, ll.PointerType(objfunc)]),
+                ll.FunctionType(_void, [thp, _i8p, ll.PointerType(elemfunc)]),
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
-                module, ll.FunctionType(thp, [objp]), 'wrap_thunk'),
+                module, ll.FunctionType(thp, [elemp]), 'wrap_thunk'),
             'eval_thunk': ll.Function(
-                module, ll.FunctionType(objp, [thp]), 'eval_thunk'),
+                module, ll.FunctionType(elemp, [thp]), 'eval_thunk'),
             'malloc': ll.Function(
                 module, ll.FunctionType(_i8p, [_i32]), 'malloc'),
             'number': ll.Function(
                 module, ll.FunctionType(thp, [_i64]), 'number'),
-            'make_object': ll.Function(
-                module, ll.FunctionType(objp, [_i8, _i64]), 'make_object'),
-            'obj_val': ll.Function(
-                module, ll.FunctionType(_i64, [objp]), 'obj_val')
+            'make_elem': ll.Function(
+                module, ll.FunctionType(elemp, [_i8, _i64]), 'make_elem'),
+            'elem_val': ll.Function(
+                module, ll.FunctionType(_i64, [elemp]), 'elem_val')
         }
 
         # define all global methods and constants
@@ -241,30 +242,30 @@ class Script(Token):
 
             # create function that evals thunks to correct type
             func_ptr = ll.Function(
-                module, ll.FunctionType(objp, [_i8p, thp]),
+                module, ll.FunctionType(elemp, [_i8p, thp]),
                 '%s_ptr' % llvm_name)
             func_ptr.linkage = 'private'
             builder = ll.IRBuilder(func_ptr.append_basic_block())
 
             x_thunk = builder.bitcast(func_ptr.args[0], thp, 'x_thunk')
-            x_object = builder.call(helper['eval_thunk'], [x_thunk], 'xo')
-            x = builder.call(helper['obj_val'], [x_object], 'x')
-            y_object = builder.call(
+            x_elem = builder.call(helper['eval_thunk'], [x_thunk], 'xo')
+            x = builder.call(helper['elem_val'], [x_elem], 'x')
+            y_elem = builder.call(
                 helper['eval_thunk'], [func_ptr.args[1]], 'yo')
-            y = builder.call(helper['obj_val'], [y_object], 'y')
+            y = builder.call(helper['elem_val'], [y_elem], 'y')
 
-            # get result and convert back to object
+            # get result and convert back to elem
             res = builder.call(internal, [x, y], name='res')
             res_cast = builder.zext(res, _i64)
-            obj = builder.call(
-                helper['make_object'], [ll.Constant(_i8, type_int), res_cast],
-                'obj')
-            builder.ret(obj)
+            elem = builder.call(
+                helper['make_elem'], [ll.Constant(_i8, type_int), res_cast],
+                'elem')
+            builder.ret(elem)
 
             # create function that makes lambda for first argument
             func = ll.Function(
                 module,
-                ll.FunctionType(objp, [_i8p, thp]), '%s_apply' % llvm_name)
+                ll.FunctionType(elemp, [_i8p, thp]), '%s_apply' % llvm_name)
             func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
             func.args[1].name = 'arg'
@@ -291,7 +292,7 @@ class Script(Token):
         }
 
         # create main function
-        main = ll.Function(module, ll.FunctionType(objp, []), 'main')
+        main = ll.Function(module, ll.FunctionType(elemp, []), 'main')
         builder = ll.IRBuilder(main.append_basic_block('entry'))
 
         # generate code
@@ -524,8 +525,8 @@ class If(Token):
         if_end = func.append_basic_block('if.end')
 
         pred_ptr = builder.call(helper['eval_thunk'], [pred], name='pred_ptr')
-        pred_cast = builder.bitcast(pred_ptr, helper['objp'], name='pred_cast')
-        pred_val = builder.call(helper['obj_val'], [pred_cast], 'pred')
+        pred_cast = builder.bitcast(pred_ptr, helper['elemp'], name='pred_cast')
+        pred_val = builder.call(helper['elem_val'], [pred_cast], 'pred')
         pred_bool = builder.trunc(pred_val, _bool, 'pred_bool')
         builder.cbranch(pred_bool, if_con, if_alt)
 

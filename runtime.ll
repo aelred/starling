@@ -1,14 +1,14 @@
-%thunk_inner = type {i8*, %object* (i8*)*}
+%thunk_inner = type {i8*, %elem* (i8*)*}
 %thunk = type {i1, i8*}
-%lambda = type {i8*, %object* (i8*, %thunk*)*}
-%object = type {i8, i64}
+%lambda = type {i8*, %elem* (i8*, %thunk*)*}
+%elem = type {i8, i64}
 
 declare i8* @malloc(i32)
 
 ; Make a new lambda from an environment pointer and function
-define linkonce_odr %object* @make_lambda(i8* %env, %object* (i8*, %thunk*)* %fun) {
+define linkonce_odr %elem* @make_lambda(i8* %env, %elem* (i8*, %thunk*)* %fun) {
     %l1 = insertvalue %lambda zeroinitializer, i8* %env, 0
-    %l2 = insertvalue %lambda %l1, %object* (i8*, %thunk*)* %fun, 1
+    %l2 = insertvalue %lambda %l1, %elem* (i8*, %thunk*)* %fun, 1
 
     ; TODO - Make sure this size is always correct
     %l_ptr = call i8* @malloc(i32 16)
@@ -16,28 +16,28 @@ define linkonce_odr %object* @make_lambda(i8* %env, %object* (i8*, %thunk*)* %fu
     store %lambda %l2, %lambda* %l_cast
 
     %l_int = ptrtoint i8* %l_ptr to i64
-    %obj = insertvalue %object {i8 2, i64 0}, i64 %l_int, 1
-    %obj_ptr = call i8* @malloc(i32 16)
-    %obj_cast = bitcast i8* %obj_ptr to %object*
-    store %object %obj, %object* %obj_cast
-    ret %object* %obj_cast
+    %e = insertvalue %elem {i8 2, i64 0}, i64 %l_int, 1
+    %e_ptr = call i8* @malloc(i32 16)
+    %e_cast = bitcast i8* %e_ptr to %elem*
+    store %elem %e, %elem* %e_cast
+    ret %elem* %e_cast
 }
 
 ; Apply an argument to a lambda
-define linkonce_odr %object* @apply_lambda(%object* %l_obj, %thunk* %arg) {
-    %l_ptr = call i64 @obj_val(%object* %l_obj)
+define linkonce_odr %elem* @apply_lambda(%elem* %l_elem, %thunk* %arg) {
+    %l_ptr = call i64 @elem_val(%elem* %l_elem)
     %l_cast = inttoptr i64 %l_ptr to %lambda*
     %l = load %lambda* %l_cast
     %env = extractvalue %lambda %l, 0
     %fun = extractvalue %lambda %l, 1
-    %res = call %object* %fun(i8* %env, %thunk* %arg)
-    ret %object* %res
+    %res = call %elem* %fun(i8* %env, %thunk* %arg)
+    ret %elem* %res
 }
 
 ; Make a thunk
-define linkonce_odr %thunk* @make_thunk(i8* %env, %object* (i8*)* %fun) {
+define linkonce_odr %thunk* @make_thunk(i8* %env, %elem* (i8*)* %fun) {
     %t_ptr = call %thunk* @thunk_ptr()
-    call void @fill_thunk(%thunk* %t_ptr, i8* %env, %object* (i8*)* %fun)
+    call void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*)* %fun)
     ret %thunk* %t_ptr
 }
 
@@ -50,9 +50,9 @@ define linkonce_odr %thunk* @thunk_ptr() {
 }
 
 ; Fill an existing thunk pointer with something
-define linkonce_odr void @fill_thunk(%thunk* %t_ptr, i8* %env, %object* (i8*)* %fun) {
+define linkonce_odr void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*)* %fun) {
     %ti1 = insertvalue %thunk_inner zeroinitializer, i8* %env, 0
-    %ti2 = insertvalue %thunk_inner %ti1, %object* (i8*)* %fun, 1
+    %ti2 = insertvalue %thunk_inner %ti1, %elem* (i8*)* %fun, 1
 
     ; TODO - Make sure this size is always correct
     %ti_ptr = call i8* @malloc(i32 16)
@@ -65,8 +65,8 @@ define linkonce_odr void @fill_thunk(%thunk* %t_ptr, i8* %env, %object* (i8*)* %
 }
 
 ; Make a pre-evaluated thunk
-define linkonce_odr %thunk* @wrap_thunk(%object* %val) {
-    %val_cast = bitcast %object* %val to i8*
+define linkonce_odr %thunk* @wrap_thunk(%elem* %val) {
+    %val_cast = bitcast %elem* %val to i8*
     %t = insertvalue %thunk {i1 true, i8* null}, i8* %val_cast, 1
 
     ; TODO - Make sure this size is always correct
@@ -77,7 +77,7 @@ define linkonce_odr %thunk* @wrap_thunk(%object* %val) {
 }
 
 ; Evaluate a thunk
-define linkonce_odr %object* @eval_thunk(%thunk* %t_ptr) {
+define linkonce_odr %elem* @eval_thunk(%thunk* %t_ptr) {
 entry:
     %t = load %thunk* %t_ptr
     %evald = extractvalue %thunk %t, 0
@@ -88,46 +88,46 @@ evaluate:
     %tin = load %thunk_inner* %tin_cast
     %env = extractvalue %thunk_inner %tin, 0
     %fun = extractvalue %thunk_inner %tin, 1
-    %res = call %object* %fun(i8* %env)
-    %res_cast = bitcast %object* %res to i8*
+    %res = call %elem* %fun(i8* %env)
+    %res_cast = bitcast %elem* %res to i8*
     %t_new = insertvalue %thunk {i1 true, i8* null}, i8* %res_cast, 1
     store %thunk %t_new, %thunk* %t_ptr
-    ret %object* %res
+    ret %elem* %res
 return_val:
-    %val_cast = bitcast i8* %val to %object*
-    ret %object* %val_cast
+    %val_cast = bitcast i8* %val to %elem*
+    ret %elem* %val_cast
 }
 
-define linkonce_odr %object* @make_object(i8 %type, i64 %val) {
-    %o1 = insertvalue %object zeroinitializer, i8 %type, 0
-    %o2 = insertvalue %object %o1, i64 %val, 1
+define linkonce_odr %elem* @make_elem(i8 %type, i64 %val) {
+    %o1 = insertvalue %elem zeroinitializer, i8 %type, 0
+    %o2 = insertvalue %elem %o1, i64 %val, 1
     
     ; TODO - Make sure this size is always correct
     %o_ptr = call i8* @malloc(i32 16)
-    %o_cast = bitcast i8* %o_ptr to %object*
-    store %object %o2, %object* %o_cast
-    ret %object* %o_cast
+    %o_cast = bitcast i8* %o_ptr to %elem*
+    store %elem %o2, %elem* %o_cast
+    ret %elem* %o_cast
 }
 
-define linkonce_odr i64 @obj_val(%object* %obj) {
-    %val_ptr = getelementptr %object* %obj, i32 0, i32 1
+define linkonce_odr i64 @elem_val(%elem* %e) {
+    %val_ptr = getelementptr %elem* %e, i32 0, i32 1
     %val = load i64* %val_ptr
     ret i64 %val
 }
 
 define linkonce_odr %thunk* @number(i64 %val) {
-    %num_ptr = call %object* @make_object(i8 0, i64 %val)
-    %t = call %thunk* @wrap_thunk(%object* %num_ptr)
+    %num_ptr = call %elem* @make_elem(i8 0, i64 %val)
+    %t = call %thunk* @wrap_thunk(%elem* %num_ptr)
     ret %thunk* %t
 }
 
 ; Constant True
-@true_intern = private unnamed_addr constant %object {i8 1, i64 1}
-@true = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @true_intern to i8*)}
+@true_intern = private unnamed_addr constant %elem {i8 1, i64 1}
+@true = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @true_intern to i8*)}
 
 ; Constant False
-@false_intern = private unnamed_addr constant %object {i8 1, i64 0}
-@false = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @false_intern to i8*)}
+@false_intern = private unnamed_addr constant %elem {i8 1, i64 0}
+@false = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @false_intern to i8*)}
 
 ; Addition function
 define linkonce_odr i64 @add_intern(i64 %x, i64 %y) {
@@ -135,10 +135,10 @@ define linkonce_odr i64 @add_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @add_apply(i8*, %thunk*)
-@add_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @add_apply}
-@add_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @add_lambda to i64)}
-@add = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @add_obj to i8*)}
+declare %elem* @add_apply(i8*, %thunk*)
+@add_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @add_apply}
+@add_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @add_lambda to i64)}
+@add = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @add_elem to i8*)}
 
 ; Subtraction function
 define linkonce_odr i64 @sub_intern(i64 %x, i64 %y) {
@@ -146,10 +146,10 @@ define linkonce_odr i64 @sub_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @sub_apply(i8*, %thunk*)
-@sub_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @sub_apply}
-@sub_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @sub_lambda to i64)}
-@sub = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @sub_obj to i8*)}
+declare %elem* @sub_apply(i8*, %thunk*)
+@sub_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @sub_apply}
+@sub_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @sub_lambda to i64)}
+@sub = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @sub_elem to i8*)}
 
 ; Multiplication function
 define linkonce_odr i64 @mul_intern(i64 %x, i64 %y) {
@@ -157,10 +157,10 @@ define linkonce_odr i64 @mul_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @mul_apply(i8*, %thunk*)
-@mul_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @mul_apply}
-@mul_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @mul_lambda to i64)}
-@mul = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @mul_obj to i8*)}
+declare %elem* @mul_apply(i8*, %thunk*)
+@mul_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @mul_apply}
+@mul_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @mul_lambda to i64)}
+@mul = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @mul_elem to i8*)}
 
 ; Division function
 define linkonce_odr i64 @div_intern(i64 %x, i64 %y) {
@@ -168,10 +168,10 @@ define linkonce_odr i64 @div_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @div_apply(i8*, %thunk*)
-@div_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @div_apply}
-@div_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @div_lambda to i64)}
-@div = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @div_obj to i8*)}
+declare %elem* @div_apply(i8*, %thunk*)
+@div_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @div_apply}
+@div_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @div_lambda to i64)}
+@div = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @div_elem to i8*)}
 
 ; Modulo function
 define linkonce_odr i64 @mod_intern(i64 %x, i64 %y) {
@@ -184,10 +184,10 @@ define linkonce_odr i64 @mod_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %object* @mod_apply(i8*, %thunk*)
-@mod_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @mod_apply}
-@mod_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @mod_lambda to i64)}
-@mod = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @mod_obj to i8*)}
+declare %elem* @mod_apply(i8*, %thunk*)
+@mod_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @mod_apply}
+@mod_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @mod_lambda to i64)}
+@mod = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @mod_elem to i8*)}
 
 ; Power function
 define linkonce_odr i64 @pow_intern(i64 %b, i64 %e) {
@@ -215,10 +215,10 @@ end:
     ret i64 %res
 }
 
-declare %object* @pow_apply(i8*, %thunk*)
-@pow_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @pow_apply}
-@pow_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @pow_lambda to i64)}
-@pow = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @pow_obj to i8*)}
+declare %elem* @pow_apply(i8*, %thunk*)
+@pow_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @pow_apply}
+@pow_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @pow_lambda to i64)}
+@pow = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @pow_elem to i8*)}
 
 ; Equality function
 define linkonce_odr i1 @eq_intern(i64 %x, i64 %y) {
@@ -226,10 +226,10 @@ define linkonce_odr i1 @eq_intern(i64 %x, i64 %y) {
     ret i1 %res
 }
 
-declare %object* @eq_apply(i8*, %thunk*)
-@eq_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @eq_apply}
-@eq_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @eq_lambda to i64)}
-@eq = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @eq_obj to i8*)}
+declare %elem* @eq_apply(i8*, %thunk*)
+@eq_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @eq_apply}
+@eq_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @eq_lambda to i64)}
+@eq = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @eq_elem to i8*)}
 
 ; Less-than-or-equal function
 define linkonce_odr i1 @le_intern(i64 %x, i64 %y) {
@@ -237,7 +237,7 @@ define linkonce_odr i1 @le_intern(i64 %x, i64 %y) {
     ret i1 %res
 }
 
-declare %object* @le_apply(i8*, %thunk*)
-@le_lambda = private constant %lambda {i8* null, %object* (i8*, %thunk*)* @le_apply}
-@le_obj = private constant %object {i8 2, i64 ptrtoint (%lambda* @le_lambda to i64)}
-@le = linkonce_odr constant %thunk {i1 true, i8* bitcast (%object* @le_obj to i8*)}
+declare %elem* @le_apply(i8*, %thunk*)
+@le_lambda = private constant %lambda {i8* null, %elem* (i8*, %thunk*)* @le_apply}
+@le_elem = private constant %elem {i8 2, i64 ptrtoint (%lambda* @le_lambda to i64)}
+@le = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @le_elem to i8*)}
