@@ -3,6 +3,8 @@
 ; otherwise the second argument is an environment and the third is a function.
 %thunk = type {i1, i8*, %elem* (i8*)*}
 %lambda = type {i8*, %elem* (i8*, %thunk*)*}
+
+; elem types - 0: int, 1: bool, 2: lambda
 %elem = type {i8, i64}
 
 declare i8* @malloc(i32)
