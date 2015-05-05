@@ -55,8 +55,8 @@ def _nest_function(
 
         # TODO: Make sure this is the right size
         env_pass_ptr = builder.call(
-            helper['malloc'],
-            [ll.Constant(_i32, 8 * len(free_ids))], name='env_pass_ptr')
+            helper['env_alloc'],
+            [ll.Constant(_i64, 8 * len(free_ids))], name='env_pass_ptr')
         env_pass_cast = builder.bitcast(
             env_pass_ptr, ll.PointerType(env_type), name='env_pass_cast')
         for index, ident in enumerate(free_ids):
@@ -207,8 +207,6 @@ class Script(Token):
                 module,
                 ll.FunctionType(thp, [_i8p, ll.PointerType(elemfunc)]),
                 'make_thunk'),
-            'thunk_ptr': ll.Function(
-                module, ll.FunctionType(thp, []), 'thunk_ptr'),
             'fill_thunk': ll.Function(
                 module,
                 ll.FunctionType(_void, [thp, _i8p, ll.PointerType(elemfunc)]),
@@ -217,8 +215,10 @@ class Script(Token):
                 module, ll.FunctionType(thp, [elemp]), 'wrap_thunk'),
             'eval_thunk': ll.Function(
                 module, ll.FunctionType(elemp, [thp]), 'eval_thunk'),
-            'malloc': ll.Function(
-                module, ll.FunctionType(_i8p, [_i32]), 'malloc'),
+            'env_alloc': ll.Function(
+                module, ll.FunctionType(_i8p, [_i64]), 'env_alloc'),
+            'thunk_alloc': ll.Function(
+                module, ll.FunctionType(thp, []), 'thunk_alloc'),
             'number': ll.Function(
                 module, ll.FunctionType(thp, [_i64]), 'number'),
             'make_elem': ll.Function(
@@ -294,6 +294,10 @@ class Script(Token):
         # create main function
         main = ll.Function(module, ll.FunctionType(elemp, []), 'main')
         builder = ll.IRBuilder(main.append_basic_block('entry'))
+
+        # initialize garbage collector
+        ginit = ll.Function(module, ll.FunctionType(_void, []), 'ginit')
+        builder.call(ginit, [])
 
         # generate code
         thunk_ptr = self.body.gen_llvm(module, helper, builder, env)
@@ -621,7 +625,7 @@ class Binding(Token):
     def get_llvm_ref(self, module, helper, builder, env):
         # call to get a reference to this binding before it is generated
         # this is important for recursive definitions
-        return builder.call(helper['thunk_ptr'], [], name=self.identifier.value)
+        return builder.call(helper['thunk_alloc'], [], name=self.identifier.value)
 
     def gen_llvm_ref(self, module, helper, builder, env, ref):
         # generate LLVM code, filling the referred thunk

@@ -146,7 +146,16 @@ def expr_to_py(expr, lib=True, path=None):
 
 
 def evaluate_star(source, lib=True, input_=None):
-    return _evaluate(star_to_py(source, lib), input_, source)
+    try:
+        # try and evaluate using LLVM first
+        star = os.path.join(star_path.path, source) + '.star'
+        with open(star) as f:
+            expr = f.read()
+        return _evaluate_as_llvm(expr, lib, input_)
+    except Exception, e:
+        # fallback to python
+        print('WARNING:', e, file=sys.stderr)
+        return _evaluate(star_to_py(source, lib), input_, source)
 
 
 def evaluate_expr(expr, lib=True, input_=None, name='expr'):
@@ -187,11 +196,13 @@ def _evaluate_as_llvm(expr, lib=True, input_=None):
         tree = tree.wrap_import('lib')
     llir = tree.gen_llvm()
 
-    # load runtime
+    # load runtime and other libraries
     runtime = llvm.parse_assembly(open('runtime.ll').read())
+    garbage = llvm.parse_assembly(open('garbage.ll').read())
 
     # link runtime
     llir.link_in(runtime)
+    llir.link_in(garbage)
 
     # optimize code
     pmb = llvm.create_pass_manager_builder()

@@ -5,24 +5,23 @@
 %lambda = type {i8*, %elem* (i8*, %thunk*)*}
 %elem = type {i8, i64}
 
-declare i8* @malloc(i32)
+declare %thunk* @thunk_alloc()
+declare %lambda* @lambda_alloc()
+declare %elem* @elem_alloc()
 
 ; Make a new lambda from an environment pointer and function
 define linkonce_odr %elem* @make_lambda(i8* %env, %elem* (i8*, %thunk*)* %fun) {
     %l1 = insertvalue %lambda zeroinitializer, i8* %env, 0
     %l2 = insertvalue %lambda %l1, %elem* (i8*, %thunk*)* %fun, 1
 
-    ; TODO - Make sure this size is always correct
-    %l_ptr = call i8* @malloc(i32 16)
-    %l_cast = bitcast i8* %l_ptr to %lambda*
-    store %lambda %l2, %lambda* %l_cast
+    %l_ptr = call %lambda* @lambda_alloc()
+    store %lambda %l2, %lambda* %l_ptr
 
-    %l_int = ptrtoint i8* %l_ptr to i64
+    %l_int = ptrtoint %lambda* %l_ptr to i64
     %e = insertvalue %elem {i8 2, i64 0}, i64 %l_int, 1
-    %e_ptr = call i8* @malloc(i32 16)
-    %e_cast = bitcast i8* %e_ptr to %elem*
-    store %elem %e, %elem* %e_cast
-    ret %elem* %e_cast
+    %e_ptr = call %elem* @elem_alloc()
+    store %elem %e, %elem* %e_ptr
+    ret %elem* %e_ptr
 }
 
 ; Apply an argument to a lambda
@@ -38,17 +37,9 @@ define linkonce_odr %elem* @apply_lambda(%elem* %l_elem, %thunk* %arg) {
 
 ; Make a thunk
 define linkonce_odr %thunk* @make_thunk(i8* %env, %elem* (i8*)* %fun) {
-    %t_ptr = call %thunk* @thunk_ptr()
+    %t_ptr = call %thunk* @thunk_alloc()
     call void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*)* %fun)
     ret %thunk* %t_ptr
-}
-
-; Generate a thunk pointer
-define linkonce_odr %thunk* @thunk_ptr() {
-    ; TODO - Make sure this size is always correct
-    %t_ptr = call i8* @malloc(i32 24)
-    %t_cast = bitcast i8* %t_ptr to %thunk*
-    ret %thunk* %t_cast
 }
 
 ; Fill an existing thunk pointer with something
@@ -64,7 +55,7 @@ define linkonce_odr %thunk* @wrap_thunk(%elem* %val) {
     %val_cast = bitcast %elem* %val to i8*
     %t = insertvalue %thunk {i1 true, i8* null, %elem* (i8*)* null}, i8* %val_cast, 1
 
-    %t_ptr = call %thunk* @thunk_ptr()
+    %t_ptr = call %thunk* @thunk_alloc()
     store %thunk %t, %thunk* %t_ptr
     ret %thunk* %t_ptr
 }
@@ -92,11 +83,9 @@ define linkonce_odr %elem* @make_elem(i8 %type, i64 %val) {
     %o1 = insertvalue %elem zeroinitializer, i8 %type, 0
     %o2 = insertvalue %elem %o1, i64 %val, 1
     
-    ; TODO - Make sure this size is always correct
-    %o_ptr = call i8* @malloc(i32 16)
-    %o_cast = bitcast i8* %o_ptr to %elem*
-    store %elem %o2, %elem* %o_cast
-    ret %elem* %o_cast
+    %e_ptr = call %elem* @elem_alloc()
+    store %elem %o2, %elem* %e_ptr
+    ret %elem* %e_ptr
 }
 
 define linkonce_odr i64 @elem_val(%elem* %e) {
