@@ -14,6 +14,7 @@ _bool = ll.IntType(1)
 _boolp = ll.PointerType(_bool)
 _i8 = ll.IntType(8)
 _i8p = ll.PointerType(_i8)
+_i8pp = ll.PointerType(_i8p)
 _i32 = ll.IntType(32)
 _i32p = ll.PointerType(_i32)
 _i64 = ll.IntType(64)
@@ -180,9 +181,13 @@ class Script(Token):
 
         thtype = module.context.get_identified_type('thunk')
         thp = ll.PointerType(thtype)
+        thpp = ll.PointerType(thp)
         cltype = module.context.get_identified_type('lambda')
         elemtype = module.context.get_identified_type('elem')
         elemp = ll.PointerType(elemtype)
+        elempp = ll.PointerType(elemp)
+        root = module.context.get_identified_type('rootnode')
+        rootp = ll.PointerType(root)
 
         elemfunc = ll.FunctionType(elemp, [_i8p])
         lambdafunc = ll.FunctionType(elemp, [_i8p, thp])
@@ -197,7 +202,7 @@ class Script(Token):
                 module,
                 ll.FunctionType(
                     elemp,
-                    [_i8p, ll.PointerType(ll.FunctionType(elemp, [_i8p, thp]))]
+                    [_i8pp, ll.PointerType(ll.FunctionType(elemp, [_i8p, thp]))]
                 ),
                 'make_lambda'),
             'apply_lambda': ll.Function(
@@ -205,26 +210,31 @@ class Script(Token):
                 ll.FunctionType(elemp, [elemp, thp]), 'apply_lambda'),
             'make_thunk': ll.Function(
                 module,
-                ll.FunctionType(thp, [_i8p, ll.PointerType(elemfunc)]),
+                ll.FunctionType(thp, [_i8pp, ll.PointerType(elemfunc)]),
                 'make_thunk'),
             'fill_thunk': ll.Function(
                 module,
                 ll.FunctionType(_void, [thp, _i8p, ll.PointerType(elemfunc)]),
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
-                module, ll.FunctionType(thp, [elemp]), 'wrap_thunk'),
+                module, ll.FunctionType(thp, [elempp]), 'wrap_thunk'),
             'eval_thunk': ll.Function(
                 module, ll.FunctionType(elemp, [thp]), 'eval_thunk'),
-            'env_alloc': ll.Function(
-                module, ll.FunctionType(_i8p, [_i64]), 'env_alloc'),
-            'thunk_alloc': ll.Function(
-                module, ll.FunctionType(thp, []), 'thunk_alloc'),
             'number': ll.Function(
                 module, ll.FunctionType(thp, [_i64]), 'number'),
             'make_elem': ll.Function(
                 module, ll.FunctionType(elemp, [_i8, _i64]), 'make_elem'),
             'elem_val': ll.Function(
-                module, ll.FunctionType(_i64, [elemp]), 'elem_val')
+                module, ll.FunctionType(_i64, [elemp]), 'elem_val'),
+
+            'rem_root': ll.Function(
+                module, ll.FunctionType(_void, [rootp]), 'rem_root'),
+            'env_alloc': ll.Function(
+                module, ll.FunctionType(_i8p, [_i64]), 'env_alloc'),
+            'thunk_alloc': ll.Function(
+                module, ll.FunctionType(thp, []), 'thunk_alloc'),
+            'thunk_root': ll.Function(
+                module, ll.FunctionType(rootp, [thpp]), 'thunk_root')
         }
 
         # define all global methods and constants
@@ -265,12 +275,12 @@ class Script(Token):
             # create function that makes lambda for first argument
             func = ll.Function(
                 module,
-                ll.FunctionType(elemp, [_i8p, thp]), '%s_apply' % llvm_name)
+                ll.FunctionType(elemp, [_i8p, thpp]), '%s_apply' % llvm_name)
             func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
             func.args[1].name = 'arg'
             builder_ = ll.IRBuilder(func.append_basic_block())
-            arg_cast = builder_.bitcast(func.args[1], _i8p, name='arg_cast')
+            arg_cast = builder_.bitcast(func.args[1], _i8pp, name='arg_cast')
             res = builder_.call(
                 helper['make_lambda'], [arg_cast, func_ptr], name='res')
             builder_.ret(res)
@@ -301,8 +311,7 @@ class Script(Token):
 
         # generate code
         thunk_ptr = self.body.gen_llvm(module, helper, builder, env)
-        res_ptr = builder.call(
-            helper['eval_thunk'], [thunk_ptr], name='res_ptr')
+        res_ptr = builder.call(helper['eval_thunk'], [thunk_ptr], name='res_ptr')
         builder.ret(res_ptr)
 
         # parse assembly

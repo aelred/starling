@@ -9,18 +9,36 @@ declare %thunk* @thunk_alloc()
 declare %lambda* @lambda_alloc()
 declare %elem* @elem_alloc()
 
+%rootnode = type opaque
+declare %rootnode* @thunk_root(%thunk**)
+declare %rootnode* @lambda_root(%lambda**)
+declare %rootnode* @elem_root(%elem**)
+declare void @rem_root(%rootnode*)
+
 ; Make a new lambda from an environment pointer and function
-define linkonce_odr %elem* @make_lambda(i8* %env, %elem* (i8*, %thunk*)* %fun) {
+define linkonce_odr %elem* @make_lambda(i8** %envptr, %elem* (i8*, %thunk*)* %fun) {
+    %l_temp = call %lambda* @lambda_alloc()
+
+    ; Add lambda to roots, in case @elem_alloc triggers garbage collection
+    %l_stack = alloca %lambda*
+    store %lambda* %l_temp, %lambda** %l_stack
+    %l_root = call %rootnode* @lambda_root(%lambda** %l_stack)
+
+    %e_ptr = call %elem* @elem_alloc()
+
+    ; Reload lambda pointer
+    %l_ptr = load %lambda** %l_stack
+    call void @rem_root(%rootnode* %l_root)
+
+    %env = load i8** %envptr
     %l1 = insertvalue %lambda zeroinitializer, i8* %env, 0
     %l2 = insertvalue %lambda %l1, %elem* (i8*, %thunk*)* %fun, 1
-
-    %l_ptr = call %lambda* @lambda_alloc()
     store %lambda %l2, %lambda* %l_ptr
 
     %l_int = ptrtoint %lambda* %l_ptr to i64
     %e = insertvalue %elem {i8 2, i64 0}, i64 %l_int, 1
-    %e_ptr = call %elem* @elem_alloc()
     store %elem %e, %elem* %e_ptr
+
     ret %elem* %e_ptr
 }
 
@@ -36,8 +54,9 @@ define linkonce_odr %elem* @apply_lambda(%elem* %l_elem, %thunk* %arg) {
 }
 
 ; Make a thunk
-define linkonce_odr %thunk* @make_thunk(i8* %env, %elem* (i8*)* %fun) {
+define linkonce_odr %thunk* @make_thunk(i8** %env_stack, %elem* (i8*)* %fun) {
     %t_ptr = call %thunk* @thunk_alloc()
+    %env = load i8** %env_stack
     call void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*)* %fun)
     ret %thunk* %t_ptr
 }
@@ -51,11 +70,12 @@ define linkonce_odr void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*)* %fu
 }
 
 ; Make a pre-evaluated thunk
-define linkonce_odr %thunk* @wrap_thunk(%elem* %val) {
+define linkonce_odr %thunk* @wrap_thunk(%elem** %val_stack) {
+    %t_ptr = call %thunk* @thunk_alloc()
+
+    %val = load %elem** %val_stack
     %val_cast = bitcast %elem* %val to i8*
     %t = insertvalue %thunk {i1 true, i8* null, %elem* (i8*)* null}, i8* %val_cast, 1
-
-    %t_ptr = call %thunk* @thunk_alloc()
     store %thunk %t, %thunk* %t_ptr
     ret %thunk* %t_ptr
 }
@@ -68,11 +88,19 @@ entry:
     %val = extractvalue %thunk %t, 1
     br i1 %evald, label %return_val, label %evaluate
 evaluate:
+    ; Put thunk on roots so it isn't garbage collected
+    %t_stack = alloca %thunk*
+    store %thunk* %t_ptr, %thunk** %t_stack
+    %t_root = call %rootnode* @thunk_root(%thunk** %t_stack) 
+
     %fun = extractvalue %thunk %t, 2
     %res = call %elem* %fun(i8* %val)
     %res_cast = bitcast %elem* %res to i8*
     %t_new = insertvalue %thunk {i1 true, i8* null, %elem* (i8*)* null}, i8* %res_cast, 1
-    store %thunk %t_new, %thunk* %t_ptr
+
+    ; Reload thunk pointer in case garbage collection moved pointer
+    %t_ptr2 = load %thunk** %t_stack
+    store %thunk %t_new, %thunk* %t_ptr2
     ret %elem* %res
 return_val:
     %val_cast = bitcast i8* %val to %elem*
@@ -80,10 +108,9 @@ return_val:
 }
 
 define linkonce_odr %elem* @make_elem(i8 %type, i64 %val) {
+    %e_ptr = call %elem* @elem_alloc()
     %o1 = insertvalue %elem zeroinitializer, i8 %type, 0
     %o2 = insertvalue %elem %o1, i64 %val, 1
-    
-    %e_ptr = call %elem* @elem_alloc()
     store %elem %o2, %elem* %e_ptr
     ret %elem* %e_ptr
 }
@@ -96,7 +123,11 @@ define linkonce_odr i64 @elem_val(%elem* %e) {
 
 define linkonce_odr %thunk* @number(i64 %val) {
     %num_ptr = call %elem* @make_elem(i8 0, i64 %val)
-    %t = call %thunk* @wrap_thunk(%elem* %num_ptr)
+    %num_stack = alloca %elem*
+    store %elem* %num_ptr, %elem** %num_stack
+    %num_root = call %rootnode* @elem_root(%elem** %num_stack)
+    %t = call %thunk* @wrap_thunk(%elem** %num_stack)
+    call void @rem_root(%rootnode* %num_root)
     ret %thunk* %t
 }
 
