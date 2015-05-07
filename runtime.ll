@@ -2,37 +2,33 @@
 ; If they have, the second argument is the evaluated result object,
 ; otherwise the second argument is an environment and the third is a function.
 %thunk = type {i1, i8*, %elem* (i8*)*}
-%lambda = type {i8*, %elem* (i8*, %thunk*)*}
+%lambda = type {i8*, %elem* (i8*, %thunk*, %rootnode*)*}
 %elem = type {i8, i64}
 
-declare %thunk* @thunk_alloc()
-declare %lambda* @lambda_alloc()
-declare %elem* @elem_alloc()
+declare %rootnode @thunk_alloc(%rootnode*)
+declare %rootnode @lambda_alloc(%rootnode*)
+declare %rootnode @elem_alloc(%rootnode*)
 
 %rootnode = type opaque
-declare %rootnode* @thunk_root(%thunk**)
-declare %rootnode* @lambda_root(%lambda**)
-declare %rootnode* @elem_root(%elem**)
-declare void @rem_root(%rootnode*)
+declare %thunk* @load_thunk_root(%rootnode*)
+declare %lambda* @load_lambda_root(%rootnode*)
+declare %elem* @load_elem_root(%rootnode*)
 
 ; Make a new lambda from an environment pointer and function
-define linkonce_odr %elem* @make_lambda(i8** %envptr, %elem* (i8*, %thunk*)* %fun) {
-    %l_temp = call %lambda* @lambda_alloc()
+define linkonce_odr %elem* @make_lambda(%rootnode* %env_root, %elem* (i8*, %thunk*, %rootnode*)* %fun, %rootnode* %root) {
+    ; Allocate space for lambda pointer and put on roots
+    %l_root = call %rootnode @lambda_alloc(%rootnode* %root)
+    %l_stack = alloca %rootnode
+    store %rootnode %l_root, %rootnode* %l_stack
 
-    ; Add lambda to roots, in case @elem_alloc triggers garbage collection
-    %l_stack = alloca %lambda*
-    store %lambda* %l_temp, %lambda** %l_stack
-    %l_root = call %rootnode* @lambda_root(%lambda** %l_stack)
+    %e_ptr = call %elem* @elem_alloc(%rootnode* %l_root)
 
-    %e_ptr = call %elem* @elem_alloc()
+    ; Load lambda pointer from roots (it may have been moved after elem_alloc)
+    %l_ptr = call %lambda* @load_lambda_root(%rootnode* %l_root)
 
-    ; Reload lambda pointer
-    %l_ptr = load %lambda** %l_stack
-    call void @rem_root(%rootnode* %l_root)
-
-    %env = load i8** %envptr
+    %env = call i8* @load_env_root(%rootnode* %env_root)
     %l1 = insertvalue %lambda zeroinitializer, i8* %env, 0
-    %l2 = insertvalue %lambda %l1, %elem* (i8*, %thunk*)* %fun, 1
+    %l2 = insertvalue %lambda %l1, %elem* (i8*, %thunk*, %rootnode*)* %fun, 1
     store %lambda %l2, %lambda* %l_ptr
 
     %l_int = ptrtoint %lambda* %l_ptr to i64
@@ -43,20 +39,21 @@ define linkonce_odr %elem* @make_lambda(i8** %envptr, %elem* (i8*, %thunk*)* %fu
 }
 
 ; Apply an argument to a lambda
-define linkonce_odr %elem* @apply_lambda(%elem* %l_elem, %thunk* %arg) {
+define linkonce_odr %elem* @apply_lambda(%elem* %l_elem, %thunk* %arg, %rootnode* %root) {
     %l_ptr = call i64 @elem_val(%elem* %l_elem)
     %l_cast = inttoptr i64 %l_ptr to %lambda*
     %l = load %lambda* %l_cast
     %env = extractvalue %lambda %l, 0
     %fun = extractvalue %lambda %l, 1
-    %res = call %elem* %fun(i8* %env, %thunk* %arg)
+    %res = call %elem* %fun(i8* %env, %thunk* %arg, %rootnode* %root)
     ret %elem* %res
 }
 
 ; Make a thunk
-define linkonce_odr %thunk* @make_thunk(i8** %env_stack, %elem* (i8*)* %fun) {
-    %t_ptr = call %thunk* @thunk_alloc()
-    %env = load i8** %env_stack
+define linkonce_odr %thunk* @make_thunk(%rootnode* %env_root, %elem* (i8*)* %fun, %rootnode* %root) {
+    %t_root = call %rootnode @thunk_alloc(%rootnode* %root)
+    %t_ptr = call %thunk* @load_thunk_root(%rootnode* %t_root)
+    %env = call i8* @load_env_root(%rootnode* %env_root)
     call void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*)* %fun)
     ret %thunk* %t_ptr
 }
@@ -127,7 +124,6 @@ define linkonce_odr %thunk* @number(i64 %val) {
     store %elem* %num_ptr, %elem** %num_stack
     %num_root = call %rootnode* @elem_root(%elem** %num_stack)
     %t = call %thunk* @wrap_thunk(%elem** %num_stack)
-    call void @rem_root(%rootnode* %num_root)
     ret %thunk* %t
 }
 
