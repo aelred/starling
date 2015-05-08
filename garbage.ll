@@ -46,7 +46,7 @@ define linkonce_odr void @ginit() {
   ret void
 }
 
-define private %rootnode* @galloc(i64 %size, i8 %type, %rootnode* %roots) {
+define private i8* @galloc(i64 %size, i8 %type, %rootnode* %roots) {
 entry:
   ; Get positions of header and new address allocated
   %memptr = load i8** @memptr
@@ -76,12 +76,10 @@ allocate:
 
   ; Get allocated space and create root node containing it
   %addr = getelementptr i8* %memptr, i64 %header_size
-  %new_root = call %rootnode @add_root(%rootnode* %roots, i8* %addr)
-  ret %rootnode %new_root
+  ret i8* %addr
 }
 
-define private %rootnode @add_root(%rootnode* %root, i8* %ptr) {
-entry:
+define private %rootnode @add_root(i8* %ptr, %rootnode* %root) {
   ; Create a new root node as the new head of roots list
   %r1 = insertvalue %rootnode zeroinitializer, i8* %ptr, 0
   %r2 = insertvalue %rootnode %r1, %rootnode* %root, 1
@@ -89,8 +87,8 @@ entry:
 }
 
 define private i8* @load_root(%rootnode* %root) {
-  i8** %rootptr = getelementptr %rootnode* %root, i32 0, i32 0
-  i8* %ptr = load i8** %rootptr
+  %rootptr = getelementptr %rootnode* %root, i32 0, i32 0
+  %ptr = load i8** %rootptr
   ret i8* %ptr
 }
 
@@ -119,14 +117,14 @@ cond:
 loop:
   ; Copy the given root and return the next
   %root = load %rootnode* %rootptr
-  %stackptr = extractvalue %rootnode %root, 0
-  %oldptr = load i8** %stackptr
+  %oldptr = extractvalue %rootnode %root, 0
 
   ; Copy the root to the new memory space
-  %newptr = call i8* @copy(i8* %oldptr)
+  %newptr = call i8* @copy(i8* %oldptr, %rootnode* %roots)
 
-  ; Write the new pointer to the stack pointer
-  store i8* %newptr, i8** %stackptr
+  ; Update root with new pointer
+  %newroot = insertvalue %rootnode %root, i8* %newptr, 0
+  store %rootnode %newroot, %rootnode* %rootptr
   %nextroot = extractvalue %rootnode %root, 1
   br label %cond
 end:
@@ -166,23 +164,44 @@ otherwise:
 }
 
 define linkonce_odr %thunk* @thunk_alloc(%rootnode* %roots) {
-  %new_root = call %rootnode @galloc(i64 24, i8 0, %rootnode* %roots)
-  ret %rootnode %new_root
+  %ptr = call i8* @galloc(i64 24, i8 0, %rootnode* %roots)
+  %t = bitcast i8* %ptr to %thunk*
+  ret %thunk* %t
 }
 
 define linkonce_odr %lambda* @lambda_alloc(%rootnode* %roots) {
-  %new_root = call %rootnode @galloc(i64 16, i8 1, %rootnode* %roots)
-  ret %rootnode %new_root
+  %ptr = call i8* @galloc(i64 16, i8 1, %rootnode* %roots)
+  %l = bitcast i8* %ptr to %lambda*
+  ret %lambda* %l
 }
 
 define linkonce_odr %elem* @elem_alloc(%rootnode* %roots) {
-  %new_root = call %rootnode @galloc(i64 16, i8 2, %rootnode* %roots)
-  ret %rootnode %new_root
+  %ptr = call i8* @galloc(i64 16, i8 2, %rootnode* %roots)
+  %e = bitcast i8* %ptr to %elem*
+  ret %elem* %e
 }
 
 define linkonce_odr i8* @env_alloc(i64 %size, %rootnode* %roots) {
-  %new_root = call %rootnode @galloc(i64 %size, i8 3, %rootnode* %roots)
-  ret %rootnode %new_root
+  %env = call i8* @galloc(i64 %size, i8 3, %rootnode* %roots)
+  ret i8* %env
+}
+
+define linkonce_odr %rootnode @thunk_root(%thunk* %t_ptr, %rootnode* %roots) {
+  %cast = bitcast %thunk* %t_ptr to i8*
+  %root = call %rootnode @add_root(i8* %cast, %rootnode* %roots)
+  ret %rootnode %root
+}
+
+define linkonce_odr %rootnode @lambda_root(%lambda* %l_ptr, %rootnode* %roots) {
+  %cast = bitcast %lambda* %l_ptr to i8*
+  %root = call %rootnode @add_root(i8* %cast, %rootnode* %roots)
+  ret %rootnode %root
+}
+
+define linkonce_odr %rootnode @elem_root(%elem* %e_ptr, %rootnode* %roots) {
+  %cast = bitcast %elem* %e_ptr to i8*
+  %root = call %rootnode @add_root(i8* %cast, %rootnode* %roots)
+  ret %rootnode %root
 }
 
 define linkonce_odr %thunk* @load_thunk_root(%rootnode* %root) {
@@ -201,4 +220,9 @@ define linkonce_odr %elem* @load_elem_root(%rootnode* %root) {
   %ptr = call i8* @load_root(%rootnode* %root)
   %cast = bitcast i8* %ptr to %elem*
   ret %elem* %cast
+}
+
+define linkonce_odr i8* @load_env_root(%rootnode* %root) {
+  %ptr = call i8* @load_root(%rootnode* %root)
+  ret i8* %ptr
 }
