@@ -9,7 +9,7 @@ declare %thunk* @thunk_alloc(%rootnode*)
 declare %lambda* @lambda_alloc(%rootnode*)
 declare %elem* @elem_alloc(%rootnode*)
 
-%rootnode = type opaque
+%rootnode = type {i8*, %rootnode*}
 declare %rootnode @thunk_root(%thunk*, %rootnode*)
 declare %rootnode @lambda_root(%lambda*, %rootnode*)
 declare %rootnode @elem_root(%elem*, %rootnode*)
