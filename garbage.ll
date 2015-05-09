@@ -204,6 +204,11 @@ define linkonce_odr %rootnode @elem_root(%elem* %e_ptr, %rootnode* %roots) {
   ret %rootnode %root
 }
 
+define linkonce_odr %rootnode @env_root(i8* %env_ptr, %rootnode* %roots) {
+  %root = call %rootnode @add_root(i8* %env_ptr, %rootnode* %roots)
+  ret %rootnode %root
+}
+
 define linkonce_odr %thunk* @load_thunk_root(%rootnode* %root) {
   %ptr = call i8* @load_root(%rootnode* %root)
   %cast = bitcast i8* %ptr to %thunk*

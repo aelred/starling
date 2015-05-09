@@ -13,15 +13,21 @@ declare %elem* @elem_alloc(%rootnode*)
 declare %rootnode @thunk_root(%thunk*, %rootnode*)
 declare %rootnode @lambda_root(%lambda*, %rootnode*)
 declare %rootnode @elem_root(%elem*, %rootnode*)
+declare %rootnode @env_root(i8*, %rootnode*)
 declare %thunk* @load_thunk_root(%rootnode*)
 declare %lambda* @load_lambda_root(%rootnode*)
 declare %elem* @load_elem_root(%rootnode*)
 declare i8* @load_env_root(%rootnode*)
 
 ; Make a new lambda from an environment pointer and function
-define linkonce_odr %elem* @make_lambda(%rootnode* %env_stack, %elem* (i8*, %thunk*, %rootnode*)* %fun, %rootnode* %root) {
+define linkonce_odr %elem* @make_lambda(i8* %env.1, %elem* (i8*, %thunk*, %rootnode*)* %fun, %rootnode* %root) {
+    ; Store env on root before allocations
+    %env_root = call %rootnode @env_root(i8* %env.1, %rootnode* %root)
+    %env_stack = alloca %rootnode
+    store %rootnode %env_root, %rootnode* %env_stack
+
     ; Perform allocations for lambda and elem
-    %l_ptr.1 = call %lambda* @lambda_alloc(%rootnode* %root)
+    %l_ptr.1 = call %lambda* @lambda_alloc(%rootnode* %env_stack)
     %l_root = call %rootnode @lambda_root(%lambda* %l_ptr.1, %rootnode* %root)
     %l_stack = alloca %rootnode
     store %rootnode %l_root, %rootnode* %l_stack
@@ -29,9 +35,9 @@ define linkonce_odr %elem* @make_lambda(%rootnode* %env_stack, %elem* (i8*, %thu
 
     ; Load root pointers after all allocations (GC might move them)
     %l_ptr.2 = call %lambda* @load_lambda_root(%rootnode* %l_stack)
-    %env = call i8* @load_env_root(%rootnode* %env_stack)
+    %env.2 = call i8* @load_env_root(%rootnode* %env_stack)
 
-    %l1 = insertvalue %lambda zeroinitializer, i8* %env, 0
+    %l1 = insertvalue %lambda zeroinitializer, i8* %env.2, 0
     %l2 = insertvalue %lambda %l1, %elem* (i8*, %thunk*, %rootnode*)* %fun, 1
     store %lambda %l2, %lambda* %l_ptr.2
 
@@ -54,10 +60,15 @@ define linkonce_odr %elem* @apply_lambda(%elem* %l_elem, %thunk* %arg, %rootnode
 }
 
 ; Make a thunk
-define linkonce_odr %thunk* @make_thunk(%rootnode* %env_stack, %elem* (i8*, %rootnode*)* %fun, %rootnode* %root) {
+define linkonce_odr %thunk* @make_thunk(i8* %env.1, %elem* (i8*, %rootnode*)* %fun, %rootnode* %root) {
+    ; Store env on root before allocation
+    %env_root = call %rootnode @env_root(i8* %env.1, %rootnode* %root)
+    %env_stack = alloca %rootnode
+    store %rootnode %env_root, %rootnode* %env_stack
+
     %t_ptr = call %thunk* @thunk_alloc(%rootnode* %root)
-    %env = call i8* @load_env_root(%rootnode* %env_stack)
-    call void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*, %rootnode*)* %fun)
+    %env.2 = call i8* @load_env_root(%rootnode* %env_stack)
+    call void @fill_thunk(%thunk* %t_ptr, i8* %env.2, %elem* (i8*, %rootnode*)* %fun)
     ret %thunk* %t_ptr
 }
 
@@ -70,10 +81,15 @@ define linkonce_odr void @fill_thunk(%thunk* %t_ptr, i8* %env, %elem* (i8*, %roo
 }
 
 ; Make a pre-evaluated thunk
-define linkonce_odr %thunk* @wrap_thunk(%rootnode* %val_stack, %rootnode* %root) {
+define linkonce_odr %thunk* @wrap_thunk(%elem* %val.1, %rootnode* %root) {
+    ; Store val on root before allocation
+    %val_root = call %rootnode @elem_root(%elem* %val.1, %rootnode* %root)
+    %val_stack = alloca %rootnode
+    store %rootnode %val_root, %rootnode* %val_stack
+
     %t_ptr = call %thunk* @thunk_alloc(%rootnode* %root)
-    %val = call %elem* @load_elem_root(%rootnode* %val_stack)
-    %val_cast = bitcast %elem* %val to i8*
+    %val.2 = call %elem* @load_elem_root(%rootnode* %val_stack)
+    %val_cast = bitcast %elem* %val.2 to i8*
     %t = insertvalue %thunk {i1 true, i8* null, %elem* (i8*, %rootnode*)* null}, i8* %val_cast, 1
     store %thunk %t, %thunk* %t_ptr
     ret %thunk* %t_ptr
@@ -122,10 +138,7 @@ define linkonce_odr i64 @elem_val(%elem* %e) {
 
 define linkonce_odr %thunk* @number(i64 %val, %rootnode* %root) {
     %num_ptr = call %elem* @make_elem(i8 0, i64 %val, %rootnode* %root)
-    %num_root = call %rootnode @elem_root(%elem* %num_ptr, %rootnode* %root)
-    %num_stack = alloca %rootnode
-    store %rootnode %num_root, %rootnode* %num_stack
-    %t = call %thunk* @wrap_thunk(%rootnode* %num_stack, %rootnode* %num_stack)
+    %t = call %thunk* @wrap_thunk(%elem* %num_ptr, %rootnode* %root)
     ret %thunk* %t
 }
 

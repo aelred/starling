@@ -26,7 +26,7 @@ _global_ids = set(
 
 
 def _nest_function(
-     module, helper, builder, env, free_ids, thunk=None, lambda_arg=None):
+     module, helper, builder, env, root, free_ids, thunk=None, lambda_arg=None):
     """ Create a nested LLVM function, binding all free identifiers. """
     if lambda_arg:
         ftype = helper['lambdafunc']
@@ -36,6 +36,8 @@ def _nest_function(
     func = ll.Function(module, ftype, module.get_unique_name())
     func.linkage = 'private'
     func.args[0].name = 'env'
+    func.args[-1].name = 'root'
+    new_root = func.args[-1]
 
     fbuilder = ll.IRBuilder(func.append_basic_block())
 
@@ -57,7 +59,8 @@ def _nest_function(
         # TODO: Make sure this is the right size
         env_pass_ptr = builder.call(
             helper['env_alloc'],
-            [ll.Constant(_i64, 8 * len(free_ids))], name='env_pass_ptr')
+            [ll.Constant(_i64, 8 * len(free_ids)), root],
+            name='env_pass_ptr')
         env_pass_cast = builder.bitcast(
             env_pass_ptr, ll.PointerType(env_type), name='env_pass_cast')
         for index, ident in enumerate(free_ids):
@@ -76,15 +79,15 @@ def _nest_function(
     # create a thunk combining the function and environment
     if lambda_arg:
         lambda_ = builder.call(
-            helper['make_lambda'], [env_pass_ptr, func], name='lambda')
+            helper['make_lambda'], [env_pass_ptr, func, root], name='lambda')
         thunk = builder.call(helper['wrap_thunk'], [lambda_])
     elif thunk is None:
         thunk = builder.call(
-            helper['make_thunk'], [env_pass_ptr, func], name='thunk')
+            helper['make_thunk'], [env_pass_ptr, func, root], name='thunk')
     else:
         builder.call(helper['fill_thunk'], [thunk, env_pass_ptr, func])
 
-    return fbuilder, new_env, thunk
+    return fbuilder, new_env, new_root, thunk
 
 
 def _get_id():
@@ -181,16 +184,14 @@ class Script(Token):
 
         thtype = module.context.get_identified_type('thunk')
         thp = ll.PointerType(thtype)
-        thpp = ll.PointerType(thp)
         cltype = module.context.get_identified_type('lambda')
         elemtype = module.context.get_identified_type('elem')
         elemp = ll.PointerType(elemtype)
-        elempp = ll.PointerType(elemp)
         root = module.context.get_identified_type('rootnode')
         rootp = ll.PointerType(root)
 
-        elemfunc = ll.FunctionType(elemp, [_i8p])
-        lambdafunc = ll.FunctionType(elemp, [_i8p, thp])
+        elemfunc = ll.FunctionType(elemp, [_i8p, rootp])
+        lambdafunc = ll.FunctionType(elemp, [_i8p, thp, rootp])
 
         # define helper functions
         helper = {
@@ -202,39 +203,40 @@ class Script(Token):
                 module,
                 ll.FunctionType(
                     elemp,
-                    [_i8pp, ll.PointerType(ll.FunctionType(elemp, [_i8p, thp]))]
+                    [
+                        _i8p,
+                        ll.PointerType(
+                            ll.FunctionType(elemp, [_i8p, thp, rootp])
+                        ),
+                        rootp
+                    ]
                 ),
                 'make_lambda'),
             'apply_lambda': ll.Function(
                 module,
-                ll.FunctionType(elemp, [elemp, thp]), 'apply_lambda'),
+                ll.FunctionType(elemp, [elemp, thp, rootp]), 'apply_lambda'),
             'make_thunk': ll.Function(
                 module,
-                ll.FunctionType(thp, [_i8pp, ll.PointerType(elemfunc)]),
+                ll.FunctionType(thp, [_i8p, ll.PointerType(elemfunc), rootp]),
                 'make_thunk'),
             'fill_thunk': ll.Function(
                 module,
                 ll.FunctionType(_void, [thp, _i8p, ll.PointerType(elemfunc)]),
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
-                module, ll.FunctionType(thp, [elempp]), 'wrap_thunk'),
+                module, ll.FunctionType(thp, [elemp]), 'wrap_thunk'),
             'eval_thunk': ll.Function(
-                module, ll.FunctionType(elemp, [thp]), 'eval_thunk'),
+                module, ll.FunctionType(elemp, [thp, rootp]), 'eval_thunk'),
             'number': ll.Function(
-                module, ll.FunctionType(thp, [_i64]), 'number'),
+                module, ll.FunctionType(thp, [_i64, rootp]), 'number'),
             'make_elem': ll.Function(
                 module, ll.FunctionType(elemp, [_i8, _i64]), 'make_elem'),
             'elem_val': ll.Function(
                 module, ll.FunctionType(_i64, [elemp]), 'elem_val'),
-
-            'rem_root': ll.Function(
-                module, ll.FunctionType(_void, [rootp]), 'rem_root'),
             'env_alloc': ll.Function(
-                module, ll.FunctionType(_i8p, [_i64]), 'env_alloc'),
+                module, ll.FunctionType(_i8p, [_i64, rootp]), 'env_alloc'),
             'thunk_alloc': ll.Function(
-                module, ll.FunctionType(thp, []), 'thunk_alloc'),
-            'thunk_root': ll.Function(
-                module, ll.FunctionType(rootp, [thpp]), 'thunk_root')
+                module, ll.FunctionType(thp, [rootp]), 'thunk_alloc'),
         }
 
         # define all global methods and constants
@@ -252,16 +254,18 @@ class Script(Token):
 
             # create function that evals thunks to correct type
             func_ptr = ll.Function(
-                module, ll.FunctionType(elemp, [_i8p, thp]),
+                module, ll.FunctionType(elemp, [_i8p, thp, rootp]),
                 '%s_ptr' % llvm_name)
+            root = func_ptr.args[2]
+            root.name = 'root'
             func_ptr.linkage = 'private'
             builder = ll.IRBuilder(func_ptr.append_basic_block())
 
             x_thunk = builder.bitcast(func_ptr.args[0], thp, 'x_thunk')
-            x_elem = builder.call(helper['eval_thunk'], [x_thunk], 'xo')
+            x_elem = builder.call(helper['eval_thunk'], [x_thunk, root], 'xo')
             x = builder.call(helper['elem_val'], [x_elem], 'x')
             y_elem = builder.call(
-                helper['eval_thunk'], [func_ptr.args[1]], 'yo')
+                helper['eval_thunk'], [func_ptr.args[1], root], 'yo')
             y = builder.call(helper['elem_val'], [y_elem], 'y')
 
             # get result and convert back to elem
@@ -275,14 +279,16 @@ class Script(Token):
             # create function that makes lambda for first argument
             func = ll.Function(
                 module,
-                ll.FunctionType(elemp, [_i8p, thpp]), '%s_apply' % llvm_name)
+                ll.FunctionType(elemp, [_i8p, thp, rootp]),
+                '%s_apply' % llvm_name)
             func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
             func.args[1].name = 'arg'
+            func.args[2].name = 'root'
             builder_ = ll.IRBuilder(func.append_basic_block())
-            arg_cast = builder_.bitcast(func.args[1], _i8pp, name='arg_cast')
-            res = builder_.call(
-                helper['make_lambda'], [arg_cast, func_ptr], name='res')
+            arg_cast = builder_.bitcast(func.args[1], _i8p, name='arg_cast')
+            res = builder_.call(helper['make_lambda'],
+                                [arg_cast, func_ptr, func.args[2]], name='res')
             builder_.ret(res)
 
             # finally, access external definition of thunk
@@ -309,9 +315,12 @@ class Script(Token):
         ginit = ll.Function(module, ll.FunctionType(_void, []), 'ginit')
         builder.call(ginit, [])
 
+        # initialize null root
+        root = ll.Constant(rootp, None)
+
         # generate code
-        thunk_ptr = self.body.gen_llvm(module, helper, builder, env)
-        res_ptr = builder.call(helper['eval_thunk'], [thunk_ptr], name='res_ptr')
+        thunk_ptr = self.body.gen_llvm(module, helper, builder, env, root)
+        res_ptr = builder.call(helper['eval_thunk'], [thunk_ptr, root], name='res_ptr')
         builder.ret(res_ptr)
 
         # parse assembly
@@ -342,8 +351,8 @@ class ModWrapper(Token):
              os.path.join(star_path.cache_dir, self.name.value + '.py'))
         return '%s\n%s' % (imports, self.body.gen_python())
 
-    def gen_llvm(self, module, helper, builder, env):
-        return self.body.gen_llvm(module, helper, builder, env)
+    def gen_llvm(self, module, helper, builder, env, root):
+        return self.body.gen_llvm(module, helper, builder, env, root)
 
 
 class Terminator(Token):
@@ -395,7 +404,7 @@ class Identifier(Terminator):
     def free_identifiers(self):
         return set([self.value])
 
-    def gen_llvm(self, module, helper, builder, env):
+    def gen_llvm(self, module, helper, builder, env, root):
         return env[self.value]
 
 
@@ -403,9 +412,9 @@ class Number(Terminator):
     def _gen_python(self):
         return 'return star_type.Number(%s)' % self.value
 
-    def gen_llvm(self, module, helper, builder, env):
+    def gen_llvm(self, module, helper, builder, env, root):
         return builder.call(
-            helper['number'], [ll.Constant(_i64, int(self.value))])
+            helper['number'], [ll.Constant(_i64, int(self.value)), root])
 
 
 class Char(Terminator):
@@ -432,17 +441,19 @@ class Expression(Token):
                 i1, self.operand.gen_python(True),
                 i2, self.operator.gen_python(True), i1, i1, i2, i1))
 
-    def gen_llvm(self, module, helper, builder, env):
+    def gen_llvm(self, module, helper, builder, env, root):
         # create function to evaluate this expression
-        fbuilder, new_env, thunk = _nest_function(
-            module, helper, builder, env, self.free_identifiers())
+        fbuilder, new_env, new_root, thunk = _nest_function(
+            module, helper, builder, env, root, self.free_identifiers())
 
-        optor = self.operator.gen_llvm(module, helper, fbuilder, new_env)
-        opand = self.operand.gen_llvm(module, helper, fbuilder, new_env)
+        optor = self.operator.gen_llvm(
+            module, helper, fbuilder, new_env, new_root)
+        opand = self.operand.gen_llvm(
+            module, helper, fbuilder, new_env, new_root)
         optor_val = fbuilder.call(
-            helper['eval_thunk'], [optor], name='operator')
+            helper['eval_thunk'], [optor, new_root], name='operator')
         res = fbuilder.call(
-            helper['apply_lambda'], [optor_val, opand], tail=True, name='res')
+            helper['apply_lambda'], [optor_val, opand, new_root], tail=True, name='res')
         fbuilder.ret(res)
 
         return thunk
@@ -529,26 +540,27 @@ class If(Token):
                 i2, self.consequent.gen_python(True),
                 i3, self.alternative.gen_python(True), it, i1, it, i2, it, i3))
 
-    def gen_llvm(self, module, helper, builder, env):
+    def gen_llvm(self, module, helper, builder, env, root):
         func = builder.function
-        pred = self.predicate.gen_llvm(module, helper, builder, env)
+        pred = self.predicate.gen_llvm(module, helper, builder, env, root)
 
         if_con = func.append_basic_block('if.con')
         if_alt = func.append_basic_block('if.alt')
         if_end = func.append_basic_block('if.end')
 
-        pred_ptr = builder.call(helper['eval_thunk'], [pred], name='pred_ptr')
+        pred_ptr = builder.call(
+            helper['eval_thunk'], [pred, root], name='pred_ptr')
         pred_cast = builder.bitcast(pred_ptr, helper['elemp'], name='pred_cast')
         pred_val = builder.call(helper['elem_val'], [pred_cast], 'pred')
         pred_bool = builder.trunc(pred_val, _bool, 'pred_bool')
         builder.cbranch(pred_bool, if_con, if_alt)
 
         builder.position_at_start(if_con)
-        con = self.consequent.gen_llvm(module, helper, builder, env)
+        con = self.consequent.gen_llvm(module, helper, builder, env, root)
         builder.branch(if_end)
 
         builder.position_at_start(if_alt)
-        alt = self.alternative.gen_llvm(module, helper, builder, env)
+        alt = self.alternative.gen_llvm(module, helper, builder, env, root)
         builder.branch(if_end)
 
         builder.position_at_start(if_end)
@@ -578,10 +590,10 @@ class Let(Token):
             bind.bound_identifiers for bind in self.bindings.elements]))
         return ids - binds
 
-    def gen_llvm(self, module, helper, builder, env):
+    def gen_llvm(self, module, helper, builder, env, root):
         # get new bindings environment
-        new_env = self.bindings.gen_llvm_env(module, helper, builder, env)
-        return self.body.gen_llvm(module, helper, builder, new_env)
+        new_env = self.bindings.gen_llvm_env(module, helper, builder, env, root)
+        return self.body.gen_llvm(module, helper, builder, new_env, root)
 
 
 class Bindings(Token):
@@ -593,18 +605,18 @@ class Bindings(Token):
     def _gen_python(self):
         return '\n'.join([e.gen_python() for e in self.elements])
 
-    def gen_llvm_env(self, module, helper, builder, env):
+    def gen_llvm_env(self, module, helper, builder, env, root):
         # first build the environment...
         new_env = dict(env)
         thunks = []
         for elem in self.elements:
-            thunk = elem.get_llvm_ref(module, helper, builder, new_env)
+            thunk = elem.get_llvm_ref(module, helper, builder, new_env, root)
             new_env[elem.identifier.value] = thunk
             thunks.append(thunk)
 
         # ...then use the new environment for each binding!
         for elem, thunk in zip(self.elements, thunks):
-            elem.gen_llvm_ref(module, helper, builder, new_env, thunk)
+            elem.gen_llvm_ref(module, helper, builder, new_env, root, thunk)
 
         return new_env
 
@@ -631,17 +643,19 @@ class Binding(Token):
     def free_identifiers(self):
         return self.body.free_identifiers()
 
-    def get_llvm_ref(self, module, helper, builder, env):
+    def get_llvm_ref(self, module, helper, builder, env, root):
         # call to get a reference to this binding before it is generated
         # this is important for recursive definitions
-        return builder.call(helper['thunk_alloc'], [], name=self.identifier.value)
+        return builder.call(
+            helper['thunk_alloc'], [root], name=self.identifier.value)
 
-    def gen_llvm_ref(self, module, helper, builder, env, ref):
+    def gen_llvm_ref(self, module, helper, builder, env, root, ref):
         # generate LLVM code, filling the referred thunk
-        fbuilder, new_env, thunk = _nest_function(
-            module, helper, builder, env, self.body.free_identifiers(), ref)
-        bthunk = self.body.gen_llvm(module, helper, fbuilder, new_env)
-        res = fbuilder.call(helper['eval_thunk'], [bthunk], name='res')
+        free_ids = self.body.free_identifiers()
+        fbuilder, new_env, new_root, thunk = _nest_function(
+            module, helper, builder, env, root, free_ids, ref)
+        bthunk = self.body.gen_llvm(module, helper, fbuilder, new_env, new_root)
+        res = fbuilder.call(helper['eval_thunk'], [bthunk, new_root], name='res')
         fbuilder.ret(res)
 
 
@@ -684,14 +698,16 @@ class Lambda(Token):
         return 'def _f%s(%s):\n%s\nreturn _f%s' % (
             i, self.parameter.python_name(), self.body.gen_python(True), i)
 
-    def gen_llvm(self, module, helper, builder, env):
+    def gen_llvm(self, module, helper, builder, env, root):
         free_ids = self.free_identifiers()
-        fbuilder, new_env, thunk = _nest_function(
-            module, helper, builder, env, free_ids,
+        fbuilder, new_env, new_root, thunk = _nest_function(
+            module, helper, builder, env, root, free_ids,
             lambda_arg=self.parameter.value)
 
-        res_thunk = self.body.gen_llvm(module, helper, fbuilder, new_env)
-        res = fbuilder.call(helper['eval_thunk'], [res_thunk], name='res')
+        res_thunk = self.body.gen_llvm(
+            module, helper, fbuilder, new_env, new_root)
+        res = fbuilder.call(
+            helper['eval_thunk'], [res_thunk, new_root], name='res')
         fbuilder.ret(res)
 
         return thunk
