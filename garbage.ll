@@ -120,7 +120,7 @@ loop:
   %oldptr = extractvalue %rootnode %root, 0
 
   ; Copy the root to the new memory space
-  %newptr = call i8* @copy(i8* %oldptr, %rootnode* %roots)
+  %newptr = call i8* @copy(i8* %oldptr)
 
   ; Update root with new pointer
   %newroot = insertvalue %rootnode %root, i8* %newptr, 0
@@ -131,7 +131,7 @@ end:
   ret void
 }
 
-define private i8* @copy(i8* %oldptr, %rootnode* %roots) {
+define private i8* @copy(i8* %oldptr) {
   ; Copy something from old memory space to new
 entry:
   ; Get the header
@@ -156,10 +156,22 @@ otherwise:
   ; Allocate memory in new space
   %sizeptr = getelementptr %header* %headcast, i32 0, i32 1
   %size = load i64* %sizeptr
-  %newptr = call i8* @galloc(i64 %size, i8 %type, %rootnode* %roots)
+  %memptr = load i8** @memptr
+  %offset = add i64 %size, %header_size
+  %newmemptr = getelementptr i8* %memptr, i64 %offset
+  store i8* %newmemptr, i8** @memptr
+
+  %newptr = getelementptr i8* %memptr, i64 %header_size
+
   ; Copy data into new pointer
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %newptr, i8* %oldptr, i64 %size, 
-                                       i32 0, i1 0)
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %newmemptr, i8* %headptr, 
+                                       i64 %offset, i32 0, i1 0)
+
+  ; Write broken heart into old location
+  store i8 4, i8* %typeptr
+  %heart = bitcast i8* %oldptr to i8**
+  store i8* %newptr, i8** %heart
+
   ret i8* %newptr
 }
 
