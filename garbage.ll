@@ -1,8 +1,8 @@
 ; A memory manager with copying garbage collection
 
-%thunk = type opaque
-%lambda = type opaque
-%elem = type opaque
+%thunk = type {i1, i8*, %elem* (i8*, %rootnode*)*}
+%lambda = type {i8*, %elem* (i8*, %thunk*, %rootnode*)*}
+%elem = type {i8, i64}
 
 ; Start of in-use memory block
 @memalloc = private unnamed_addr global i8* null
@@ -128,6 +128,71 @@ loop:
   %nextroot = extractvalue %rootnode %root, 1
   br label %cond
 end:
+  ret void
+}
+
+define private void @copyrefs() {
+  ; Copy across all references to objects in old memory space
+entry:
+  %scanstart = load i8** @memalloc
+  %header_size = load i64* @header_size
+  br label %cond
+cond:
+  ; If scanning has reached end of allocated memory, stop
+  %scanptr = phi i8* [%scanstart, %entry], [%scannew, %endloop]
+  %memptr = load i8** @memptr
+  %atend = icmp uge i8* %scanptr, %memptr
+  br i1 %atend, label %end, label %loop
+loop:
+  ; Examine references inside %scanptr
+  %head = bitcast i8* %scanptr to %header*
+  %typeptr = getelementptr %header* %head, i32 0, i32 0
+  %type = load i8* %typeptr
+  %body = getelementptr i8* %scanptr, i64 %header_size
+  switch i8 %type, label %endloop [i8 0, label %thunkcase 
+                                   i8 1, label %lambdacase
+                                   i8 2, label %elemcase
+                                   i8 3, label %envcase]
+thunkcase:
+  %t = bitcast i8* %body to %thunk*
+  %tptr = getelementptr %thunk* %t, i32 0, i32 1
+  call void @copyref(i8** %tptr)
+  br label %endloop
+lambdacase:
+  %l = bitcast i8* %body to %lambda*
+  %lptr = getelementptr %lambda* %l, i32 0, i32 0
+  call void @copyref(i8** %lptr)
+  br label %endloop
+elemcase:
+  ; elems may contain pointers to lambdas 
+  %e = bitcast i8* %body to %elem*
+  %etypeptr = getelementptr %elem* %e, i32 0, i32 0
+  %etype = load i8* %etypeptr
+  %islambda = icmp eq i8 %etype, 2
+  br i1 %islambda, label %elemlambda, label %endloop
+elemlambda:
+  %eval = getelementptr %elem* %e, i32 0, i32 1
+  %eptr = bitcast i64* %eval to i8**
+  call void @copyref(i8** %eptr)
+  br label %endloop
+envcase:
+  br label %endloop
+endloop:
+  ; Advanced %scanptr to next object
+  %sizeptr = getelementptr %header* %head, i32 0, i32 1
+  %size = load i64* %sizeptr
+  %offset = add i64 %size, %header_size
+  %scannew = getelementptr i8* %scanptr, i64 %offset
+  br label %cond
+end:
+  ret void
+}
+
+define private void @copyref(i8** %ref) {
+  ; Take a pointer to old memory, copy reference and update pointer
+  %oldptr = load i8** %ref
+  %newptr = call i8* @copy(i8* %oldptr)
+  store i8* %newptr, i8** %ref
   ret void
 }
 
