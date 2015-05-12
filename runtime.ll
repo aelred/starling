@@ -1,9 +1,14 @@
 ; Thunks contain a bool indicating if they have been evaluated.
 ; If they have, the second argument is the evaluated result object,
 ; otherwise the second argument is an environment and the third is a function.
-%env = type {[0 x i8*]}
-%thunk = type {i1, i8*, %elem* (%env*, %rootnode*)*}
-%lambda = type {%env*, %elem* (%env*, %thunk*, %rootnode*)*}
+; Environments are thunk pointers to several thunks stored in sequence.
+%thunk = type {i1, i8*, %elem* (%thunk*, %rootnode*)*}
+
+; Lambdas contain an environment with bound variables and a function.
+; The function takes the environment, then an argument and the root objects.
+%lambda = type {%thunk*, %elem* (%thunk*, %thunk*, %rootnode*)*}
+
+; An elem contains a type and another element which differs depend on type
 %elem = type {i8, i64}
 
 declare %thunk* @thunk_alloc(%rootnode*)
@@ -14,22 +19,30 @@ declare %elem* @elem_alloc(%rootnode*)
 declare %rootnode @thunk_root(%thunk*, %rootnode*)
 declare %rootnode @lambda_root(%lambda*, %rootnode*)
 declare %rootnode @elem_root(%elem*, %rootnode*)
-declare %rootnode @env_root(%env*, %rootnode*)
+declare %rootnode @env_root(%thunk*, %rootnode*)
 declare %thunk* @load_thunk_root(%rootnode*)
 declare %lambda* @load_lambda_root(%rootnode*)
 declare %elem* @load_elem_root(%rootnode*)
-declare %env* @load_env_root(%rootnode*)
+declare %thunk* @load_env_root(%rootnode*)
 
-; Make an environment containing the given elements
-define linkonce_odr %env @make_env([0 x i8*] %elems) {
-    %e = insertvalue %env zeroinitializer, [0 x i8*] %elems, 0
-    ret %env %e
+; Put a thunk into an existing environment pointer
+define linkonce_odr void @put_env(%thunk* %env, %thunk* %tptr, i64 %pos) {
+    %t = load %thunk* %tptr
+    %posptr = getelementptr %thunk* %env, i64 %pos
+    store %thunk %t, %thunk* %posptr
+    ret void
+}
+
+; Get a thunk from an existing environment pointer
+define linkonce_odr %thunk* @get_env(%thunk* %env, i64 %pos) {
+    %t = getelementptr %thunk* %env, i64 %pos
+    ret %thunk* %t
 }
 
 ; Make a new lambda from an environment pointer and function
-define linkonce_odr %elem* @make_lambda(%env* %env.1, %elem* (%env*, %thunk*, %rootnode*)* %fun, %rootnode* %root) {
+define linkonce_odr %elem* @make_lambda(%thunk* %env.1, %elem* (%thunk*, %thunk*, %rootnode*)* %fun, %rootnode* %root) {
     ; Store env on root before allocations
-    %env_root = call %rootnode @env_root(%env* %env.1, %rootnode* %root)
+    %env_root = call %rootnode @env_root(%thunk* %env.1, %rootnode* %root)
     %env_stack = alloca %rootnode
     store %rootnode %env_root, %rootnode* %env_stack
 
@@ -42,10 +55,10 @@ define linkonce_odr %elem* @make_lambda(%env* %env.1, %elem* (%env*, %thunk*, %r
 
     ; Load root pointers after all allocations (GC might move them)
     %l_ptr.2 = call %lambda* @load_lambda_root(%rootnode* %l_stack)
-    %env.2 = call %env* @load_env_root(%rootnode* %env_stack)
+    %env.2 = call %thunk* @load_env_root(%rootnode* %env_stack)
 
-    %l1 = insertvalue %lambda zeroinitializer, %env* %env.2, 0
-    %l2 = insertvalue %lambda %l1, %elem* (%env*, %thunk*, %rootnode*)* %fun, 1
+    %l1 = insertvalue %lambda zeroinitializer, %thunk* %env.2, 0
+    %l2 = insertvalue %lambda %l1, %elem* (%thunk*, %thunk*, %rootnode*)* %fun, 1
     store %lambda %l2, %lambda* %l_ptr.2
 
     %l_int = ptrtoint %lambda* %l_ptr.2 to i64
@@ -62,28 +75,28 @@ define linkonce_odr %elem* @apply_lambda(%elem* %l_elem, %thunk* %arg, %rootnode
     %l = load %lambda* %l_cast
     %env = extractvalue %lambda %l, 0
     %fun = extractvalue %lambda %l, 1
-    %res = call %elem* %fun(%env* %env, %thunk* %arg, %rootnode* %root)
+    %res = call %elem* %fun(%thunk* %env, %thunk* %arg, %rootnode* %root)
     ret %elem* %res
 }
 
 ; Make a thunk
-define linkonce_odr %thunk* @make_thunk(%env* %env.1, %elem* (%env*, %rootnode*)* %fun, %rootnode* %root) {
+define linkonce_odr %thunk* @make_thunk(%thunk* %env.1, %elem* (%thunk*, %rootnode*)* %fun, %rootnode* %root) {
     ; Store env on root before allocation
-    %env_root = call %rootnode @env_root(%env* %env.1, %rootnode* %root)
+    %env_root = call %rootnode @env_root(%thunk* %env.1, %rootnode* %root)
     %env_stack = alloca %rootnode
     store %rootnode %env_root, %rootnode* %env_stack
 
     %t_ptr = call %thunk* @thunk_alloc(%rootnode* %root)
-    %env.2 = call %env* @load_env_root(%rootnode* %env_stack)
-    call void @fill_thunk(%thunk* %t_ptr, %env* %env.2, %elem* (%env*, %rootnode*)* %fun)
+    %env.2 = call %thunk* @load_env_root(%rootnode* %env_stack)
+    call void @fill_thunk(%thunk* %t_ptr, %thunk* %env.2, %elem* (%thunk*, %rootnode*)* %fun)
     ret %thunk* %t_ptr
 }
 
 ; Fill an existing thunk pointer with something
-define linkonce_odr void @fill_thunk(%thunk* %t_ptr, %env* %e, %elem* (%env*, %rootnode*)* %fun) {
-    %e_cast = bitcast %env* %e to i8*
-    %t1 = insertvalue %thunk {i1 false, i8* null, %elem* (%env*, %rootnode*)* null}, i8* %e_cast, 1
-    %t2 = insertvalue %thunk %t1, %elem* (%env*, %rootnode*)* %fun, 2
+define linkonce_odr void @fill_thunk(%thunk* %t_ptr, %thunk* %env, %elem* (%thunk*, %rootnode*)* %fun) {
+    %env_cast = bitcast %thunk* %env to i8*
+    %t1 = insertvalue %thunk {i1 false, i8* null, %elem* (%thunk*, %rootnode*)* null}, i8* %env_cast, 1
+    %t2 = insertvalue %thunk %t1, %elem* (%thunk*, %rootnode*)* %fun, 2
     store %thunk %t2, %thunk* %t_ptr
     ret void
 }
@@ -98,7 +111,7 @@ define linkonce_odr %thunk* @wrap_thunk(%elem* %val.1, %rootnode* %root) {
     %t_ptr = call %thunk* @thunk_alloc(%rootnode* %root)
     %val.2 = call %elem* @load_elem_root(%rootnode* %val_stack)
     %val_cast = bitcast %elem* %val.2 to i8*
-    %t = insertvalue %thunk {i1 true, i8* null, %elem* (%env*, %rootnode*)* null}, i8* %val_cast, 1
+    %t = insertvalue %thunk {i1 true, i8* null, %elem* (%thunk*, %rootnode*)* null}, i8* %val_cast, 1
     store %thunk %t, %thunk* %t_ptr
     ret %thunk* %t_ptr
 }
@@ -117,10 +130,10 @@ evaluate:
     store %rootnode %t_root, %rootnode* %t_stack
 
     %fun = extractvalue %thunk %t, 2
-    %val_env = bitcast i8* %val to %env*
-    %res = call %elem* %fun(%env* %val_env, %rootnode* %t_stack)
+    %val_env = bitcast i8* %val to %thunk*
+    %res = call %elem* %fun(%thunk* %val_env, %rootnode* %t_stack)
     %res_cast = bitcast %elem* %res to i8*
-    %t_new = insertvalue %thunk {i1 true, i8* null, %elem* (%env*, %rootnode*)* null}, i8* %res_cast, 1
+    %t_new = insertvalue %thunk {i1 true, i8* null, %elem* (%thunk*, %rootnode*)* null}, i8* %res_cast, 1
 
     ; Reload thunk pointer in case garbage collection moved pointer
     %t_ptr.2 = call %thunk* @load_thunk_root(%rootnode* %t_stack)
@@ -153,11 +166,11 @@ define linkonce_odr %thunk* @number(i64 %val, %rootnode* %root) {
 
 ; Constant True
 @true_intern = private unnamed_addr constant %elem {i8 1, i64 1}
-@true = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @true_intern to i8*), %elem* (%env*, %rootnode*)* null}
+@true = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @true_intern to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Constant False
 @false_intern = private unnamed_addr constant %elem {i8 1, i64 0}
-@false = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @false_intern to i8*), %elem* (%env*, %rootnode*)* null}
+@false = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @false_intern to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Addition function
 define linkonce_odr i64 @add_intern(i64 %x, i64 %y) {
@@ -165,10 +178,10 @@ define linkonce_odr i64 @add_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %elem* @add_apply(%env*, %thunk*, %rootnode*)
-@add_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @add_apply}
+declare %elem* @add_apply(%thunk*, %thunk*, %rootnode*)
+@add_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @add_apply}
 @add_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @add_lambda to i64)}
-@add = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @add_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@add = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @add_obj to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Subtraction function
 define linkonce_odr i64 @sub_intern(i64 %x, i64 %y) {
@@ -176,10 +189,10 @@ define linkonce_odr i64 @sub_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %elem* @sub_apply(%env*, %thunk*, %rootnode*)
-@sub_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @sub_apply}
+declare %elem* @sub_apply(%thunk*, %thunk*, %rootnode*)
+@sub_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @sub_apply}
 @sub_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @sub_lambda to i64)}
-@sub = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @sub_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@sub = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @sub_obj to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Multiplication function
 define linkonce_odr i64 @mul_intern(i64 %x, i64 %y) {
@@ -187,10 +200,10 @@ define linkonce_odr i64 @mul_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %elem* @mul_apply(%env*, %thunk*, %rootnode*)
-@mul_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @mul_apply}
+declare %elem* @mul_apply(%thunk*, %thunk*, %rootnode*)
+@mul_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @mul_apply}
 @mul_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @mul_lambda to i64)}
-@mul = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @mul_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@mul = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @mul_obj to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Division function
 define linkonce_odr i64 @div_intern(i64 %x, i64 %y) {
@@ -198,10 +211,10 @@ define linkonce_odr i64 @div_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %elem* @div_apply(%env*, %thunk*, %rootnode*)
-@div_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @div_apply}
+declare %elem* @div_apply(%thunk*, %thunk*, %rootnode*)
+@div_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @div_apply}
 @div_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @div_lambda to i64)}
-@div = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @div_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@div = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @div_obj to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Modulo function
 define linkonce_odr i64 @mod_intern(i64 %x, i64 %y) {
@@ -214,10 +227,10 @@ define linkonce_odr i64 @mod_intern(i64 %x, i64 %y) {
     ret i64 %res
 }
 
-declare %elem* @mod_apply(%env*, %thunk*, %rootnode*)
-@mod_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @mod_apply}
+declare %elem* @mod_apply(%thunk*, %thunk*, %rootnode*)
+@mod_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @mod_apply}
 @mod_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @mod_lambda to i64)}
-@mod = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @mod_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@mod = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @mod_obj to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Power function
 define linkonce_odr i64 @pow_intern(i64 %b, i64 %e) {
@@ -245,10 +258,10 @@ end:
     ret i64 %res
 }
 
-declare %elem* @pow_apply(%env*, %thunk*, %rootnode*)
-@pow_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @pow_apply}
+declare %elem* @pow_apply(%thunk*, %thunk*, %rootnode*)
+@pow_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @pow_apply}
 @pow_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @pow_lambda to i64)}
-@pow = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @pow_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@pow = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @pow_obj to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Equality function
 define linkonce_odr i1 @eq_intern(i64 %x, i64 %y) {
@@ -256,10 +269,10 @@ define linkonce_odr i1 @eq_intern(i64 %x, i64 %y) {
     ret i1 %res
 }
 
-declare %elem* @eq_apply(%env*, %thunk*, %rootnode*)
-@eq_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @eq_apply}
+declare %elem* @eq_apply(%thunk*, %thunk*, %rootnode*)
+@eq_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @eq_apply}
 @eq_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @eq_lambda to i64)}
-@eq = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @eq_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@eq = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @eq_obj to i8*), %elem* (%thunk*, %rootnode*)* null}
 
 ; Less-than-or-equal function
 define linkonce_odr i1 @le_intern(i64 %x, i64 %y) {
@@ -267,7 +280,7 @@ define linkonce_odr i1 @le_intern(i64 %x, i64 %y) {
     ret i1 %res
 }
 
-declare %elem* @le_apply(%env*, %thunk*, %rootnode*)
-@le_lambda = private constant %lambda {%env* null, %elem* (%env*, %thunk*, %rootnode*)* @le_apply}
+declare %elem* @le_apply(%thunk*, %thunk*, %rootnode*)
+@le_lambda = private constant %lambda {%thunk* null, %elem* (%thunk*, %thunk*, %rootnode*)* @le_apply}
 @le_obj = private constant %elem {i8 2, i64 ptrtoint (%lambda* @le_lambda to i64)}
-@le = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @le_obj to i8*), %elem* (%env*, %rootnode*)* null}
+@le = linkonce_odr constant %thunk {i1 true, i8* bitcast (%elem* @le_obj to i8*), %elem* (%thunk*, %rootnode*)* null}

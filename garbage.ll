@@ -1,8 +1,7 @@
 ; A memory manager with copying garbage collection
 
-%env = type {[0 x i8*]}
-%thunk = type {i1, i8*, %elem* (%env*, %rootnode*)*}
-%lambda = type {%env*, %elem* (%env*, %thunk*, %rootnode*)*}
+%thunk = type {i1, i8*, %elem* (%thunk*, %rootnode*)*}
+%lambda = type {%thunk*, %elem* (%thunk*, %thunk*, %rootnode*)*}
 %elem = type {i8, i64}
 
 ; Start of in-use memory block
@@ -162,7 +161,7 @@ thunkcase:
 lambdacase:
   %l = bitcast i8* %body to %lambda*
   %lval = getelementptr %lambda* %l, i32 0, i32 0
-  %lptr = bitcast %env** %lval to i8**
+  %lptr = bitcast %thunk** %lval to i8**
   call void @copyref(i8** %lptr)
   br label %endloop
 elemcase:
@@ -260,10 +259,11 @@ define linkonce_odr %elem* @elem_alloc(%rootnode* %roots) {
   ret %elem* %e
 }
 
-define linkonce_odr %env* @env_alloc(i64 %size, %rootnode* %roots) {
+define linkonce_odr %thunk* @env_alloc(i64 %num, %rootnode* %roots) {
+  %size = mul i64 %num, 24
   %ptr = call i8* @galloc(i64 %size, i8 3, %rootnode* %roots)
-  %e = bitcast i8* %ptr to %env*
-  ret %env* %e
+  %e = bitcast i8* %ptr to %thunk*
+  ret %thunk* %e
 }
 
 define linkonce_odr %rootnode @thunk_root(%thunk* %t_ptr, %rootnode* %roots) {
@@ -284,8 +284,8 @@ define linkonce_odr %rootnode @elem_root(%elem* %e_ptr, %rootnode* %roots) {
   ret %rootnode %root
 }
 
-define linkonce_odr %rootnode @env_root(%env* %env_ptr, %rootnode* %roots) {
-  %cast = bitcast %env* %env_ptr to i8*
+define linkonce_odr %rootnode @env_root(%thunk* %env_ptr, %rootnode* %roots) {
+  %cast = bitcast %thunk* %env_ptr to i8*
   %root = call %rootnode @add_root(i8* %cast, %rootnode* %roots)
   ret %rootnode %root
 }
@@ -308,8 +308,8 @@ define linkonce_odr %elem* @load_elem_root(%rootnode* %root) {
   ret %elem* %cast
 }
 
-define linkonce_odr %env* @load_env_root(%rootnode* %root) {
+define linkonce_odr %thunk* @load_env_root(%rootnode* %root) {
   %ptr = call i8* @load_root(%rootnode* %root)
-  %cast = bitcast i8* %ptr to %env*
-  ret %env* %cast
+  %cast = bitcast i8* %ptr to %thunk*
+  ret %thunk* %cast
 }

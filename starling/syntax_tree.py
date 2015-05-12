@@ -11,15 +11,9 @@ log = logging.getLogger('starling.syntax_tree')
 
 _void = ll.VoidType()
 _bool = ll.IntType(1)
-_boolp = ll.PointerType(_bool)
 _i8 = ll.IntType(8)
-_i8p = ll.PointerType(_i8)
-_i8pp = ll.PointerType(_i8p)
 _i32 = ll.IntType(32)
-_i32p = ll.PointerType(_i32)
 _i64 = ll.IntType(64)
-
-_binfunc = ll.FunctionType(_i8p, [_i8p, _i8p])
 
 _global_ids = set(
     ['True', 'False', '+', '-', '*', '/', 'mod', 'pow', '==', '<='])
@@ -52,29 +46,24 @@ def _nest_function(
 
     if free_ids:
         # for each free identifier, pass it to the function and load it
-        env_type = ll.ArrayType(helper['thp'], len(free_ids))
-        env_ptr = fbuilder.bitcast(
-            func.args[0], ll.PointerType(env_type), name='env_ptr')
+        env_ptr = func.args[0]
 
         # TODO: Make sure this is the right size
         env_pass_ptr = builder.call(
-            helper['env_alloc'],
-            [ll.Constant(_i64, 8 * len(free_ids)), root],
+            helper['env_alloc'], [ll.Constant(_i64, len(free_ids)), root],
             name='env_pass_ptr')
-        env_pass_cast = builder.bitcast(
-            env_pass_ptr, ll.PointerType(env_type), name='env_pass_cast')
         for index, ident in enumerate(free_ids):
             # write the value before calling
-            index_val = [ll.Constant(_i32, 0), ll.Constant(_i32, index)]
-            index_ptr = builder.gep(env_pass_cast, index_val, True, 'env_index')
-            builder.store(env[ident], index_ptr)
+            index_val = ll.Constant(_i64, index)
+            builder.call(
+                helper['put_env'], [env_pass_ptr, env[ident], index_val])
 
             # read the value after calling
-            read_ptr = fbuilder.gep(env_ptr, index_val, True, 'env_index')
-            new_env[ident] = fbuilder.load(read_ptr, name=ident)
+            new_env[ident] = fbuilder.call(
+                helper['get_env'], [env_ptr, index_val], name=ident)
     else:
         # if there are no free identifiers, skip creating environment
-        env_pass_ptr = ll.Constant(_i8p, None)
+        env_pass_ptr = ll.Constant(helper['thp'], None)
 
     # create a thunk combining the function and environment
     if lambda_arg:
@@ -182,8 +171,6 @@ class Script(Token):
 
         module = ll.Module()
 
-        envtype = module.context.get_identified_type('env')
-        envp = ll.PointerType(envtype)
         thtype = module.context.get_identified_type('thunk')
         thp = ll.PointerType(thtype)
         cltype = module.context.get_identified_type('lambda')
@@ -192,8 +179,8 @@ class Script(Token):
         root = module.context.get_identified_type('rootnode')
         rootp = ll.PointerType(root)
 
-        elemfunc = ll.FunctionType(elemp, [envp, rootp])
-        lambdafunc = ll.FunctionType(elemp, [envp, thp, rootp])
+        elemfunc = ll.FunctionType(elemp, [thp, rootp])
+        lambdafunc = ll.FunctionType(elemp, [thp, thp, rootp])
 
         # define helper functions
         helper = {
@@ -201,14 +188,14 @@ class Script(Token):
             'thp': thp,
             'elemfunc': elemfunc,
             'lambdafunc': lambdafunc,
-            'make_env': ll.Function(
-                module, ll.FunctionType(envtype, [ll.ArrayType(_i8p, 0)]),
-                'make_env'
-            ),
+            'put_env': ll.Function(
+                module, ll.FunctionType(_void, [thp, thp, _i64]), 'put_env'),
+            'get_env': ll.Function(
+                module, ll.FunctionType(thp, [thp, _i64]), 'get_env'),
             'make_lambda': ll.Function(
                 module,
                 ll.FunctionType(
-                    elemp, [envp, ll.PointerType(lambdafunc), rootp]
+                    elemp, [thp, ll.PointerType(lambdafunc), rootp]
                 ),
                 'make_lambda'),
             'apply_lambda': ll.Function(
@@ -216,11 +203,11 @@ class Script(Token):
                 ll.FunctionType(elemp, [elemp, thp, rootp]), 'apply_lambda'),
             'make_thunk': ll.Function(
                 module,
-                ll.FunctionType(thp, [envp, ll.PointerType(elemfunc), rootp]),
+                ll.FunctionType(thp, [thp, ll.PointerType(elemfunc), rootp]),
                 'make_thunk'),
             'fill_thunk': ll.Function(
                 module,
-                ll.FunctionType(_void, [thp, envp, ll.PointerType(elemfunc)]),
+                ll.FunctionType(_void, [thp, thp, ll.PointerType(elemfunc)]),
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
                 module, ll.FunctionType(thp, [elemp]), 'wrap_thunk'),
@@ -233,7 +220,7 @@ class Script(Token):
             'elem_val': ll.Function(
                 module, ll.FunctionType(_i64, [elemp]), 'elem_val'),
             'env_alloc': ll.Function(
-                module, ll.FunctionType(envp, [_i64, rootp]), 'env_alloc'),
+                module, ll.FunctionType(thp, [_i64, rootp]), 'env_alloc'),
             'thunk_alloc': ll.Function(
                 module, ll.FunctionType(thp, [rootp]), 'thunk_alloc'),
         }
@@ -252,9 +239,7 @@ class Script(Token):
             internal = ll.Function(module, funtype, '%s_intern' % llvm_name)
 
             # create function that evals thunks to correct type
-            func_ptr = ll.Function(
-                module, ll.FunctionType(elemp, [_i8p, thp, rootp]),
-                '%s_ptr' % llvm_name)
+            func_ptr = ll.Function(module, lambdafunc, '%s_ptr' % llvm_name)
             root = func_ptr.args[2]
             root.name = 'root'
             func_ptr.linkage = 'private'
@@ -276,20 +261,15 @@ class Script(Token):
             builder.ret(elem)
 
             # create function that makes lambda for first argument
-            func = ll.Function(
-                module,
-                ll.FunctionType(elemp, [_i8p, thp, rootp]),
-                '%s_apply' % llvm_name)
+            func = ll.Function(module, lambdafunc, '%s_apply' % llvm_name)
             func.linkage = 'linkonce_odr'
             func.args[0].name = 'env_null'
-            func.args[1].name = 'arg'
+            func.args[1].name = 'argp'
             func.args[2].name = 'root'
             builder_ = ll.IRBuilder(func.append_basic_block())
-            arg_cast = builder_.bitcast(
-                func.args[1], ll.ArrayType(_i8p, 0), name='arg_cast')
-            env = builder_.call(helper['make_env'], [arg_cast], name='env')
-            res = builder_.call(helper['make_lambda'],
-                                [env, func_ptr, func.args[2]], name='res')
+            res = builder_.call(
+                helper['make_lambda'], [func.args[1], func_ptr, func.args[2]],
+                name='res')
             builder_.ret(res)
 
             # finally, access external definition of thunk
