@@ -182,6 +182,8 @@ class Script(Token):
 
         module = ll.Module()
 
+        envtype = module.context.get_identified_type('env')
+        envp = ll.PointerType(envtype)
         thtype = module.context.get_identified_type('thunk')
         thp = ll.PointerType(thtype)
         cltype = module.context.get_identified_type('lambda')
@@ -190,8 +192,8 @@ class Script(Token):
         root = module.context.get_identified_type('rootnode')
         rootp = ll.PointerType(root)
 
-        elemfunc = ll.FunctionType(elemp, [_i8p, rootp])
-        lambdafunc = ll.FunctionType(elemp, [_i8p, thp, rootp])
+        elemfunc = ll.FunctionType(elemp, [envp, rootp])
+        lambdafunc = ll.FunctionType(elemp, [envp, thp, rootp])
 
         # define helper functions
         helper = {
@@ -199,17 +201,14 @@ class Script(Token):
             'thp': thp,
             'elemfunc': elemfunc,
             'lambdafunc': lambdafunc,
+            'make_env': ll.Function(
+                module, ll.FunctionType(envtype, [ll.ArrayType(_i8p, 0)]),
+                'make_env'
+            ),
             'make_lambda': ll.Function(
                 module,
                 ll.FunctionType(
-                    elemp,
-                    [
-                        _i8p,
-                        ll.PointerType(
-                            ll.FunctionType(elemp, [_i8p, thp, rootp])
-                        ),
-                        rootp
-                    ]
+                    elemp, [envp, ll.PointerType(lambdafunc), rootp]
                 ),
                 'make_lambda'),
             'apply_lambda': ll.Function(
@@ -217,11 +216,11 @@ class Script(Token):
                 ll.FunctionType(elemp, [elemp, thp, rootp]), 'apply_lambda'),
             'make_thunk': ll.Function(
                 module,
-                ll.FunctionType(thp, [_i8p, ll.PointerType(elemfunc), rootp]),
+                ll.FunctionType(thp, [envp, ll.PointerType(elemfunc), rootp]),
                 'make_thunk'),
             'fill_thunk': ll.Function(
                 module,
-                ll.FunctionType(_void, [thp, _i8p, ll.PointerType(elemfunc)]),
+                ll.FunctionType(_void, [thp, envp, ll.PointerType(elemfunc)]),
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
                 module, ll.FunctionType(thp, [elemp]), 'wrap_thunk'),
@@ -234,7 +233,7 @@ class Script(Token):
             'elem_val': ll.Function(
                 module, ll.FunctionType(_i64, [elemp]), 'elem_val'),
             'env_alloc': ll.Function(
-                module, ll.FunctionType(_i8p, [_i64, rootp]), 'env_alloc'),
+                module, ll.FunctionType(envp, [_i64, rootp]), 'env_alloc'),
             'thunk_alloc': ll.Function(
                 module, ll.FunctionType(thp, [rootp]), 'thunk_alloc'),
         }
@@ -286,9 +285,11 @@ class Script(Token):
             func.args[1].name = 'arg'
             func.args[2].name = 'root'
             builder_ = ll.IRBuilder(func.append_basic_block())
-            arg_cast = builder_.bitcast(func.args[1], _i8p, name='arg_cast')
+            arg_cast = builder_.bitcast(
+                func.args[1], ll.ArrayType(_i8p, 0), name='arg_cast')
+            env = builder_.call(helper['make_env'], [arg_cast], name='env')
             res = builder_.call(helper['make_lambda'],
-                                [arg_cast, func_ptr, func.args[2]], name='res')
+                                [env, func_ptr, func.args[2]], name='res')
             builder_.ret(res)
 
             # finally, access external definition of thunk

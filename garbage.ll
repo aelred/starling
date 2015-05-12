@@ -1,7 +1,8 @@
 ; A memory manager with copying garbage collection
 
-%thunk = type {i1, i8*, %elem* (i8*, %rootnode*)*}
-%lambda = type {i8*, %elem* (i8*, %thunk*, %rootnode*)*}
+%env = type {[0 x i8*]}
+%thunk = type {i1, i8*, %elem* (%env*, %rootnode*)*}
+%lambda = type {%env*, %elem* (%env*, %thunk*, %rootnode*)*}
 %elem = type {i8, i64}
 
 ; Start of in-use memory block
@@ -160,7 +161,8 @@ thunkcase:
   br label %endloop
 lambdacase:
   %l = bitcast i8* %body to %lambda*
-  %lptr = getelementptr %lambda* %l, i32 0, i32 0
+  %lval = getelementptr %lambda* %l, i32 0, i32 0
+  %lptr = bitcast %env** %lval to i8**
   call void @copyref(i8** %lptr)
   br label %endloop
 elemcase:
@@ -258,9 +260,10 @@ define linkonce_odr %elem* @elem_alloc(%rootnode* %roots) {
   ret %elem* %e
 }
 
-define linkonce_odr i8* @env_alloc(i64 %size, %rootnode* %roots) {
-  %env = call i8* @galloc(i64 %size, i8 3, %rootnode* %roots)
-  ret i8* %env
+define linkonce_odr %env* @env_alloc(i64 %size, %rootnode* %roots) {
+  %ptr = call i8* @galloc(i64 %size, i8 3, %rootnode* %roots)
+  %e = bitcast i8* %ptr to %env*
+  ret %env* %e
 }
 
 define linkonce_odr %rootnode @thunk_root(%thunk* %t_ptr, %rootnode* %roots) {
@@ -281,8 +284,9 @@ define linkonce_odr %rootnode @elem_root(%elem* %e_ptr, %rootnode* %roots) {
   ret %rootnode %root
 }
 
-define linkonce_odr %rootnode @env_root(i8* %env_ptr, %rootnode* %roots) {
-  %root = call %rootnode @add_root(i8* %env_ptr, %rootnode* %roots)
+define linkonce_odr %rootnode @env_root(%env* %env_ptr, %rootnode* %roots) {
+  %cast = bitcast %env* %env_ptr to i8*
+  %root = call %rootnode @add_root(i8* %cast, %rootnode* %roots)
   ret %rootnode %root
 }
 
@@ -304,7 +308,8 @@ define linkonce_odr %elem* @load_elem_root(%rootnode* %root) {
   ret %elem* %cast
 }
 
-define linkonce_odr i8* @load_env_root(%rootnode* %root) {
+define linkonce_odr %env* @load_env_root(%rootnode* %root) {
   %ptr = call i8* @load_root(%rootnode* %root)
-  ret i8* %ptr
+  %cast = bitcast i8* %ptr to %env*
+  ret %env* %cast
 }
