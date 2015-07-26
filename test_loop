@@ -1,4 +1,4 @@
 while true; do
     ./test
-    inotifywait -e modify,move,create,delete -r --exclude ".*\.sw[px]" modules starling >/dev/null 2>&1 
+    inotifywait -e modify,move,create,delete -r --exclude ".*\.sw[px]" modules starling src >/dev/null 2>&1 
 done

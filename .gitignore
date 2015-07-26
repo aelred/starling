@@ -1,8 +1,11 @@
 *.swp
 *.ropeproject
 *.pyc
+*.err
 
 .coverage
 .noseids
 .temp.py
 build
+bin
+obj

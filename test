@@ -1,2 +1,5 @@
-nosetests
-time python -m starling test_suite
+make clean -s
+make all -s
+./bin/test
+./bin/starling test_suite
+cram functional_tests.t
