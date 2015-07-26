@@ -9,7 +9,7 @@
 ; End of in-use memory block
 @memend = private unnamed_addr global i8* null
 ; Size of in-use memory block
-@memsize = private unnamed_addr constant i64 1024
+@memsize = private unnamed_addr constant i64 64
 
 ; Position in memory block to allocate new objects
 @memptr = private unnamed_addr global i8* null
@@ -99,6 +99,8 @@ define private void @collect(%rootnode* %roots) {
   %memnew = load i8** @memalloc
 
   ; Copy live objects from memold to memnew
+  call void @copyroots(%rootnode* %roots)
+  call void @copyrefs()
 
   ; Free old memory space
   call void @free(i8* %memold)
@@ -148,6 +150,8 @@ loop:
   %head = bitcast i8* %scanptr to %header*
   %typeptr = getelementptr %header* %head, i32 0, i32 0
   %type = load i8* %typeptr
+  %sizeptr = getelementptr %header* %head, i32 0, i32 1
+  %size = load i64* %sizeptr
   %body = getelementptr i8* %scanptr, i64 %header_size
   switch i8 %type, label %endloop [i8 0, label %thunkcase 
                                    i8 1, label %lambdacase
@@ -173,15 +177,29 @@ elemcase:
   br i1 %islambda, label %elemlambda, label %endloop
 elemlambda:
   %eval = getelementptr %elem* %e, i32 0, i32 1
-  %eptr = bitcast i64* %eval to i8**
-  call void @copyref(i8** %eptr)
+  %envptr = bitcast i64* %eval to i8**
+  call void @copyref(i8** %envptr)
   br label %endloop
+
 envcase:
-  br label %endloop
+  ; environments are lists of thunks
+  %num_thunks = udiv i64 %size, 24
+  %env = bitcast i8* %body to %thunk*
+  br label %envcond
+envcond:
+  ; Advance index until end of environment
+  %index = phi i64 [0, %envcase], [%newindex, %envloop]
+  %endenv = icmp uge i64 %index, %num_thunks
+  br i1 %endenv, label %endloop, label %envloop
+envloop:
+  ; Get pointer inside thunk
+  %eptr = getelementptr %thunk* %env, i64 %index, i32 1
+  call void @copyref(i8** %eptr)
+  %newindex = add i64 %index, 1
+  br label %envcond
+
 endloop:
   ; Advanced %scanptr to next object
-  %sizeptr = getelementptr %header* %head, i32 0, i32 1
-  %size = load i64* %sizeptr
   %offset = add i64 %size, %header_size
   %scannew = getelementptr i8* %scanptr, i64 %offset
   br label %cond

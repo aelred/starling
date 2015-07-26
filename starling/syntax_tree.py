@@ -12,6 +12,7 @@ log = logging.getLogger('starling.syntax_tree')
 _void = ll.VoidType()
 _bool = ll.IntType(1)
 _i8 = ll.IntType(8)
+_i8p = ll.PointerType(_i8)
 _i32 = ll.IntType(32)
 _i64 = ll.IntType(64)
 
@@ -76,7 +77,12 @@ def _nest_function(
     else:
         builder.call(helper['fill_thunk'], [thunk, env_pass_ptr, func])
 
-    return fbuilder, new_env, new_root, thunk
+    thunk_root = builder.call(
+        helper['thunk_root'], [thunk, root], name='thunk_root')
+    thunk_stack = builder.alloca(helper['root'])
+    builder.store(thunk_root, thunk_stack)
+
+    return fbuilder, new_env, new_root, thunk_stack
 
 
 def _get_id():
@@ -178,6 +184,7 @@ class Script(Token):
         elemp = ll.PointerType(elemtype)
         root = module.context.get_identified_type('rootnode')
         rootp = ll.PointerType(root)
+        root.elements = [_i8p, rootp]
 
         elemfunc = ll.FunctionType(elemp, [thp, rootp])
         lambdafunc = ll.FunctionType(elemp, [thp, thp, rootp])
@@ -186,6 +193,7 @@ class Script(Token):
         helper = {
             'elemp': elemp,
             'thp': thp,
+            'root': root,
             'elemfunc': elemfunc,
             'lambdafunc': lambdafunc,
             'put_env': ll.Function(
@@ -211,8 +219,7 @@ class Script(Token):
                 'fill_thunk'),
             'wrap_thunk': ll.Function(
                 module, ll.FunctionType(thp, [elemp]), 'wrap_thunk'),
-            'eval_thunk': ll.Function(
-                module, ll.FunctionType(elemp, [thp, rootp]), 'eval_thunk'),
+            'eval_thunk': ll.Function(module, elemfunc, 'eval_thunk'),
             'number': ll.Function(
                 module, ll.FunctionType(thp, [_i64, rootp]), 'number'),
             'make_elem': ll.Function(
@@ -223,6 +230,10 @@ class Script(Token):
                 module, ll.FunctionType(thp, [_i64, rootp]), 'env_alloc'),
             'thunk_alloc': ll.Function(
                 module, ll.FunctionType(thp, [rootp]), 'thunk_alloc'),
+            'thunk_root': ll.Function(
+                module, ll.FunctionType(root, [thp, rootp]), 'thunk_root'),
+            'load_thunk_root': ll.Function(
+                module, ll.FunctionType(thp, [rootp]), 'load_thunk_root')
         }
 
         # define all global methods and constants
@@ -424,7 +435,7 @@ class Expression(Token):
 
     def gen_llvm(self, module, helper, builder, env, root):
         # create function to evaluate this expression
-        fbuilder, new_env, new_root, thunk = _nest_function(
+        fbuilder, new_env, new_root, thunk_root = _nest_function(
             module, helper, builder, env, root, self.free_identifiers())
 
         optor = self.operator.gen_llvm(
@@ -437,7 +448,7 @@ class Expression(Token):
             helper['apply_lambda'], [optor_val, opand, new_root], tail=True, name='res')
         fbuilder.ret(res)
 
-        return thunk
+        return builder.call(helper['load_thunk_root'], [thunk_root])
 
 
 class EmptyList(EmptyToken):
@@ -633,7 +644,7 @@ class Binding(Token):
     def gen_llvm_ref(self, module, helper, builder, env, root, ref):
         # generate LLVM code, filling the referred thunk
         free_ids = self.body.free_identifiers()
-        fbuilder, new_env, new_root, thunk = _nest_function(
+        fbuilder, new_env, new_root, thunk_root = _nest_function(
             module, helper, builder, env, root, free_ids, ref)
         bthunk = self.body.gen_llvm(module, helper, fbuilder, new_env, new_root)
         res = fbuilder.call(helper['eval_thunk'], [bthunk, new_root], name='res')
@@ -681,7 +692,7 @@ class Lambda(Token):
 
     def gen_llvm(self, module, helper, builder, env, root):
         free_ids = self.free_identifiers()
-        fbuilder, new_env, new_root, thunk = _nest_function(
+        fbuilder, new_env, new_root, thunk_root = _nest_function(
             module, helper, builder, env, root, free_ids,
             lambda_arg=self.parameter.value)
 
@@ -691,7 +702,7 @@ class Lambda(Token):
             helper['eval_thunk'], [res_thunk, new_root], name='res')
         fbuilder.ret(res)
 
-        return thunk
+        return builder.call(helper['load_thunk_root'], [thunk_root])
 
 
 class Object(Token):
