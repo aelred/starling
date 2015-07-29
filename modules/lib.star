@@ -1,24 +1,24 @@
 let
 
 # list constructor
-: = x xs -> {head=x, tail=xs},
+(:) = x xs -> {head=x, tail=xs},
 
 # basic logic
 not = x -> if x then False else True,
-or = x y -> if x then True else y,
-and = x y -> if x then y else False,
+(or) = x y -> if x then True else y,
+(and) = x y -> if x then y else False,
 any = foldr (or) False,
 all = foldr (and) True,
 
 # useful, short if construct
-? = p c a -> if p then c else a,
+(?) = p c a -> if p then c else a,
 # id returns itself
 id = x -> x,
 # const returns a function that always yields the given argument
 const = x y -> x,
 
 # function composition
->> = f g x -> f (g x),
+(>>) = f g x -> f (g x),
 
 # transform a function that takes a pair into a curried function
 curry = f x y -> f (x, y),
@@ -27,13 +27,13 @@ curry = f x y -> f (x, y),
 uncurry = f xs -> f (xs._0) (xs._1),
 
 # access array elements
-@ = xs n -> if n == 0 then xs.head else xs.tail@(strict n-1),
+(@) = xs n -> if n == 0 then xs.head else xs.tail@(strict n-1),
 
 # comparison operators
-!= = x y -> not (x == y),
-< = x -> not >> (<= x),
-> = x y -> not (x <= y),
->= = x -> not >> (> x),
+(!=) = x y -> not (x == y),
+(<) = x -> not >> (<= x),
+(>) = x y -> not (x <= y),
+(>=) = x -> not >> (> x),
 
 # max and min functions
 max = x y -> x > y? x y,
@@ -43,7 +43,7 @@ min = x y -> x < y? x y,
 sum = foldl (+) 0,
 
 # list contains given element
-has = xs x -> any (map (== x) xs),
+(has) = xs x -> any (map (== x) xs),
 
 # swap function arguments
 flip = f x y -> f y x,
@@ -131,7 +131,7 @@ length = foldl (const >> (+1)) 0,
 reverse = foldl (flip (:)) [],
 
 # return the concatenation of two lists
-++ = xs ys -> fold (:) ys xs,
+(++) = xs ys -> fold (:) ys xs,
 
 # zip two lists together
 zip = xs ys -> 
@@ -161,7 +161,7 @@ sort = xs ->
     (sort less) ++ (pivot : (sort more))
 
 in export 
-    : not or and any all ? id const >> curry uncurry @ != < >= > max min sum
-    flip has foldr foldl fold foldr1 foldl1 fold1 map filter span break take
-    take_while take_until drop drop_while drop_until join range nats length
-    reverse ++ zip unzip sort
+    (:) not (or) (and) any all (?) id const (>>) curry uncurry (@) (!=) (<)
+    (>=) (>) max min sum flip (has) foldr foldl fold foldr1 foldl1 fold1 map
+    filter span break take take_while take_until drop drop_while drop_until
+    join range nats length reverse (++) zip unzip sort
