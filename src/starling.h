@@ -1,9 +1,11 @@
-struct Object {
-    int value;
-};
+#include "node.h"
 
-struct Object eval(const char *);
-
-void object_str(const struct Object, char **);
+Node *eval(const char *s);
 
 void repl();
+
+Node *parse(const char *s);
+
+Node *eval_expr(Node *expr);
+
+void expr_string(Node *expr, char *s, size_t n);

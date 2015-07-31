@@ -1,18 +1,15 @@
 #include <stdio.h>
+#include <malloc.h>
 #include "starling.h"
 #include "util.h"
-
+#include "lexer.h"
+#include "parser.h"
+#include "node.h"
 
 // Evaluate a string expression and return the resulting object
-struct Object eval(const char *expr) {
+Node *eval(const char *s) {
+    return parse(s);
 }
-
-
-// Create a string representation of an object
-void object_str(const struct Object obj, char **str) {
-    *str = "<Object>";
-}
-
 
 // Run a read-evaluate-print loop
 void repl() {
@@ -26,10 +23,25 @@ void repl() {
             break;
         } else {
             // Evaluate user input and print as a string
-            struct Object result = eval(line);
-            char *res_str = NULL;
-            object_str(result, &res_str);
+            Node *result = eval(line);
+            size_t n = 100;
+            char *res_str = malloc(sizeof(char) * n);
+            expr_string(result, res_str, n);
             puts(res_str);
         }
     }
+}
+
+Node *parse(const char *s) {
+    YY_BUFFER_STATE buf = yy_scan_string(s);
+    yyparse();
+    yy_delete_buffer(buf);
+    return result;
+}
+
+Node *eval_expr(Node *expr) {
+}
+
+void expr_string(Node *expr, char *s, size_t n) {
+    node_str(expr, s, n);
 }
