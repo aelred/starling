@@ -1,4 +1,4 @@
-CC=gcc -lm
+CC=gcc -lm -g
 
 SUFFIXES += .d
 
