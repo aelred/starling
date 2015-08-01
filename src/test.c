@@ -6,4 +6,5 @@ int main() {
     test_util();
     test_node();
     test_starling();
+    return 0;
 }
