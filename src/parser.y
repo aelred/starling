@@ -24,6 +24,7 @@ const char *token_name(int token);
 #include <malloc.h>
 #include <math.h>
 #include "node.h"
+#include "lexer.h"
 }
 
 %{
