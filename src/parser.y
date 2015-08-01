@@ -1,6 +1,6 @@
 %code provides {
 int yyparse(void);
-Node *result;
+Node *parser_result;
 const char *token_name(int token);
 }
 
@@ -30,7 +30,7 @@ const char *token_name(int token);
 %{
 int yydebug = 0;
 
-Node *result;
+Node *parser_result;
 
 void yyerror(const char *s);
 
@@ -91,7 +91,7 @@ Node *unop(char *, Node *);
 
 %%
 
-script: expr { result = $1; }
+script: expr { parser_result = $1; }
 
 expr:
   let

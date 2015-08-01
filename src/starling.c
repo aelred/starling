@@ -48,14 +48,14 @@ Node *load_module(char *name) {
     yy_delete_buffer(buf);
     fclose(yyin);
     free(path);
-    return result;
+    return parser_result;
 }
 
 Node *parse(const char *s) {
     YY_BUFFER_STATE buf = yy_scan_string(s);
     yyparse();
     yy_delete_buffer(buf);
-    return result;
+    return parser_result;
 }
 
 Node *eval_expr(Node *expr) {
