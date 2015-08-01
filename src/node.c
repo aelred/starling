@@ -4,41 +4,12 @@
 #include <string.h>
 #include "node.h"
 #include "parser.h"
-
-typedef struct {
-    char *s;
-    size_t len;
-    size_t capacity;
-} string;
+#include "string.h"
 
 Node *node(int type) {
     Node *n = malloc(sizeof(Node));
     n->type = type;
     return n;
-}
-
-void print(string *s, const char *format, ...) {
-    va_list args;
-    int written;
-    int rewrite;
-
-    do {
-        va_start(args, format);
-        written = vsnprintf(s->s+s->len, s->capacity - s->len, format, args);
-        va_end(args);
-
-        if (s->len + written >= s->capacity) {
-            // Resize buffer
-            s->capacity *= 2;
-            s->s = realloc(s->s, sizeof(char) * s->capacity);
-            // Rewrite string
-            rewrite = 1;
-        } else {
-            rewrite = 0;
-        }
-    } while (rewrite);
-
-    s->len += written;
 }
 
 static void node_str_(Node *node, string *s);
@@ -49,11 +20,11 @@ void bind_str(vector *binds, string *s) {
     for (i=0; i < binds->size; i++) {
         bind = (Bind *)vector_get(binds, i);
         if (bind->is_enum) {
-            print(s, "%s ", bind->name);
+            string_append(s, "%s ", bind->name);
         } else {
-            print(s, "[%s ", bind->name);
+            string_append(s, "[%s ", bind->name);
             node_str_(bind->expr, s);
-            print(s, "] ");
+            string_append(s, "] ");
         }
     }
 }
@@ -62,23 +33,23 @@ static void node_str_(Node *node, string *s) {
     const char *name = token_name(node->type);
     int i;
 
-    print(s, "[%s ", name);
+    string_append(s, "[%s ", name);
 
     switch (node->type) {
         case BOOL:
         case INT:
-            print(s, "%d", node->intval);
+            string_append(s, "%d", node->intval);
             break;
         case IDENT:
         case STRING:
         case CHAR:
         case IMPORT:
         case ACCESSOR:
-            print(s, node->strval);
+            string_append(s, node->strval);
             break;
         case APPLY:
             node_str_(node->apply.optor, s);
-            print(s, " ");
+            string_append(s, " ");
             node_str_(node->apply.opand, s);
             break;
         case OBJECT:
@@ -86,7 +57,7 @@ static void node_str_(Node *node, string *s) {
             break;
         case EXPORT:
             for (i=0; i < node->elems->size; i++) {
-                print(s, "%s ", vector_get(node->elems, i));
+                string_append(s, "%s ", vector_get(node->elems, i));
             }
             break;
         case STRICT:
@@ -97,32 +68,29 @@ static void node_str_(Node *node, string *s) {
             node_str_(node->let.expr, s);
             break;
         case LAMBDA:
-            print(s, "%s ", node->lambda.param);
+            string_append(s, "%s ", node->lambda.param);
             node_str_(node->lambda.expr, s);
             break;
         case IF:
             node_str_(node->if_.pred, s);
-            print(s, " ");
+            string_append(s, " ");
             node_str_(node->if_.cons, s);
-            print(s, " ");
+            string_append(s, " ");
             node_str_(node->if_.alt, s);
             break;
         default:
-            print(s, "UNKNOWN");
+            string_append(s, "UNKNOWN");
     }
 
-    print(s, "]");
+    string_append(s, "]");
 }
 
 const int INITIAL_SIZE = 128;
 
 char *node_str(Node *node) {
-    string s;
-    s.s = malloc(sizeof(char) * INITIAL_SIZE);
-    s.len = 0;
-    s.capacity = INITIAL_SIZE;
-    node_str_(node, &s);
-    return s.s;
+    string *s = string_new();
+    node_str_(node, s);
+    return s->elems;
 }
 
 // Pre-order traversal

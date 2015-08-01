@@ -1,7 +1,7 @@
 #include <malloc.h>
 #include "vector.h"
 
-const int INIT_CAPACITY = 4;
+static const int INIT_CAPACITY = 4;
 
 vector *vector_new() {
     vector *v = malloc(sizeof(vector));

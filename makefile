@@ -5,7 +5,7 @@ SUFFIXES += .d
 SOURCES = $(shell find src/ -name "*.c") src/parser.c src/lexer.c
 DEPFILES = $(pathsubst %.c, %.d, $(SOURCES))
 
-OBJS = obj/starling.o obj/util.o obj/parser.o obj/lexer.o obj/vector.o obj/node.o
+OBJS = obj/starling.o obj/util.o obj/parser.o obj/lexer.o obj/vector.o obj/node.o obj/string.o
 TEST = obj/test.o obj/test_util.o obj/test_starling.o obj/test_node.o
 
 -include $(DEPFILES)
