@@ -46,7 +46,7 @@ void repl() {
 }
 
 static Node *load_module(const char *name) {
-    int len = strlen(MODULES) + strlen(name) + strlen(STAREXT) + 1;
+    size_t len = strlen(MODULES) + strlen(name) + strlen(STAREXT) + 1;
     char *path = malloc(sizeof(char) * len);
     snprintf(path, len, "%s%s%s", MODULES, name, STAREXT);
     yyin = fopen(path, "r");
