@@ -1,6 +1,8 @@
 %option noyywrap
+%option nounput
 
 %{
+#define YY_NO_INPUT
 #include "node.h"
 #include "parser.h"
 %}
