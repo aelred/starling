@@ -4,8 +4,20 @@
 
 %{
 #define YY_NO_INPUT
+#include <malloc.h>
+#include <string.h>
 #include "node.h"
 #include "parser.h"
+
+static char *strndup(const char *s, size_t n) {
+    char *new = malloc(sizeof(char) * n);
+    strcpy(new, s);
+    return new;
+}
+
+static char *strdup(const char *s) {
+    return strndup(s, strlen(s));
+}
 %}
 
 digit  [0-9]
