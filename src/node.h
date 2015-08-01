@@ -47,7 +47,7 @@ typedef struct Node {
     };
 } Node;
 
-void node_str(Node *node, char *s, size_t n);
+char *node_str(Node *node);
 
 Node *node(int type);
 

@@ -24,10 +24,9 @@ void repl() {
         } else {
             // Evaluate user input and print as a string
             Node *result = eval(line);
-            size_t n = 100;
-            char *res_str = malloc(sizeof(char) * n);
-            expr_string(result, res_str, n);
+            char *res_str = expr_string(result);
             puts(res_str);
+            free(res_str);
         }
     }
 }

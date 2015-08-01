@@ -1,19 +1,7 @@
-#include <stdio.h>
 #include <assert.h>
-#include <string.h>
 #include "starling.h"
 #include "parser.h"
-
-#define assert__(x) for ( ; !(x) ; assert(x) )
-
-void assert_node(Node *node, char *expected) {
-    size_t n = 100;
-    char str[n];
-    expr_string(node, str, n);
-    assert__(!strcmp(str, expected)) {
-        printf("%s != %s\n", str, expected);
-    }
-}
+#include "util.h"
 
 void test_eval() {
     assert(eval("1")->type == INT);
