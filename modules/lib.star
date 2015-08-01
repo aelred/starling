@@ -174,8 +174,4 @@ sort = xs ->
         more = filter (>= pivot) xs.tail in 
     (sort less) ++ (pivot : (sort more))
 
-in export 
-    (:) not (or) (and) any all (?) id const (>>) curry uncurry (@) (!=) (<)
-    (>=) (>) max min sum flip (has) foldr foldl fold foldr1 foldl1 fold1 map
-    filter span break take take_while take_until drop drop_while drop_until
-    join range nats length reverse (++) zip unzip sort
+in __script
