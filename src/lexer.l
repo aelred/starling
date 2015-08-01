@@ -38,7 +38,7 @@ word [a-zA-Z_][a-zA-Z_0-9]*
 True      { yylval.intval=1; return BOOL; }
 False     { yylval.intval=0; return BOOL; }
 {digit}+  { yylval.intval=atoi(yytext); return INT; }
-[-+*/=<>?:@!&|]+|and|or|mod|pow|has { 
+[-+*/=<>?:@!&|]+|and|or|mod|pow|has {
     yylval.strval=strdup(yytext); return INFIX;
 }
 {word}    { yylval.strval=strdup(yytext); return PREFIX;  }
