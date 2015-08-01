@@ -71,13 +71,13 @@ char *expr_string(Node *expr) {
 
 static Node *sub_expr;
 
-void sub_global(Node **node) {
+static void sub_global(Node **node) {
     if ((*node)->type == IDENT && !strcmp((*node)->strval, SCRIPT)) {
         *node = sub_expr;
     }
 }
 
-void import_global(Node *expr, Node *global) {    
+void import_global(Node *expr, Node *global) {
     sub_expr = expr;
     node_walk(&global, sub_global);
 }
