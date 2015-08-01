@@ -9,3 +9,5 @@ Node *parse(const char *s);
 Node *eval_expr(Node *expr);
 
 char *expr_string(Node *expr);
+
+void import_global(Node *expr, Node *global);

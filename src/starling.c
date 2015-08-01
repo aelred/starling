@@ -1,14 +1,20 @@
 #include <stdio.h>
 #include <malloc.h>
+#include <string.h>
 #include "starling.h"
 #include "util.h"
 #include "lexer.h"
 #include "parser.h"
 #include "node.h"
 
+const char *SCRIPT = "__script";
+
+const char *MODULES = "modules/";
+const char *STAREXT = ".star";
+
 // Evaluate a string expression and return the resulting object
 Node *eval(const char *s) {
-    return parse(s);
+    return eval_expr(parse(s));
 }
 
 // Run a read-evaluate-print loop
@@ -31,6 +37,20 @@ void repl() {
     }
 }
 
+Node *load_module(char *name) {
+    int len = strlen(MODULES) + strlen(name) + strlen(STAREXT) + 1;
+    char *path = malloc(sizeof(char) * len);
+    snprintf(path, len, "%s%s%s", MODULES, name, STAREXT);
+    yyin = fopen(path, "r");
+    YY_BUFFER_STATE buf = yy_create_buffer(yyin, YY_BUF_SIZE);
+    yy_switch_to_buffer(buf);
+    yyparse();
+    yy_delete_buffer(buf);
+    fclose(yyin);
+    free(path);
+    return result;
+}
+
 Node *parse(const char *s) {
     YY_BUFFER_STATE buf = yy_scan_string(s);
     yyparse();
@@ -39,8 +59,25 @@ Node *parse(const char *s) {
 }
 
 Node *eval_expr(Node *expr) {
+    // Add standard library
+    Node *new_expr = load_module("lib");
+    import_global(expr, new_expr);
+    return new_expr;
 }
 
-void expr_string(Node *expr, char *s, size_t n) {
-    node_str(expr, s, n);
+char *expr_string(Node *expr) {
+    return node_str(expr);
+}
+
+static Node *sub_expr;
+
+void sub_global(Node **node) {
+    if ((*node)->type == IDENT && !strcmp((*node)->strval, SCRIPT)) {
+        *node = sub_expr;
+    }
+}
+
+void import_global(Node *expr, Node *global) {    
+    sub_expr = expr;
+    node_walk(&global, sub_global);
 }
