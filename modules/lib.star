@@ -1,5 +1,19 @@
 let
 
+# built-ins
+(+)   = __builtin_add,
+(-)   = __builtin_sub,
+(*)   = __builtin_mul,
+(/)   = __builtin_div,
+(mod) = __builtin_mod,
+(pow) = __builtin_pow,
+(==)  = __builtin_eq,
+(<=)  = __builtin_le,
+chr   = __builtin_chr,
+ord   = __builtin_ord,
+repr  = __builtin_repr,
+str   = __builtin_str,
+
 # list constructor
 (:) = x xs -> {head=x, tail=xs},
 
