@@ -3,7 +3,6 @@
 
 const int INIT_CAPACITY = 4;
 
-
 vector *vector_new() {
     vector *v = malloc(sizeof(vector));
     v->elems = NULL;
@@ -11,7 +10,6 @@ vector *vector_new() {
     v->size = 0;
     return v;
 }
-
 
 void vector_push(vector *v, void *elem) {
     if (v->capacity == 0) {
@@ -28,7 +26,6 @@ void vector_push(vector *v, void *elem) {
     v->size++;
 }
 
-
 void vector_join(vector *v1, vector *v2) {
     int i;
     for (i=0; i < v2->size; i++) {
@@ -36,11 +33,9 @@ void vector_join(vector *v1, vector *v2) {
     }
 }
 
-
 void *vector_get(vector *v, int index) {
     return v->elems[index];
 }
-
 
 void vector_free(vector *v) {
     free(v->elems);
