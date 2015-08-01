@@ -1,5 +1,6 @@
 %option noyywrap
 %option nounput
+%option never-interactive
 
 %{
 #define YY_NO_INPUT
