@@ -9,6 +9,7 @@ vector *vector_new() {
     v->elems = NULL;
     v->capacity = 0;
     v->size = 0;
+    return v;
 }
 
 
