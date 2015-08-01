@@ -38,6 +38,7 @@ Bind *binding(char *name, Node *expr) {
     b->is_enum = 0;
     b->name = name;
     b->expr = expr;
+    return b;
 }
 
 Bind *enum_binding(char *name) {
