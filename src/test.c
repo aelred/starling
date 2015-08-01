@@ -1,8 +1,6 @@
-void test_util();
-void test_node();
-void test_starling();
+#include "test.h"
 
-int main() {
+int main(void) {
     test_util();
     test_node();
     test_starling();

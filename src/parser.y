@@ -34,7 +34,7 @@ Node *parser_result;
 
 void yyerror(const char *s);
 
-Bind *binding(char *name, Node *expr) {
+static Bind *binding(char *name, Node *expr) {
     Bind *b = malloc(sizeof(Bind));
     b->is_enum = 0;
     b->name = name;
@@ -42,22 +42,22 @@ Bind *binding(char *name, Node *expr) {
     return b;
 }
 
-Bind *enum_binding(char *name) {
+static Bind *enum_binding(char *name) {
     Bind *b = binding(name, NULL);
     b->is_enum = 1;
     return b;
 }
 
-void tuple_add(vector *binds, Node *expr) {
+static void tuple_add(vector *binds, Node *expr) {
     int num = binds->size;
     char *name = malloc(sizeof(char) * (ceil(log10(num+1)) + 2));
     sprintf(name, "_%d", num);
     vector_push(binds, binding(name, expr));
 }
 
-Node *cons(Node *, Node *);
-Node *binop(char *, Node *, Node *);
-Node *unop(char *, Node *);
+static Node *cons(Node *, Node *);
+static Node *binop(const char *, Node *, Node *);
+static Node *unop(const char *, Node *);
 
 %}
 
@@ -259,7 +259,7 @@ Node *cons(Node *elem, Node *list) {
     return binop(":", elem, list);
 }
 
-Node *binop(char *name, Node *x, Node *y) {
+Node *binop(const char *name, Node *x, Node *y) {
     Node *part = unop(name, x);
     Node *app = node(APPLY);
     app->apply.optor = part;
@@ -267,7 +267,7 @@ Node *binop(char *name, Node *x, Node *y) {
     return app;
 }
 
-Node *unop(char *name, Node *x) {
+Node *unop(const char *name, Node *x) {
     Node *op = node(IDENT);
     op->strval = name;
     Node *app = node(APPLY);

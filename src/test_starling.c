@@ -1,20 +1,21 @@
 #include <assert.h>
+#include "test.h"
 #include "starling.h"
 #include "parser.h"
 #include "util.h"
 
-void test_eval() {
+static void test_eval(void) {
     assert(eval("1")->type == INT);
     assert(eval("2*3")->type == INT);
 }
 
-void test_parse() {
+static void test_parse(void) {
     assert_node(parse("30"), "[INT 30]");
     assert_node(parse("False"), "[BOOL 0]");
     assert_node(parse("let x=1 in x"), "[LET [x [INT 1]] [IDENT x]]");
 }
 
-void test_import_global() {
+static void test_import_global(void) {
     Node *expr = parse("x + y");
     Node *glob = parse("let x=3, y=4, (+)=__builtin_add in __script");
     import_global(expr, glob);

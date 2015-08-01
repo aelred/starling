@@ -1,6 +1,6 @@
 #include "starling.h"
 
-int main() {
+int main(void) {
     repl();
 
     return 0;

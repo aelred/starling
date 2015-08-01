@@ -18,7 +18,7 @@ typedef struct Node {
         // BOOL INT
         int intval;
         // PREFIX INFIX STRING CHAR IMPORT ACCESSOR
-        char *strval;
+        const char *strval;
         // OBJECT EXPORT
         vector *elems;
         // STRICT
@@ -35,7 +35,7 @@ typedef struct Node {
         } let;
         // LAMBDA
         struct {
-            char *param;
+            const char *param;
             struct Node *expr;
         } lambda;
         // IF

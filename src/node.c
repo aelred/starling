@@ -14,7 +14,7 @@ Node *node(int type) {
 
 static void node_str_(Node *node, string *s);
 
-void bind_str(vector *binds, string *s) {
+static void bind_str(vector *binds, string *s) {
     Bind *bind;
     int i;
     for (i=0; i < binds->size; i++) {

@@ -18,7 +18,7 @@ int is_empty(const char *s) {
 }
 
 // Test if node matches string representation
-void assert_node(Node *node, char *expected) {
+void assert_node(Node *node, const char *expected) {
     char *str = expr_string(node);
     assert__(!strcmp(str, expected)) {
         printf("%s != %s\n", str, expected);

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include "test.h"
 #include "parser.h"
 #include "node.h"
 #include "starling.h"
@@ -8,7 +9,7 @@
 static int all_ints[10];
 static int count = 0;
 
-void record_ints(Node **n) {
+static void record_ints(Node **n) {
     if ((*n)->type == INT) {
 	// Track every integer
 	all_ints[count++] = (*n)->intval;
@@ -19,7 +20,7 @@ void record_ints(Node **n) {
     }
 }
 
-void test_node_walk() {
+static void test_node_walk(void) {
     Node *node = parse("let x = 10 + 20 in {x=30}");
     node_walk(&node, record_ints);
     // Make sure integers were counted correctly

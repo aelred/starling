@@ -4,4 +4,4 @@
 
 int is_empty(const char *);
 
-void assert_node(Node *node, char *expected);
+void assert_node(Node *node, const char *expected);
