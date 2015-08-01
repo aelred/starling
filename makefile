@@ -1,4 +1,10 @@
-CC=gcc -lm -g
+CC=gcc
+
+CFLAGS= -lm -g -std=c11 -pedantic -Wall -Werror -Wextra -Wshadow \
+	-Wformat-nonliteral -Wcast-align -Wbad-function-cast \
+	-Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations \
+	-Winline -Wundef -Wnested-externs -Wcast-qual -Wwrite-strings \
+	-Wfloat-equal -Winit-self -Wlogical-op -Wmissing-include-dirs
 
 SUFFIXES += .d
 
@@ -17,16 +23,16 @@ clean:
 	rm -rf src/parser.c src/parser.h src/parser.output src/lexer.c src/lexer.h
 
 starling: obj/main.o $(OBJS)
-	$(CC) -o bin/$@ $^
+	$(CC) $(CFLAGS) -o bin/$@ $^
 
 test: $(OBJS) $(TEST)
-	$(CC) -o bin/$@ $^
+	$(CC) $(CFLAGS) -o bin/$@ $^
 
 obj/%.o: src/%.c src/%.d
-	$(CC) -o $@ -c $<
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 src/%.d: src/%.c src/parser.c src/lexer.c
-	$(CC) -MM -MT '$(pathsubst src/%.c, obj/%.o, $<)' $< -MF $@
+	$(CC) $(CFLAGS) -MM -MT '$(pathsubst src/%.c, obj/%.o, $<)' $< -MF $@
 
 obj/lexer.o: src/parser.c
 src/lexer.c: src/lexer.l
