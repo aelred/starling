@@ -2,7 +2,7 @@
 
 Node *eval(const char *s);
 
-void repl();
+void repl(void);
 
 Node *parse(const char *s);
 

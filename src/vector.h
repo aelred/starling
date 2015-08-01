@@ -7,7 +7,7 @@ typedef struct {
     int size;
 } vector;
 
-vector *vector_new();
+vector *vector_new(void);
 
 void vector_push(vector *, void *);
 
