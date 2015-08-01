@@ -6,6 +6,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "node.h"
+#include "string.h"
 
 const char *SCRIPT = "__script";
 
@@ -21,15 +22,22 @@ Node *eval(const char *s) {
 void repl() {
     while (1) {
         printf(">>> ");
-        char *line = NULL;
-        size_t size;
+        string *line = string_new();
+        int c;
 
-        if (getline(&line, &size, stdin) == -1 || is_empty(line)) {
+        // Read input until a newline
+        c = getchar();
+        while (c != '\n' && c != EOF) {
+            string_push(line, c);
+            c = getchar();
+        }
+
+        if (is_empty(line->elems)) {
             // Stop when no more input is provided
             break;
         } else {
             // Evaluate user input and print as a string
-            Node *result = eval(line);
+            Node *result = eval(line->elems);
             char *res_str = expr_string(result);
             puts(res_str);
             free(res_str);
