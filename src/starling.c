@@ -37,7 +37,7 @@ void repl() {
     }
 }
 
-Node *load_module(char *name) {
+static Node *load_module(char *name) {
     int len = strlen(MODULES) + strlen(name) + strlen(STAREXT) + 1;
     char *path = malloc(sizeof(char) * len);
     snprintf(path, len, "%s%s%s", MODULES, name, STAREXT);
