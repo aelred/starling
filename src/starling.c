@@ -89,3 +89,7 @@ void import_global(Node *expr, Node *global) {
     sub_expr = expr;
     node_walk(&global, sub_global);
 }
+
+// Link all identifiers to their definitions
+void link_identifiers(Node *expr) {
+}
