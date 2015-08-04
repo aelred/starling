@@ -112,7 +112,7 @@ atom:
 | BOOL { $$ = node(BOOL); $$->intval = $1; }
 | CHAR { $$ = node(CHAR); $$->strval = $1; }
 | STRING { $$ = node(STRING); $$->strval = $1; }
-| ident { $$ = node(IDENT); $$->strval = $1; }
+| ident { $$ = node(IDENT); $$->ident.name = $1; $$->ident.def = NULL; }
 | parens
 | list
 
@@ -142,7 +142,8 @@ infix_partial:
       $$ = node(LAMBDA);
       $$->lambda.param = "()";  // Definitely unused variable name
       Node *param = node(IDENT);
-      param->strval = "()";
+      param->ident.name = "()";
+      param->ident.def = NULL;
       $$->lambda.expr = binop($1, param, $2);
   }
 
@@ -269,7 +270,8 @@ Node *binop(const char *name, Node *x, Node *y) {
 
 Node *unop(const char *name, Node *x) {
     Node *op = node(IDENT);
-    op->strval = name;
+    op->ident.name = name;
+    op->ident.def = NULL;
     Node *app = node(APPLY);
     app->apply.optor = op;
     app->apply.opand = x;

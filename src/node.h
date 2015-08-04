@@ -10,6 +10,7 @@ typedef struct {
     int is_enum;
     char *name;
     struct Node *expr;
+    vector *uses;
 } Bind;
 
 typedef struct Node {
@@ -17,12 +18,17 @@ typedef struct Node {
     union {
         // BOOL INT
         int intval;
-        // PREFIX INFIX STRING CHAR IMPORT ACCESSOR
+        // STRING CHAR IMPORT ACCESSOR
         const char *strval;
         // OBJECT EXPORT
         vector *elems;
         // STRICT
         struct Node *expr;
+        // IDENT
+        struct {
+            const char *name;
+            Bind *def;
+        } ident;
         // APPLY
         struct {
             struct Node *optor;

@@ -40,12 +40,14 @@ static void node_str_(Node *node, string *s) {
         case INT:
             string_append(s, "%d", node->intval);
             break;
-        case IDENT:
         case STRING:
         case CHAR:
         case IMPORT:
         case ACCESSOR:
             string_append(s, node->strval);
+            break;
+        case IDENT:
+            string_append(s, node->ident.name);
             break;
         case APPLY:
             node_str_(node->apply.optor, s);
