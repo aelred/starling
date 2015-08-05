@@ -91,36 +91,41 @@ char *node_str(Node *node) {
     return s->elems;
 }
 
-// Pre-order traversal
-void node_walk(Node **n, void (func)(Node **)) {
-    func(n);
+void node_walk(Node **n, void (pre)(Node **), void (post)(Node **)) {
+    pre(n);
     int i;
+
+    Node **child;
 
     switch ((*n)->type) {
         case OBJECT:
             for (i = 0; i < (*n)->elems->size; i++) {
-                node_walk(&(((Bind *)vector_get((*n)->elems, i))->expr), func);
+                child = &(((Bind *)vector_get((*n)->elems, i))->expr);
+                node_walk(child, pre, post);
             }
         case STRICT:
-            node_walk(&((*n)->expr), func);
+            node_walk(&((*n)->expr), pre, post);
             break;
         case APPLY:
-            node_walk(&((*n)->apply.optor), func);
-            node_walk(&((*n)->apply.opand), func);
+            node_walk(&((*n)->apply.optor), pre, post);
+            node_walk(&((*n)->apply.opand), pre, post);
             break;
         case LET:
             for (i = 0; i < (*n)->let.binds->size; i++) {
-                node_walk(&(((Bind *)vector_get((*n)->let.binds, i))->expr), func);
+                child = &(((Bind *)vector_get((*n)->let.binds, i))->expr);
+                node_walk(child, pre, post);
             }
-            node_walk(&((*n)->let.expr), func);
+            node_walk(&((*n)->let.expr), pre, post);
             break;
         case LAMBDA:
-            node_walk(&((*n)->lambda.expr), func);
+            node_walk(&((*n)->lambda.expr), pre, post);
             break;
         case IF:
-            node_walk(&((*n)->if_.pred), func);
-            node_walk(&((*n)->if_.cons), func);
-            node_walk(&((*n)->if_.alt), func);
+            node_walk(&((*n)->if_.pred), pre, post);
+            node_walk(&((*n)->if_.cons), pre, post);
+            node_walk(&((*n)->if_.alt), pre, post);
             break;
     }
+
+    post(n);
 }

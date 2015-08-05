@@ -13,6 +13,11 @@ static void record_ints(Node **n) {
     if ((*n)->type == INT) {
 	// Track every integer
 	all_ints[count++] = (*n)->intval;
+    }
+}
+
+static void replace_bool(Node **n) {
+    if ((*n)->type == INT) {
 	// Transform every integer into a boolean
 	Node *new_node = node(BOOL);
 	new_node->intval = 0;
@@ -22,7 +27,7 @@ static void record_ints(Node **n) {
 
 static void test_node_walk(void) {
     Node *node = parse("let x = 10 + 20 in {x=30}");
-    node_walk(&node, record_ints);
+    node_walk(&node, record_ints, replace_bool);
     // Make sure integers were counted correctly
     assert__(count == 3) { printf("%d != 3\n", count); };
     assert(all_ints[0] == 10);
