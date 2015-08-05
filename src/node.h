@@ -7,7 +7,6 @@
 struct Node;
 
 typedef struct {
-    int is_enum;
     char *name;
     struct Node *expr;
     vector *uses;

@@ -19,13 +19,9 @@ static void bind_str(vector *binds, string *s) {
     int i;
     for (i=0; i < binds->size; i++) {
         bind = (Bind *)vector_get(binds, i);
-        if (bind->is_enum) {
-            string_append(s, "%s ", bind->name);
-        } else {
-            string_append(s, "[%s ", bind->name);
-            node_str_(bind->expr, s);
-            string_append(s, "] ");
-        }
+        string_append(s, "[%s ", bind->name);
+        node_str_(bind->expr, s);
+        string_append(s, "] ");
     }
 }
 

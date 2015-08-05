@@ -32,20 +32,25 @@ int yydebug = 0;
 
 Node *parser_result;
 
+static Node *cons(Node *, Node *);
+static Node *binop(const char *, Node *, Node *);
+static Node *unop(const char *, Node *);
+
 void yyerror(const char *s);
 
 static Bind *binding(char *name, Node *expr) {
     Bind *b = malloc(sizeof(Bind));
-    b->is_enum = 0;
     b->name = name;
     b->expr = expr;
     return b;
 }
 
+static int enum_count;
+
 static Bind *enum_binding(char *name) {
-    Bind *b = binding(name, NULL);
-    b->is_enum = 1;
-    return b;
+    Node *id = node(INT);
+    id->intval = enum_count++;
+    return binding(name, unop("__builtin_enum", id));
 }
 
 static void tuple_add(vector *binds, Node *expr) {
@@ -54,12 +59,11 @@ static void tuple_add(vector *binds, Node *expr) {
     sprintf(name, "_%d", num);
     vector_push(binds, binding(name, expr));
 }
-
-static Node *cons(Node *, Node *);
-static Node *binop(const char *, Node *, Node *);
-static Node *unop(const char *, Node *);
-
 %}
+
+%initial-action {
+enum_count = 0;
+}
 
 %token LPAR RPAR LLIST RLIST LOBJ ROBJ EQUALS COMMA DOT ARROW LET IN IF THEN
 %token ELSE ENUM IMPORT EXPORT STRICT UNKNOWN
