@@ -54,6 +54,8 @@ typedef struct Node {
 
 char *node_str(Node *node);
 
+char *node_code(Node *node);
+
 void node_walk(Node **node, void (pre)(Node **), void (post)(Node **));
 
 Node *node(int type);

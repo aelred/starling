@@ -76,7 +76,7 @@ Node *eval_expr(Node *expr) {
 }
 
 char *expr_string(Node *expr) {
-    return node_str(expr);
+    return node_code(expr);
 }
 
 static Node *sub_expr;
