@@ -9,6 +9,7 @@
 Node *node(int type) {
     Node *n = malloc(sizeof(Node));
     n->type = type;
+    n->dependencies = NULL;
     return n;
 }
 

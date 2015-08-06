@@ -13,6 +13,8 @@ void vector_push(vector *, void *);
 
 void *vector_pop(vector *);
 
+void vector_remove(vector *, int);
+
 void vector_join(vector *, vector *);
 
 void *vector_get(vector *, int);

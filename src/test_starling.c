@@ -47,7 +47,16 @@ static void test_link_identifiers(void) {
     assert(use1 != use2);
 }
 
+static void test_prune_unused(void) {
+    Node *expr = parse("let x=1, y=2 in (let z=3 in foo) y");
+    link_identifiers(expr);
+    prune_unused(&expr);
+    // Make sure definition of x and z are eliminated.
+    assert_node(expr, "[LET [y [INT 2]] [APPLY [IDENT foo] [IDENT y]]]");
+}
+
 void test_starling() {
+    test_prune_unused();
     test_link_identifiers();
     test_import_global();
     test_parse();

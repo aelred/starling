@@ -14,6 +14,7 @@ typedef struct {
 
 typedef struct Node {
     int type;
+    vector *dependencies;
     union {
         // BOOL INT
         int intval;

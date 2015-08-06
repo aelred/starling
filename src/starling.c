@@ -72,6 +72,8 @@ Node *eval_expr(Node *expr) {
     import_global(expr, new_expr);
     // Link identifiers to definitions
     link_identifiers(new_expr);
+    // Remove unused definitions
+    prune_unused(&new_expr);
     return new_expr;
 }
 
@@ -108,6 +110,7 @@ static void push_env(Node **node) {
             break;
         case IDENT:
             // Look up identifier in environment
+            (*node)->ident.def = NULL;
             for (int i = env->size-1; i >= 0; i --) {
                 bind = vector_get(env, i);
                 if (!strcmp((*node)->ident.name, bind->name)) {
@@ -134,4 +137,77 @@ void link_identifiers(Node *expr) {
     env = vector_new();
     node_walk(&expr, push_env, pop_env);
     vector_free(env);
+}
+
+// Calculate and record dependencies of an expression
+static vector *calc_dependencies(Node *expr) {
+    if (expr->dependencies != NULL) return expr->dependencies;
+
+    vector *deps = vector_new();
+    expr->dependencies = deps;
+
+    switch (expr->type) {
+        case STRICT:
+            vector_join(deps, calc_dependencies(expr->expr));
+            break;
+        case IDENT:
+            if (expr->ident.def != NULL) {
+                vector_push(deps, expr->ident.def);
+                vector_join(deps, calc_dependencies(expr->ident.def->expr));
+            }
+            break;
+        case APPLY:
+            vector_join(deps, calc_dependencies(expr->apply.optor));
+            vector_join(deps, calc_dependencies(expr->apply.opand));
+            break;
+        case LET:
+            vector_join(deps, calc_dependencies(expr->let.expr));
+            break;
+        case LAMBDA:
+            vector_join(deps, calc_dependencies(expr->lambda.expr));
+            break;
+        case IF:
+            vector_join(deps, calc_dependencies(expr->if_.pred));
+            vector_join(deps, calc_dependencies(expr->if_.cons));
+            vector_join(deps, calc_dependencies(expr->if_.alt));
+            break;
+    }
+
+    return deps;
+}
+
+static vector *dependencies;
+
+static void remove_unused(Node **expr) {
+    Bind *bind;
+    if ((*expr)->type == LET) {
+        for (int i=0; i < (*expr)->let.binds->size; i++) {
+            bind = vector_get((*expr)->let.binds, i);
+
+            // Lookup binding in used dependencies
+            int found = 0;
+            for (int j=0; j < dependencies->size; j++) {
+                if (bind == vector_get(dependencies, j)) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (!found) {
+                // Delete this binding
+                vector_remove((*expr)->let.binds, i);
+                i--;
+            }
+        }
+
+        // If no bindings left, delete entire let expression
+        if ((*expr)->let.binds->size == 0) {
+            *expr = (*expr)->let.expr;
+        }
+    }
+}
+
+// Remove unused definitions, must first call link_identifiers
+void prune_unused(Node **expr) {
+    dependencies = calc_dependencies(*expr);
+    node_walk(expr, remove_unused, no_action);
 }

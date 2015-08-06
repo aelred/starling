@@ -31,6 +31,14 @@ void *vector_pop(vector *v) {
     return v->elems[v->size];
 }
 
+void vector_remove(vector *v, int index) {
+    // Move up all elements
+    for (int i = index; i < v->size-1; i ++) {
+	v->elems[i] = v->elems[i+1];
+    }
+    v->size--;
+}
+
 void vector_join(vector *v1, vector *v2) {
     int i;
     for (i=0; i < v2->size; i++) {
