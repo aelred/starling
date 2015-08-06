@@ -42,6 +42,7 @@ static Bind *binding(char *name, Node *expr) {
     Bind *b = malloc(sizeof(Bind));
     b->name = name;
     b->expr = expr;
+    b->uses = vector_new();
     return b;
 }
 
