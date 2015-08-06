@@ -11,6 +11,8 @@ vector *vector_new(void);
 
 void vector_push(vector *, void *);
 
+void *vector_pop(vector *);
+
 void vector_join(vector *, vector *);
 
 void *vector_get(vector *, int);

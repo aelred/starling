@@ -26,6 +26,11 @@ void vector_push(vector *v, void *elem) {
     v->size++;
 }
 
+void *vector_pop(vector *v) {
+    v->size--;
+    return v->elems[v->size];
+}
+
 void vector_join(vector *v1, vector *v2) {
     int i;
     for (i=0; i < v2->size; i++) {

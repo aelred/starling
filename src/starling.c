@@ -70,6 +70,8 @@ Node *eval_expr(Node *expr) {
     // Add standard library
     Node *new_expr = load_module("lib");
     import_global(expr, new_expr);
+    // Link identifiers to definitions
+    link_identifiers(new_expr);
     return new_expr;
 }
 
@@ -93,6 +95,43 @@ void import_global(Node *expr, Node *global) {
     node_walk(&global, sub_global, no_action);
 }
 
+static vector *env;
+
+// Push any definitions onto environment
+static void push_env(Node **node) {
+    Bind *bind;
+
+    switch ((*node)->type) {
+        case LET:
+            // Push all definitions in let expression
+            vector_join(env, (*node)->let.binds);
+            break;
+        case IDENT:
+            // Look up identifier in environment
+            for (int i = env->size-1; i >= 0; i --) {
+                bind = vector_get(env, i);
+                if (!strcmp((*node)->ident.name, bind->name)) {
+                    (*node)->ident.def = bind;
+                    vector_push(bind->uses, *node);
+                    break;
+                }
+            }
+            break;
+    }
+}
+
+// Pop any pushed definitions
+static void pop_env(Node **node) {
+    if ((*node)->type == LET) {
+        for (int i=0; i < (*node)->let.binds->size; i++) {
+            vector_pop(env);
+        }
+    }
+}
+
 // Link all identifiers to their definitions
 void link_identifiers(Node *expr) {
+    env = vector_new();
+    node_walk(&expr, push_env, pop_env);
+    vector_free(env);
 }
