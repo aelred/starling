@@ -158,14 +158,15 @@ static void node_code_(Node *node, string *s, int use_parens) {
             inner = node->apply.optor;
             if (inner->type == IDENT && is_infix(inner->ident.name)) {
                 // This is an infix application
-                node_code_(node->apply.opand, s, 1);
+                node_code_(node->apply.opand, s,
+                           node->apply.opand->type != APPLY);
                 string_append(s, " %s", inner->ident.name);
             } else if (inner->type == ACCESSOR) {
                 // This is an accessor application
                 node_code_(node->apply.opand, s, 1);
                 string_append(s, ".%s", inner->strval);
             } else {
-                node_code_(node->apply.optor, s, 0);
+                node_code_(inner, s, inner->type != APPLY);
                 string_append(s, " ");
                 node_code_(node->apply.opand, s, 1);
             }
