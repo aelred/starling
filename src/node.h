@@ -18,7 +18,9 @@ typedef struct Node {
     union {
         // BOOL INT
         int intval;
-        // STRING CHAR IMPORT ACCESSOR
+        // CHAR
+        char charval;
+        // STRING IMPORT ACCESSOR
         const char *strval;
         // OBJECT EXPORT
         vector *elems;

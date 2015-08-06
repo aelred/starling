@@ -60,6 +60,37 @@ static void tuple_add(vector *binds, Node *expr) {
     sprintf(name, "_%d", num);
     vector_push(binds, binding(name, expr));
 }
+
+static char unescape(const char *s) {
+    // Only need unescaping when there's a backslash
+    if (s[0] != '\\') return s[0];
+
+    // Special escape sequences (e.g. '\n')
+    switch (s[1]) {
+        case 'b':
+            return '\b';
+        case 'f':
+            return '\f';
+        case 'n':
+            return '\n';
+        case 'r':
+            return '\r';
+        case 't':
+            return '\t';
+        case 'v':
+            return '\v';
+        case '\\':
+            return '\\';
+        case '\'':
+            return '\'';
+        case 'x':
+            // Handle hex values
+            break;
+    }
+
+    // If doesn't match any patterns, ignore backslash
+    return s[1];
+}
 %}
 
 %initial-action {
@@ -115,7 +146,7 @@ atom:
 | tuple
 | INT { $$ = node(INT); $$->intval = $1; }
 | BOOL { $$ = node(BOOL); $$->intval = $1; }
-| CHAR { $$ = node(CHAR); $$->strval = $1; }
+| CHAR { $$ = node(CHAR); $$->charval = unescape($1); }
 | STRING { $$ = node(STRING); $$->strval = $1; }
 | ident { $$ = node(IDENT); $$->ident.name = $1; $$->ident.def = NULL; }
 | parens

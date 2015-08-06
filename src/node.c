@@ -40,8 +40,10 @@ static void node_str_(Node *node, string *s) {
         case INT:
             string_append(s, "%d", node->intval);
             break;
-        case STRING:
         case CHAR:
+            string_append(s, "%c", node->charval);
+            break;
+        case STRING:
         case IMPORT:
         case ACCESSOR:
             string_append(s, node->strval);
@@ -140,7 +142,7 @@ static void node_code_(Node *node, string *s, int use_parens) {
             string_append(s, "\"%s\"", node->strval);
             break;
         case CHAR:
-            string_append(s, "'%s'", node->strval);
+            string_append(s, "'%c'", node->charval);
             break;
         case IMPORT:
             string_append(s, "import %s", node->strval);
