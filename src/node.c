@@ -5,6 +5,7 @@
 #include "node.h"
 #include "parser.h"
 #include "string.h"
+#include "util.h"
 
 Node *node(int type) {
     Node *n = malloc(sizeof(Node));
@@ -92,21 +93,38 @@ char *node_str(Node *node) {
     return s->elems;
 }
 
-static void node_code_(Node *node, string *s);
+static void node_code_(Node *node, string *s, int use_parens);
 
 static void bind_code(vector *binds, string *s) {
     Bind *bind;
     int i;
     for (i=0; i < binds->size; i++) {
         bind = (Bind *)vector_get(binds, i);
-        string_append(s, "%s = ", bind->name);
-        node_code_(bind->expr, s);
+        if (is_infix(bind->name))
+            string_append(s, "(%s) = ", bind->name);
+        else
+            string_append(s, "%s = ", bind->name);
+        node_code_(bind->expr, s, 0);
         if (i < binds->size-1) string_append(s, ", ");
     }
 }
 
-static void node_code_(Node *node, string *s) {
+static void node_code_(Node *node, string *s, int use_parens) {
     int i;
+    Node *inner;
+
+    switch (node->type) {
+        case APPLY:
+            // Exclude parentheses if an accessor.
+            if (node->apply.optor->type == ACCESSOR) break;
+        case ACCESSOR:
+        case EXPORT:
+        case STRICT:
+        case LET:
+        case LAMBDA:
+        case IF:
+            if (use_parens) string_append(s, "(");
+    }
 
     switch (node->type) {
         case BOOL:
@@ -131,14 +149,26 @@ static void node_code_(Node *node, string *s) {
             string_append(s, "(.%s)", node->strval);
             break;
         case IDENT:
-            string_append(s, node->ident.name);
+            if (is_infix(node->ident.name))
+                string_append(s, "(%s)", node->ident.name);
+            else
+                string_append(s, node->ident.name);
             break;
         case APPLY:
-            string_append(s, "(");
-            node_code_(node->apply.optor, s);
-            string_append(s, " ");
-            node_code_(node->apply.opand, s);
-            string_append(s, ")");
+            inner = node->apply.optor;
+            if (inner->type == IDENT && is_infix(inner->ident.name)) {
+                // This is an infix application
+                node_code_(node->apply.opand, s, 1);
+                string_append(s, " %s", inner->ident.name);
+            } else if (inner->type == ACCESSOR) {
+                // This is an accessor application
+                node_code_(node->apply.opand, s, 1);
+                string_append(s, ".%s", inner->strval);
+            } else {
+                node_code_(node->apply.optor, s, 0);
+                string_append(s, " ");
+                node_code_(node->apply.opand, s, 1);
+            }
             break;
         case OBJECT:
             string_append(s, "{");
@@ -146,47 +176,60 @@ static void node_code_(Node *node, string *s) {
             string_append(s, "}");
             break;
         case EXPORT:
-            string_append(s, "(export ");
+            string_append(s, "export ");
             for (i=0; i < node->elems->size; i++) {
                 string_append(s, "%s ", vector_get(node->elems, i));
             }
-            string_append(s, ")");
             break;
         case STRICT:
-            string_append(s, "(strict ");
-            node_code_(node->expr, s);
-            string_append(s, ")");
+            string_append(s, "strict ");
+            node_code_(node->expr, s, 1);
             break;
         case LET:
-            string_append(s, "(let ");
+            string_append(s, "let ");
             bind_code(node->let.binds, s);
             string_append(s, " in ");
-            node_code_(node->let.expr, s);
-            string_append(s, ")");
+            node_code_(node->let.expr, s, 0);
             break;
         case LAMBDA:
-            string_append(s, "(%s ", node->lambda.param);
-            string_append(s, " -> ");
-            node_code_(node->lambda.expr, s);
-            string_append(s, ")");
+            // Handle nested lambdas
+            inner = node;
+            while (inner->type == LAMBDA) {
+                string_append(s, "%s ", inner->lambda.param);
+                inner = inner->lambda.expr;
+            }
+            string_append(s, "-> ");
+            node_code_(inner, s, 0);
             break;
         case IF:
-            string_append(s, "(if ");
-            node_code_(node->if_.pred, s);
+            string_append(s, "if ");
+            node_code_(node->if_.pred, s, 0);
             string_append(s, " then ");
-            node_code_(node->if_.cons, s);
+            node_code_(node->if_.cons, s, 0);
             string_append(s, " else ");
-            node_code_(node->if_.alt, s);
-            string_append(s, ")");
+            node_code_(node->if_.alt, s, 0);
             break;
         default:
             string_append(s, "UNKNOWN");
+    }
+
+    switch (node->type) {
+        case APPLY:
+            // Exclude parentheses if an accessor.
+            if (node->apply.optor->type == ACCESSOR) break;
+        case ACCESSOR:
+        case EXPORT:
+        case STRICT:
+        case LET:
+        case LAMBDA:
+        case IF:
+            if (use_parens) string_append(s, ")");
     }
 }
 
 char *node_code(Node *node) {
     string *s = string_new();
-    node_code_(node, s);
+    node_code_(node, s, 0);
     return s->elems;
 }
 
