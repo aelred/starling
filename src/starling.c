@@ -38,7 +38,7 @@ void repl() {
         } else {
             // Evaluate user input and print as a string
             Node *result = eval(line->elems);
-            char *res_str = expr_string(result);
+            char *res_str = node_code(result);
             puts(res_str);
             free(res_str);
         }
@@ -75,10 +75,6 @@ Node *eval_expr(Node *expr) {
     // Remove unused definitions
     prune_unused(&new_expr);
     return new_expr;
-}
-
-char *expr_string(Node *expr) {
-    return node_code(expr);
 }
 
 static Node *sub_expr;
