@@ -7,7 +7,6 @@
 #include "starling.h"
 #include "util.h"
 
-// Test if an entire string is only whitespace
 int is_empty(const char *s) {
     while (*s != '\0') {
         if (!isspace((unsigned char)*s)) return 0;
@@ -17,7 +16,6 @@ int is_empty(const char *s) {
     return 1;
 }
 
-// Test if an identifier is infix
 int is_infix(const char *s) {
     switch (s[0]) {
         case '-':
@@ -45,7 +43,6 @@ int is_infix(const char *s) {
     return 0;
 }
 
-// Test if node matches string representation
 void assert_node(Node *node, const char *expected) {
     char *str = node_str(node);
     assert__(!strcmp(str, expected)) {

@@ -6,12 +6,14 @@
 
 struct Node;
 
+// A binding from a name to an expression
 typedef struct {
     char *name;
     struct Node *expr;
     vector *uses;
 } Bind;
 
+// A node in the abstract syntax tree
 typedef struct Node {
     int type;
     vector *dependencies;
@@ -55,12 +57,16 @@ typedef struct Node {
     };
 } Node;
 
+// Return string representation of given node
 char *node_str(Node *node);
 
+// Return starling code representation of given node
 char *node_code(Node *node);
 
+// Walk over syntax tree, applying pre- and post- functions
 void node_walk(Node **node, void (pre)(Node **), void (post)(Node **));
 
+// Create a node of a given type
 Node *node(int type);
 
 #endif

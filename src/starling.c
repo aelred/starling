@@ -13,12 +13,10 @@ const char *SCRIPT = "__script";
 const char *MODULES = "modules/";
 const char *STAREXT = ".star";
 
-// Evaluate a string expression and return the resulting object
 Node *eval(const char *s) {
     return eval_expr(parse(s));
 }
 
-// Run a read-evaluate-print loop
 void repl() {
     while (1) {
         printf(">>> ");
@@ -128,7 +126,6 @@ static void pop_env(Node **node) {
     }
 }
 
-// Link all identifiers to their definitions
 void link_identifiers(Node *expr) {
     env = vector_new();
     node_walk(&expr, push_env, pop_env);
@@ -202,7 +199,6 @@ static void remove_unused(Node **expr) {
     }
 }
 
-// Remove unused definitions, must first call link_identifiers
 void prune_unused(Node **expr) {
     dependencies = calc_dependencies(*expr);
     node_walk(expr, remove_unused, no_action);
