@@ -211,6 +211,41 @@ static void node_code_(Node *node, string *s, int use_parens) {
             string_append(s, " else ");
             node_code_(node->if_.alt, s, 0);
             break;
+        case BUILTIN_ADD:
+            string_append(s, "__builtin_add");
+            break;
+        case BUILTIN_SUB:
+            string_append(s, "__builtin_sub");
+            break;
+        case BUILTIN_MUL:
+            string_append(s, "__builtin_mul");
+            break;
+        case BUILTIN_DIV:
+            string_append(s, "__builtin_div");
+            break;
+        case BUILTIN_MOD:
+            string_append(s, "__builtin_mod");
+            break;
+        case BUILTIN_POW:
+            string_append(s, "__builtin_pow");
+            break;
+        case BUILTIN_EQ:
+            string_append(s, "__builtin_eq");
+            break;
+        case BUILTIN_LE:
+            string_append(s, "__builtin_le");
+            break;
+        case BUILTIN_CHR:
+            string_append(s, "__builtin_chr");
+            break;
+        case BUILTIN_ORD:
+            string_append(s, "__builtin_ord");
+            break;
+        case BUILTIN_REPR:
+            string_append(s, "__builtin_repr");
+            break;
+        case BUILTIN_STR:
+            string_append(s,"__builtin_str");
         default:
             string_append(s, "UNKNOWN");
     }

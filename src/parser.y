@@ -99,12 +99,14 @@ enum_count = 0;
 
 %token LPAR RPAR LLIST RLIST LOBJ ROBJ EQUALS COMMA DOT ARROW LET IN IF THEN
 %token ELSE ENUM IMPORT EXPORT STRICT UNKNOWN
-%token <intval> BOOL INT 
+%token BUILTIN_ADD BUILTIN_SUB BUILTIN_MUL BUILTIN_DIV BUILTIN_MOD BUILTIN_POW
+%token BUILTIN_EQ BUILTIN_LE BUILTIN_CHR BUILTIN_ORD BUILTIN_REPR BUILTIN_STR
+%token <intval> BOOL INT
 %token <strval> PREFIX INFIX STRING CHAR
 
 %type <node> expr if strict export atom import parens let lambda lambda_inner
 %type <node> list list_inner tuple object object_accessor partial_accessor
-%type <node> prefix_apply infix_apply infix_partial apply
+%type <node> prefix_apply infix_apply infix_partial apply builtin
 %type <strval> ident
 %type <strlist> export_inner
 %type <bindlist> let_inner let_binding enum enum_inner object_inner 
@@ -151,6 +153,21 @@ atom:
 | ident { $$ = node(IDENT); $$->ident.name = $1; $$->ident.def = NULL; }
 | parens
 | list
+| builtin
+
+builtin:
+  BUILTIN_ADD  { $$ = node(BUILTIN_ADD); }
+| BUILTIN_SUB  { $$ = node(BUILTIN_SUB); }
+| BUILTIN_MUL  { $$ = node(BUILTIN_MUL); }
+| BUILTIN_DIV  { $$ = node(BUILTIN_DIV); }
+| BUILTIN_MOD  { $$ = node(BUILTIN_MOD); }
+| BUILTIN_POW  { $$ = node(BUILTIN_POW); }
+| BUILTIN_EQ   { $$ = node(BUILTIN_EQ); }
+| BUILTIN_LE   { $$ = node(BUILTIN_LE); }
+| BUILTIN_CHR  { $$ = node(BUILTIN_CHR); }
+| BUILTIN_ORD  { $$ = node(BUILTIN_ORD); }
+| BUILTIN_REPR { $$ = node(BUILTIN_REPR); }
+| BUILTIN_STR  { $$ = node(BUILTIN_STR); }
 
 ident:
   PREFIX

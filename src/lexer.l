@@ -44,6 +44,19 @@ word [a-zA-Z_][a-zA-Z_0-9]*
 "import"  { return IMPORT; }
 "export"  { return EXPORT; }
 
+"__builtin_add" { return BUILTIN_ADD; }
+"__builtin_sub" { return BUILTIN_SUB; }
+"__builtin_mul" { return BUILTIN_MUL; }
+"__builtin_div" { return BUILTIN_DIV; }
+"__builtin_mod" { return BUILTIN_MOD; }
+"__builtin_pow" { return BUILTIN_POW; }
+"__builtin_eq" { return BUILTIN_EQ; }
+"__builtin_le" { return BUILTIN_LE; }
+"__builtin_chr" { return BUILTIN_CHR; }
+"__builtin_ord" { return BUILTIN_ORD; }
+"__builtin_repr" { return BUILTIN_REPR; }
+"__builtin_str" { return BUILTIN_STR; }
+
 #.*$      ; // skip comments
 [ \t\n\r] ; // skip whitespace
 
