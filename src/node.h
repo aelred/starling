@@ -22,7 +22,7 @@ typedef struct Node {
         int intval;
         // CHAR
         char charval;
-        // STRING IMPORT ACCESSOR
+        // STRING IMPORT
         const char *strval;
         // OBJECT EXPORT
         vector *elems;
@@ -43,11 +43,11 @@ typedef struct Node {
             vector *binds;
             struct Node *expr;
         } let;
-        // LAMBDA
+        // LAMBDA ACCESSOR
         struct {
             const char *param;
             struct Node *expr;
-        } lambda;
+        } lambda, accessor;
         // IF
         struct {
             struct Node *pred;

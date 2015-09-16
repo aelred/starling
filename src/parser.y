@@ -216,14 +216,22 @@ tuple_inner:
 | expr { $$ = vector_new(); tuple_add($$, $1); }
 
 object_accessor:
-  atom partial_accessor {
-      $$ = node(APPLY);
-      $$->apply.opand = $1;
-      $$->apply.optor = $2;
+  atom DOT ident {
+      $$ = node(ACCESSOR);
+      $$->accessor.param = $3;
+      $$->accessor.expr = $1;
   }
 
 partial_accessor:
-  DOT ident { $$ = node(ACCESSOR); $$->strval = $2; }
+  DOT ident {
+    $$ = node(LAMBDA);
+    $$->lambda.param = "obj";
+    $$->lambda.expr = node(ACCESSOR);
+    Node *expr = node(ACCESSOR);
+    expr->accessor.param = $2;
+    expr->accessor.expr = node(IDENT);
+    expr->accessor.expr->ident.name = $2;
+  }
 
 object:
   LOBJ object_inner comma_opt ROBJ { $$ = node(OBJECT); $$->elems = $2; }

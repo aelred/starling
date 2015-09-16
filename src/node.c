@@ -46,7 +46,8 @@ static void node_str_(Node *node, string *s) {
         case STRING:
         case IMPORT:
         case ACCESSOR:
-            string_append(s, node->strval);
+            node_str_(node->accessor.expr, s);
+            string_append(s, " %s", node->accessor.param);
             break;
         case IDENT:
             string_append(s, node->ident.name);
@@ -117,9 +118,6 @@ static void node_code_(Node *node, string *s, int use_parens) {
 
     switch (node->type) {
         case APPLY:
-            // Exclude parentheses if an accessor.
-            if (node->apply.optor->type == ACCESSOR) break;
-        case ACCESSOR:
         case EXPORT:
         case STRICT:
         case LET:
@@ -148,7 +146,8 @@ static void node_code_(Node *node, string *s, int use_parens) {
             string_append(s, "import %s", node->strval);
             break;
         case ACCESSOR:
-            string_append(s, "(.%s)", node->strval);
+            node_code_(node->accessor.expr, s, 1);
+            string_append(s, ".%s", node->accessor.param);
             break;
         case IDENT:
             if (is_infix(node->ident.name))
@@ -218,9 +217,6 @@ static void node_code_(Node *node, string *s, int use_parens) {
 
     switch (node->type) {
         case APPLY:
-            // Exclude parentheses if an accessor.
-            if (node->apply.optor->type == ACCESSOR) break;
-        case ACCESSOR:
         case EXPORT:
         case STRICT:
         case LET:
