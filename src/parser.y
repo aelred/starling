@@ -244,10 +244,10 @@ partial_accessor:
     $$ = node(LAMBDA);
     $$->lambda.param = "obj";
     $$->lambda.expr = node(ACCESSOR);
-    Node *expr = node(ACCESSOR);
+    Node *expr = $$->lambda.expr;
     expr->accessor.param = $2;
     expr->accessor.expr = node(IDENT);
-    expr->accessor.expr->ident.name = $2;
+    expr->accessor.expr->ident.name = "obj";
   }
 
 object:
