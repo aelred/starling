@@ -45,6 +45,8 @@ static void node_str_(Node *node, string *s) {
             break;
         case STRING:
         case IMPORT:
+            string_append(s, " %s", node->strval);
+            break;
         case ACCESSOR:
             node_str_(node->accessor.expr, s);
             string_append(s, " %s", node->accessor.param);
